@@ -1,0 +1,179 @@
+.tg {border-collapse:collapse;border-spacing:0;} .tg 
+td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, 
+sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;} .tg 
+th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, 
+sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 
+5px;word-break:normal;} .tg .tg-7q3x{font-family:Arial, Helvetica, 
+sans-serif 
+!important;;font-weight:bold;text-align:left;vertical-align:top} .tg 
+.tg-wgsn{border-color:inherit;font-family:Arial, Helvetica, sans-serif 
+!important;;text-align:left;vertical-align:top} .tg 
+.tg-7fgd{border-color:inherit;font-family:Arial, Helvetica, sans-serif 
+!important;;font-weight:bold;text-align:right;
+  vertical-align:middle} html {
+	background: #404550;
+}
+.g-recaptcha {
+    width: 50%;
+    height: auto;
+    font-size: 18px;
+    float:inline-start;
+}
+body {
+	font: 100% Arial, Helvetica, sans-serif;
+	line-height: 1.5;
+	position: relative;
+	background: #fff;
+	color: rgb(76, 67, 65);
+	font-weight:normal;
+	font-style:normal;
+	margin: 20 20 20 20;
+    padding: 20px;
+}
+form{
+	margin-bottom: 1em;
+    margin-left: auto;
+    margin-right: auto;
+    width: auto;
+}
+h1 {
+	font-size: 1.8em;
+	margin-bottom: .25em;
+  font-family: Helvetica, sans-serif;
+  color: #666666;
+}
+a { color: #222
+}
+*{
+    @include tf($tf-fm: $sai);
+    @include other($ot-tsi: $all)
+}
+body{
+    background: #dfdfdf
+}
+.container{
+    @include bm(100%, 100%, $bm-pd: 0 16px, $bm-dp: $fl);
+    @include flex-center($rnw)
+}
+form{
+    @include bm(400px, $bm-dp: $fl);
+    @include flex-center($cw);
+        div, label, input, textarea{
+            @include bm(100%)
+        }
+}
+.field:nth-of-type(2){
+    @include bm($bm-mg: 16px 0)
+}
+label, input, textarea{
+    @include bm($bm-pd: 8px)
+}
+label, [placeholder]{
+    @include tf(#555)
+}
+label i{
+    @include bm($bm-mg: 0 10px 0 0)
+}
+.field:focus-within label{
+    @include tf(#000, $tf-ls: 2px)
+}
+input, textarea{
+    background: rgba(255,255,255,.5);
+    border: none;
+    line-height: 1.5em;
+    @include other($ot-br: 4px, $ot-bs: $o-b);
+        &:focus{
+            background: rgba(255,255,255,1);
+            @include other($ot-bs: none)
+        }
+}
+.txt { background: rgba(0,0,0,.1); overflow-x: scroll; overflow-y: 
+scroll;
+}
+input[type=submit] {
+    background: #222222;
+    @include bm($bm-pd: 8px 16px, $bm-mg: 16px 0 50px 0);
+    @include tf(#fff);
+    border: none;
+    float: none;
+    color: white;
+            padding: 20px 20px;
+            margin: 20px 20px;
+        &:hover{
+            @include tf($tf-ls: 2px);
+            @include other($ot-bs: none)
+        }
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333;
+  -webkit-transition: .2s;
+  transition: .2s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+/* Rounded sliders */ .slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+
+
+
+
+
+table.dataTable thead .sorting {
+  background-image: url("https://sentiment.stuartgeiger.com/static/sort_both.png");
+}
+
+table.dataTable tbody tr:hover {
+  background-color: rgba(50, 115, 220, 0.3);
+}
+
+table.dataTable tbody tr:hover > .sorting_1 {
+  background-color: #ffa;
+}
+
+table.dataTable thead:hover {
+  background-color: #ffa;
+}
+

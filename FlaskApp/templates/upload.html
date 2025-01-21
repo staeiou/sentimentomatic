@@ -1,0 +1,207 @@
+<html>
+    <head>
+<meta name="robots" content="noindex">
+        <title>Stuart's Super Magic Sentiment-O-Matic</title>
+
+<script src="https://sentimentomatic.stuartgeiger.com/static/jquery-3.6.0.min.js" type="text/javascript"></script>
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/jszip-2.5.0/dt-1.10.24/b-1.7.0/b-html5-1.7.0/b-print-1.7.0/fh-3.1.8/r-2.2.7/sc-2.0.3/datatables.min.css"/>
+ 
+<script type="text/javascript" src="https://sentimentomatic.stuartgeiger.com/static/pdfmake.min.js"></script>
+<script type="text/javascript" src="https://sentimentomatic.stuartgeiger.com/static/vfs_fonts.js"></script>
+<script type="text/javascript" src="https://sentimentomatic.stuartgeiger.com/static/datatables.min.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+<script type="text/javascript" language="javascript">
+    function moveWindow (){window.location.hash="results";}
+</script>
+            </head>
+
+            <body>
+        <script type="text/javascript" class="init">
+        $(document).ready(function() {
+            $('.dataframe').DataTable( {
+                "fixedColumns": true,
+                "paging":   false,
+                "ordering": true,
+                "info":     true,
+//                "scrollX": "800px",
+        dom: 'Bfrtip',
+buttons: [
+        'copy', 'csv','excel','print'
+    ],
+                "deferRender": true,
+                "processing": true,
+            //    "xScrollXInner": "100%"
+              "scrollY":        '50vh',
+            //    "scrollCollapse": true,
+             "autoWidth": true
+
+            } );
+
+        } );
+        </script>
+<style>
+		.rownr {overflow-y: hidden; background-color: rgb(105,105,105); color: white; text-align: right; vertical-align:top; z-index: 0}
+		.txt {width: 95%; overflow-x: scroll; background: rgb(0,0,0,.07); z-index: 0}
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-style:solid;border-width:0px;font-family:Arial, sans-serif;font-size:14px;overflow:hidden;
+  padding:10px 5px;word-break:normal;}
+.tg th{border-style:solid;border-width:0px;font-family:Arial, sans-serif;font-size:14px;font-weight:normal;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-0lax{text-align:left;vertical-align:top}
+</style>
+
+    </head>
+<body {% if final %} onload="moveWindow()" {% endif%}  >
+        <h1><a href="http://sentimentomatic.stuartgeiger.com">Stuart's Super Magic Sentiment-O-Matic</a></h1>
+        <p>Upload a file with your text(s) below, with one unit of text per line. Each line will be analyzed by <a href="https://github.com/cjhutto/vaderSentiment">vaderSentiment</a>, <a href="https://textblob.readthedocs.io/en/dev/">textblob</a>'s pattern sentiment and polarity classifiers, and (optionally) Google/Jigsaw's <a href="https://perspectiveapi.com">Perspective API for toxicity</a>, which takes longer to analyze. You are limited to 50 lines of text, with a maximum length of 2,500 characters per line. Results appear below in an interactive table, followed by model descriptions.</p>
+        <p>NOTE: The purpose of this site is to help explore the utility and biases of these pre-trained, off-the-shelf classifiers. There are good reasons to be skeptical of their results. What scores do you think make the most sense? What seems completely off? Would you want these classifiers used in moderating social media posts?</p>
+        <form method="POST">
+<!-- <input type="button" value="Clear" id="clear"> -->
+
+        <input type="file" name="file" accept=".txt,.csv,.tsv">
+<table class="invis">
+<tbody>
+  <tr>
+    <td style="width:100px" class="inv">Score with Google Perspective Toxicity API (takes 1 second per line) <label class="switch">
+  <input type="checkbox" name="papi" id="papi" checked="true">
+  <span class="slider round"></span>
+</label></td>
+    <td class="inv">{{ recaptcha }}</td>
+    <td class="inv"><input class="example_a" type="submit"></td>
+  </tr>
+</tbody>
+</table>
+        </form>
+        {% if final %}
+        <div>
+
+
+<style type="text/css">
+.invis {border:0px;}
+.inv {border:0px;}
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-7q3x{font-family:Arial, Helvetica, sans-serif !important;;font-weight:bold;text-align:left;vertical-align:top}
+.tg .tg-wgsn{border-color:inherit;font-family:Arial, Helvetica, sans-serif !important;;text-align:left;vertical-align:top}
+.tg .tg-7fgd{border-color:inherit;font-family:Arial, Helvetica, sans-serif !important;;font-weight:bold;text-align:right;
+  vertical-align:middle}
+</style>
+
+<a name="results"> <h2>Results</h2></a>
+<div class="table-responsive">
+            {{ final | safe}}
+            <p></p>[
+        </div>
+<!--
+<h2>Model descriptions</h2>
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-1wig"><b>model</b></th>
+    <th class="tg-9j3s"><b>VADER score</b></th>
+    <th class="tg-9j3s"><b>textblob score</b></th>
+    <th class="tg-9j3s"><b>perspective score</b></th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-1wig"><b>range</b></td>
+    <td class="tg-0pky">0 (negative) to 1 (positive)</td>
+    <td class="tg-0pky">-1 (negative) to 1 (positive)</td>
+    <td class="tg-0pky">0 (not toxic) to 1 (toxic)</td>
+  </tr>
+</tbody>
+</table>
+-->  
+          {% endif %}
+
+      </div>
+        <span>by <a href="https://stuartgeiger.com">R. Stuart Geiger</a>, interface from a project by <a href="https://github.com/J-Mourad/Flask-Sentiment-Analysis-App">FreeLearning</a>. Line numbering script by <a href="https://www.codeproject.com/Tips/5163219/HTML-line-numbering-using-textarea">Marijan Nikic</a>. Table formatting by <a href="https://datatables.net">datatables.net</a>.</span> 
+    </body>
+
+
+<SCRIPT Language="javascript">
+
+	var cntline;
+
+	function keyup(obj, e)
+	{
+		if(e.keyCode >= 33 && e.keyCode <= 40) // arrows ; home ; end ; page up/down
+			selectionchanged(obj, e.keyCode);
+	}
+
+	function selectionchanged(obj)
+	{
+		var substr = obj.value.substring(0,obj.selectionStart).split('\n');
+		var row = substr.length;
+		var col = substr[substr.length-1].length;
+		var tmpstr = '(' + row.toString() + ',' + col.toString() + ')';
+		// if selection spans over
+		if(obj.selectionStart != obj.selectionEnd)
+		{
+			substr = obj.value.substring(obj.selectionStart, obj.selectionEnd).split('\n');
+			row += substr.length - 1;
+			col = substr[substr.length-1].length;
+			tmpstr += ' - (' + row.toString() + ',' + col.toString() + ')';
+		}
+		obj.parentElement.getElementsByTagName('input')[0].value = tmpstr;
+	}
+
+	function input_changed(obj_txt)
+	{
+		obj_rownr = obj_txt.parentElement.parentElement.getElementsByTagName('textarea')[0];
+		cntline = count_lines(obj_txt.value);
+		if(cntline == 0) cntline = 1;
+		tmp_arr = obj_rownr.value.split('\n');
+		cntline_old = parseInt(tmp_arr[tmp_arr.length - 1], 10);
+		// if there was a change in line count
+		if(cntline != cntline_old)
+		{
+			obj_rownr.cols = cntline.toString().length; // new width of txt_rownr
+			populate_rownr(obj_rownr, cntline);
+			scroll_changed(obj_txt);
+		}
+		selectionchanged(obj_txt);
+	}
+
+	function scroll_changed(obj_txt)
+	{
+		obj_rownr = obj_txt.parentElement.parentElement.getElementsByTagName('textarea')[0];
+		scrollsync(obj_txt,obj_rownr);
+	}
+
+	function scrollsync(obj1, obj2)
+	{
+		// scroll text in object id1 the same as object id2
+		obj2.scrollTop = obj1.scrollTop;
+	}
+
+	function populate_rownr(obj, cntline)
+	{
+		tmpstr = '';
+		for(i = 1; i <= cntline; i++)
+		{
+			tmpstr = tmpstr + i.toString() + '\n';
+		}
+		obj.value = tmpstr;
+	}
+
+	function count_lines(txt)
+	{
+		if(txt == '')
+		{
+			return 1;
+		}
+		return txt.split('\n').length + 1;
+	}
+
+</SCRIPT>
+
+
+</html>
