@@ -170,14 +170,13 @@ export class IncrementalTableRenderer {
     
     // Auto-scroll viewport to show the new row at the bottom
     requestAnimationFrame(() => {
-      row.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'end' });
-      // Force scroll to actual bottom
+      // Scroll to the absolute bottom
       setTimeout(() => {
         window.scrollTo({
-          top: document.body.scrollHeight,
+          top: document.documentElement.scrollHeight,
           behavior: 'smooth'
         });
-      }, 100);
+      }, 50);
     });
     
     // Update status
@@ -375,14 +374,13 @@ export class IncrementalTableRenderer {
     
     // Auto-scroll viewport to show the new row at the bottom
     requestAnimationFrame(() => {
-      row.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'end' });
-      // Force scroll to actual bottom
+      // Scroll to the absolute bottom
       setTimeout(() => {
         window.scrollTo({
-          top: document.body.scrollHeight,
+          top: document.documentElement.scrollHeight,
           behavior: 'smooth'
         });
-      }, 100);
+      }, 50);
     });
     
     // Update status

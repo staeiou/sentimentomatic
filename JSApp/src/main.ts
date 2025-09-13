@@ -216,9 +216,14 @@ class SentimentomaticApp {
         selectedHuggingFaceModels: this.multiModelAnalyzer.getEnabledModelIds()
       };
 
-      // Show results section immediately and scroll to it
+      // Show results section immediately and scroll to very bottom
       this.resultsSection.style.display = 'block';
-      this.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
 
       // Create progress log area if it doesn't exist
       this.showProgressLog();
