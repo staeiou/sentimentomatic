@@ -336,12 +336,18 @@ export class IncrementalTableRenderer {
       
       if (colResult) {
         if (colResult.type === 'classification') {
-          // Classification result
+          // Classification result - clickable to show all classes
+          const allClassesJson = JSON.stringify(colResult.allClasses || {}).replace(/"/g, '&quot;');
           rowHtml += `
-            <td class="score-cell classification-cell">
+            <td class="score-cell classification-cell clickable"
+                data-all-classes="${allClassesJson}"
+                data-analyzer="${col.name}"
+                data-line="${result.lineIndex + 1}"
+                title="Click to see all class probabilities">
               <div class="classification-display">
                 <span class="class-label">${colResult.topClass || 'N/A'}</span>
                 <span class="confidence">${((colResult.confidence || 0) * 100).toFixed(1)}%</span>
+                <span class="expand-icon">⊕</span>
               </div>
             </td>
           `;
@@ -367,10 +373,13 @@ export class IncrementalTableRenderer {
     row.innerHTML = rowHtml;
     this.tbody.appendChild(row);
     this.currentRow++;
-    
+
     // Trigger reflow to ensure animation plays
     row.offsetHeight;
     row.classList.add('visible');
+
+    // Add click handlers for classification cells
+    this.setupClassificationClickHandlers(row);
     
     // Auto-scroll viewport to show the new row at the bottom
     requestAnimationFrame(() => {
@@ -489,5 +498,231 @@ export class IncrementalTableRenderer {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  /**
+   * Set up click handlers for classification cells in a row
+   */
+  private setupClassificationClickHandlers(row: HTMLElement): void {
+    const classificationCells = row.querySelectorAll('.classification-cell.clickable');
+    classificationCells.forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showClassificationModal(cell as HTMLElement);
+      });
+    });
+  }
+
+  /**
+   * Show modal with all class probabilities
+   */
+  private showClassificationModal(cell: HTMLElement): void {
+    const allClassesData = cell.getAttribute('data-all-classes');
+    const analyzer = cell.getAttribute('data-analyzer');
+    const line = cell.getAttribute('data-line');
+
+    if (!allClassesData || !analyzer) return;
+
+    try {
+      const allClasses = JSON.parse(allClassesData.replace(/&quot;/g, '"'));
+
+      // Sort classes by confidence (descending)
+      const sortedClasses = Object.entries(allClasses)
+        .sort((a, b) => (b[1] as number) - (a[1] as number));
+
+      // Create modal content
+      const modalHtml = `
+        <div class="classification-modal-overlay" onclick="this.remove()">
+          <div class="classification-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+              <h3>${analyzer} - Line ${line}</h3>
+              <button class="modal-close" onclick="this.closest('.classification-modal-overlay').remove()">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="all-classes-list">
+                ${sortedClasses.map(([className, confidence], index) => {
+                  const percentage = ((confidence as number) * 100).toFixed(1);
+                  const isTop = index === 0;
+                  return `
+                    <div class="class-item ${isTop ? 'top-class' : ''}">
+                      <div class="class-info">
+                        <span class="class-name">${className}</span>
+                        <span class="class-percentage">${percentage}%</span>
+                      </div>
+                      <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${percentage}%"></div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Add modal to document
+      const modalContainer = document.createElement('div');
+      modalContainer.innerHTML = modalHtml;
+      document.body.appendChild(modalContainer.firstElementChild as Element);
+
+    } catch (error) {
+      console.error('Failed to show classification modal:', error);
+    }
+  }
+
+  /**
+   * Initialize modal CSS (call once on page load)
+   */
+  static initializeModalStyles(): void {
+    if (document.getElementById('classification-modal-styles')) return;
+
+    const styles = document.createElement('style');
+    styles.id = 'classification-modal-styles';
+    styles.textContent = `
+      .classification-cell.clickable {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+
+      .classification-cell.clickable:hover {
+        background-color: #f0f8ff;
+      }
+
+      .expand-icon {
+        margin-left: 8px;
+        opacity: 0.7;
+        font-size: 12px;
+      }
+
+      .classification-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+      }
+
+      .classification-modal {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow: hidden;
+        animation: slideIn 0.3s ease;
+      }
+
+      .modal-header {
+        background: #2c3e50;
+        color: white;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+      }
+
+      .modal-close:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .modal-body {
+        padding: 20px;
+        max-height: calc(80vh - 80px);
+        overflow-y: auto;
+      }
+
+      .all-classes-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .class-item {
+        border: 1px solid #e0e6ed;
+        border-radius: 6px;
+        padding: 12px;
+        transition: border-color 0.2s ease;
+      }
+
+      .class-item.top-class {
+        border-color: #3498db;
+        background-color: #f8fbff;
+      }
+
+      .class-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .class-name {
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .class-percentage {
+        color: #7f8c8d;
+        font-family: monospace;
+        font-weight: bold;
+      }
+
+      .confidence-bar {
+        height: 8px;
+        background-color: #ecf0f1;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .confidence-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3498db, #2980b9);
+        transition: width 0.3s ease;
+      }
+
+      .class-item.top-class .confidence-fill {
+        background: linear-gradient(90deg, #27ae60, #229954);
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideIn {
+        from { transform: translateY(-20px) scale(0.95); opacity: 0; }
+        to { transform: translateY(0) scale(1); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(styles);
   }
 }
