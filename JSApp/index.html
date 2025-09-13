@@ -1,79 +1,191 @@
 <!doctype html>
-<html>
-  <head>
-    <meta name="robots" content="noindex">
-    <title>Stuart's Super Magic Sentiment-O-Matic</title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" type="text/css" href="/src/style-compact.css">
-  </head>
-  <body>
-    <h1><a href="http://sentimentomatic.stuartgeiger.com">Stuart's Super Magic Sentiment-O-Matic</a></h1>
-    <p>Paste your text(s) below, one unit of text per line. Each line will be analyzed by <a href="https://github.com/cjhutto/vaderSentiment">vaderSentiment</a>, <a href="https://textblob.readthedocs.io/en/dev/">textblob</a>'s pattern sentiment and polarity classifiers, and advanced ML models. You are limited to 250 lines of text, with a maximum length of 2,500 characters per line. Results appear below in an interactive table.</p>
-    <p>NOTE: The purpose of this site is to help explore the utility and biases of these pre-trained, off-the-shelf classifiers. There are good reasons to be skeptical of their results. What scores do you think make the most sense? What seems completely off? Would you want these classifiers used in moderating social media posts?</p>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <meta name="description" content="Analyze text sentiment using multiple ML models including VADER, AFINN, and transformer-based models">
+  <title>Stuart's Super Magic Sentiment-O-Matic</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="neon-sign">
+        <h1 class="app-title">
+          <a href="http://sentimentomatic.stuartgeiger.com">
+            <span class="title-super">Stuart's Super Magic</span>
+            <span class="title-main">SENTIMENT-O-MATIC</span>
+          </a>
+        </h1>
+        <div class="app-tagline">
+          ⚡ Step Right Up! Test Your Text's True Feelings! ⚡
+        </div>
+      </div>
+    </header>
 
-    <form>
-      <div>
-        <div id="text-input" style="height: 400px; max-height: 400px; width: 100%; overflow: auto; position: relative;"></div>
-        <br/><br/>
+    <main class="app-main">
+      <div class="instructions-card">
+        <h2 class="step-number">🎪 Three Simple Steps</h2>
+        <div class="instructions-steps">
+          <div class="step">
+            <span class="step-badge">1</span>
+            <span>Enter your text below</span>
+          </div>
+          <div class="step">
+            <span class="step-badge">2</span>
+            <span>Select analysis models</span>
+          </div>
+          <div class="step">
+            <span class="step-badge">3</span>
+            <span>Click Analyze for results</span>
+          </div>
+        </div>
       </div>
 
-      <table class="invis">
-        <tbody>
-          <tr>
-            <td class="inv">
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
-                <div>
-                  <strong>Rule-Based:</strong><br/>
-                  <label><input type="checkbox" id="use-afinn" checked> <a href="https://github.com/thisandagain/sentiment" target="_blank">AFINN</a></label><br/>
-                  <label><input type="checkbox" id="use-vader" checked> <a href="https://github.com/vaderSentiment/vaderSentiment-js" target="_blank">VADER</a></label><br/>
-                </div>
-                <div>
-                  <strong>Sentiment Models:</strong><br/>
-                  <label><input type="checkbox" id="use-distilbert" checked> <a href="https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english" target="_blank">DistilBERT SST-2</a> (250MB)</label><br/>
-                  <label><input type="checkbox" id="use-twitter-roberta"> <a href="https://huggingface.co/Xenova/twitter-roberta-base-sentiment-latest" target="_blank">Twitter RoBERTa</a> (500MB)</label><br/>
-                  <label><input type="checkbox" id="use-financial"> <a href="https://huggingface.co/Xenova/finbert" target="_blank">Financial DistilRoBERTa</a> (350MB)</label><br/>
-                  <label><input type="checkbox" id="use-multilingual"> <a href="https://huggingface.co/Xenova/bert-base-multilingual-uncased-sentiment" target="_blank">Multilingual BERT</a> (680MB)</label><br/>
-                  <label><input type="checkbox" id="use-multilingual-student"> <a href="https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student" target="_blank">Multilingual DistilBERT</a> (280MB)</label><br/>
-                </div>
-                <div>
-                  <strong>Classification:</strong><br/>
-                  <label><input type="checkbox" id="use-goemotions"> <a href="https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx" target="_blank">GoEmotions</a> (28 Emotions) (400MB)</label><br/>
-                  <label><input type="checkbox" id="use-koala-moderation"> <a href="https://huggingface.co/KoalaAI/Text-Moderation" target="_blank">KoalaAI Content Moderation</a> (200MB)</label><br/>
-                  <label><input type="checkbox" id="use-iptc-news"> <a href="https://huggingface.co/onnx-community/multilingual-IPTC-news-topic-classifier-ONNX" target="_blank">IPTC News Topics</a> (300MB)</label><br/>
-                  <label><input type="checkbox" id="use-language-detection"> <a href="https://huggingface.co/protectai/xlm-roberta-base-language-detection-onnx" target="_blank">Language Detection</a> (500MB)</label><br/>
-                  <label><input type="checkbox" id="use-intent-classification"> <a href="https://huggingface.co/kousik-2310/intent-classifier-minilm" target="_blank">Intent Classification</a> (150MB)</label><br/>
-                  <label><input type="checkbox" id="use-toxic-bert"> <a href="https://huggingface.co/Xenova/toxic-bert" target="_blank">Toxic BERT</a> (400MB)</label><br/>
-                  <label><input type="checkbox" id="use-jigsaw-toxicity"> <a href="https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx" target="_blank">Jigsaw Toxicity</a> (200MB)</label><br/>
-                  <label><input type="checkbox" id="use-industry-classification"> <a href="https://huggingface.co/sabatale/industry-classification-api-onnx" target="_blank">Industry Classification</a> (250MB)</label><br/>
-                </div>
-              </div>
-              <div id="cache-stats">
-                <span class="cache-size">0 MB used</span>
-                <button type="button" id="clear-cache">Clear Cache</button>
-              </div>
-            </td>
-            <td class="inv"><button type="button" id="clear-text-btn">Clear Text</button></td>
-            <td class="inv"><input class="example_a" type="submit" id="analyze-btn" value="Analyze"></td>
-          </tr>
-        </tbody>
-      </table>
-    </form>
+      <section class="input-section" aria-label="Text Input">
+        <div class="input-header">
+          <h3>🎰 Feed The Machine!</h3>
+          <span class="input-hint">One line = One analysis</span>
+        </div>
+        <div id="text-input" class="code-editor"></div>
+        <div class="example-prompt">
+          💡 Try the examples or add your own text!
+        </div>
+      </section>
 
-    <div id="results-section" style="display: none;">
-      <a name="results"><h2>Results</h2></a>
-      <div>
-        <button id="export-csv">Export CSV</button>
-        <button id="export-json">Export JSON</button>
-      </div>
-      <div class="table-responsive">
-        <div id="results-table"></div>
-      </div>
-    </div>
+      <section class="controls-section" aria-label="Analysis Controls">
+        <h3 class="section-title">🎛️ Choose Your Analysis Models</h3>
+        <p class="section-description">Each model analyzes sentiment differently - select the ones you want to compare</p>
+        <div class="models-grid">
+          <fieldset class="model-group">
+            <legend>Rule-Based</legend>
+            <label class="model-option">
+              <input type="checkbox" id="use-afinn" checked>
+              <a href="https://github.com/thisandagain/sentiment" target="_blank" rel="noopener">AFINN</a>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-vader" checked>
+              <a href="https://github.com/vaderSentiment/vaderSentiment-js" target="_blank" rel="noopener">VADER</a>
+            </label>
+          </fieldset>
 
-    <footer>
+          <fieldset class="model-group">
+            <legend>Sentiment Models</legend>
+            <label class="model-option">
+              <input type="checkbox" id="use-distilbert" checked>
+              <a href="https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english" target="_blank" rel="noopener">DistilBERT SST-2</a>
+              <span class="model-size">250MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-twitter-roberta">
+              <a href="https://huggingface.co/Xenova/twitter-roberta-base-sentiment-latest" target="_blank" rel="noopener">Twitter RoBERTa</a>
+              <span class="model-size">500MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-financial">
+              <a href="https://huggingface.co/Xenova/finbert" target="_blank" rel="noopener">Financial DistilRoBERTa</a>
+              <span class="model-size">350MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-multilingual">
+              <a href="https://huggingface.co/Xenova/bert-base-multilingual-uncased-sentiment" target="_blank" rel="noopener">Multilingual BERT</a>
+              <span class="model-size">680MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-multilingual-student">
+              <a href="https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student" target="_blank" rel="noopener">Multilingual DistilBERT</a>
+              <span class="model-size">280MB</span>
+            </label>
+          </fieldset>
+
+          <fieldset class="model-group">
+            <legend>Classification</legend>
+            <label class="model-option">
+              <input type="checkbox" id="use-goemotions">
+              <a href="https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx" target="_blank" rel="noopener">GoEmotions</a>
+              <span class="model-size">28 Emotions • 400MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-koala-moderation">
+              <a href="https://huggingface.co/KoalaAI/Text-Moderation" target="_blank" rel="noopener">KoalaAI Content Moderation</a>
+              <span class="model-size">200MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-iptc-news">
+              <a href="https://huggingface.co/onnx-community/multilingual-IPTC-news-topic-classifier-ONNX" target="_blank" rel="noopener">IPTC News Topics</a>
+              <span class="model-size">300MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-language-detection">
+              <a href="https://huggingface.co/protectai/xlm-roberta-base-language-detection-onnx" target="_blank" rel="noopener">Language Detection</a>
+              <span class="model-size">500MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-intent-classification">
+              <a href="https://huggingface.co/kousik-2310/intent-classifier-minilm" target="_blank" rel="noopener">Intent Classification</a>
+              <span class="model-size">150MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-toxic-bert">
+              <a href="https://huggingface.co/Xenova/toxic-bert" target="_blank" rel="noopener">Toxic BERT</a>
+              <span class="model-size">400MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-jigsaw-toxicity">
+              <a href="https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx" target="_blank" rel="noopener">Jigsaw Toxicity</a>
+              <span class="model-size">200MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-industry-classification">
+              <a href="https://huggingface.co/sabatale/industry-classification-api-onnx" target="_blank" rel="noopener">Industry Classification</a>
+              <span class="model-size">250MB</span>
+            </label>
+          </fieldset>
+        </div>
+
+        <div class="action-bar">
+          <div class="cache-info">
+            <span class="cache-size">0 MB used</span>
+            <button type="button" id="clear-cache" class="btn btn-secondary">Clear Cache</button>
+          </div>
+          <button type="button" id="clear-text-btn" class="btn btn-secondary">Clear Text</button>
+          <button type="button" id="analyze-btn" class="btn btn-primary">Analyze</button>
+        </div>
+      </section>
+
+      <section id="results-section" class="results-section" aria-label="Analysis Results" hidden>
+        <h2>📊 Analysis Results</h2>
+        <div class="results-toolbar">
+          <button type="button" id="export-csv" class="btn btn-secondary">Export CSV</button>
+          <button type="button" id="export-json" class="btn btn-secondary">Export JSON</button>
+        </div>
+        <div id="results-table" class="results-container"></div>
+      </section>
+
+      <section class="research-note">
+        <h3>🔬 About This Tool</h3>
+        <p>
+          This tool helps you explore how different sentiment analysis models evaluate emotion in text.
+          Each model was trained differently and may give different results - that's intentional!
+        </p>
+        <p>
+          <strong>Questions to consider:</strong> Which results make the most sense? What seems off?
+          Would you trust these models to moderate social media content or analyze customer feedback?
+        </p>
+        <p class="citation-info">
+          Created for research and education by <a href="https://stuartgeiger.com">R. Stuart Geiger</a>.
+          Sentiment models from <a href="https://github.com/cjhutto/vaderSentiment">VADER</a>,
+          <a href="https://huggingface.co">HuggingFace</a>, and other sources.
+        </p>
+      </section>
+    </main>
+
+    <footer class="app-footer">
       <p>by <a href="https://stuartgeiger.com">R. Stuart Geiger</a>, JS version with advanced ML models.</p>
     </footer>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
 </html>
