@@ -92,7 +92,10 @@ export class TransformersAnalyzer implements SentimentAnalyzer {
     }
 
     const startTime = performance.now();
-    const result = await this.pipeline(text);
+    const result = await this.pipeline(text, {
+      top_k: null,  // Return all classes
+      return_all_scores: true
+    });
     const processingTime = performance.now() - startTime;
 
     // Transformers.js returns: [{ label: 'POSITIVE' | 'NEGATIVE', score: number }]

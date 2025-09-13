@@ -106,15 +106,36 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
         this.loadedPipelines.set(model.id, pipeline);
       }
 
-      // Get raw result from pipeline
-      const result = await pipeline(text);
-      
-      // Return all predictions, not just the top one
-      if (Array.isArray(result)) {
-        return result;
-      } else {
-        return [result];
+      // Get raw result from pipeline - request ALL class probabilities
+      const result = await pipeline(text, {
+        top_k: null,  // Return all classes
+        return_all_scores: true
+      });
+
+      // Apply KoalaAI label mapping if needed
+      let processedResult = Array.isArray(result) ? result : [result];
+
+      if (model.displayName.includes('KoalaAI') || model.huggingFaceId.includes('KoalaAI')) {
+        const koalaLabelMap: Record<string, string> = {
+          'S': 'Sexual',
+          'H': 'Hate',
+          'V': 'Violence',
+          'HR': 'Harassment',
+          'SH': 'Self-harm',
+          'S3': 'Sexual/minors',
+          'H2': 'Hate/threatening',
+          'V2': 'Violence/graphic',
+          'OK': 'OK'
+        };
+
+        processedResult = processedResult.map(prediction => ({
+          ...prediction,
+          label: koalaLabelMap[prediction.label] || prediction.label
+        }));
+        console.log(`🛡️ KoalaAI getAllPredictions label mapping applied`);
       }
+
+      return processedResult;
     } catch (error) {
       console.error(`❌ getAllPredictions failed for ${model.displayName}:`, error);
       return null;
@@ -250,14 +271,17 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
 
       // Perform analysis
       const startTime = performance.now();
-      const result = await pipeline(text);
+      const result = await pipeline(text, {
+        top_k: null,  // Return all classes
+        return_all_scores: true
+      });
       const processingTime = performance.now() - startTime;
 
-      // Handle different model output formats
+      // Handle text classification models
       let prediction;
       if (Array.isArray(result)) {
         // For multiclass models, get the highest confidence prediction
-        prediction = result.reduce((max, current) => 
+        prediction = result.reduce((max, current) =>
           current.score > max.score ? current : max
         );
         console.log(`🔍 Multiclass model ${model.displayName} top prediction from ${result.length} classes:`, prediction);
@@ -301,6 +325,32 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
               
               console.log(`✅ Parsed Multilingual BERT: "${prediction.label}" → ${stars} stars → score ${score}`);
             }
+          } else if (model.displayName.includes('KoalaAI') || model.huggingFaceId.includes('KoalaAI')) {
+            // Handle KoalaAI Text-Moderation model codes
+            const koalaLabelMap: Record<string, string> = {
+              'S': 'Sexual',
+              'H': 'Hate',
+              'V': 'Violence',
+              'HR': 'Harassment',
+              'SH': 'Self-harm',
+              'S3': 'Sexual/minors',
+              'H2': 'Hate/threatening',
+              'V2': 'Violence/graphic',
+              'OK': 'OK'
+            };
+
+            const mappedLabel = koalaLabelMap[prediction.label] || prediction.label;
+            console.log(`🛡️ KoalaAI label mapping: "${prediction.label}" → "${mappedLabel}"`);
+
+            // For content moderation, treat violations as negative sentiment
+            sentiment = prediction.label === 'OK' ? 'positive' : 'negative';
+            score = prediction.label === 'OK' ? prediction.score : -prediction.score;
+            rawScores = {
+              originalLabel: prediction.label,
+              mappedLabel: mappedLabel,
+              confidence: prediction.score,
+              modelType: 'content-moderation' as any
+            };
           } else {
             // Handle numeric labels that might represent class indices
             const numericLabel = parseInt(prediction.label);
