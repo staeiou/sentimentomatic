@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/sentimentomatic/' : './',  // GitHub Pages path
+  base: './',  // Use relative paths for GitHub Pages custom domain
   optimizeDeps: {
     include: ['sentiment', 'vader-sentiment'],
     exclude: ['@xenova/transformers', 'onnxruntime-web', 'onnxruntime-common'],
@@ -31,7 +31,7 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
-    'process.env.NODE_ENV': '"development"'
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
   },
   worker: {
     format: 'es'
