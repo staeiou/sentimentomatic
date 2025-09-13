@@ -4,9 +4,9 @@ import { MultiModelAnalyzer } from './analyzers/MultiModelAnalyzer';
 import { StreamingAnalysisController } from './analysis/StreamingAnalysisController';
 import { IncrementalTableRenderer } from './analysis/IncrementalTableRenderer';
 import { CacheManager } from './models/CacheManager';
-// Line numbering handled by HTML event handlers and global functions
 import { exportToCSV, exportToJSON } from './utils/exportUtils';
 import type { MultiModalAnalysisResult } from './analysis/AnalysisStrategy';
+import CodeFlask from 'codeflask';
 
 class SentimentomaticApp {
   private analyzerRegistry: AnalyzerRegistry;
@@ -16,8 +16,7 @@ class SentimentomaticApp {
   private currentResult: MultiModalAnalysisResult | null = null;
 
   // UI Elements
-  private textInput!: HTMLTextAreaElement;
-  // Line numbers handled by global functions
+  private codeFlask!: CodeFlask;
   private analyzeBtn!: HTMLInputElement;
   private resultsSection!: HTMLElement;
   private resultsTableContainer!: HTMLElement;
@@ -71,8 +70,28 @@ class SentimentomaticApp {
   }
 
   private initializeElements(): void {
-    // Main elements
-    this.textInput = document.getElementById('text-input') as HTMLTextAreaElement;
+    // Initialize CodeFlask
+    this.codeFlask = new CodeFlask('#text-input', {
+      language: 'text',
+      lineNumbers: true,
+      defaultTheme: false // Use our custom styling
+    });
+
+    // Set default text
+    this.codeFlask.updateCode(`Each line will be analyzed independently and given scores by various models.
+THIS IS SO SUPER COOL AND THE BEST EVER! YES!
+This means that lines are the units of analysis, no matter how many sentences. AWESOME! 😍
+Ugh, I hate hate HATE trying to write examples, it's not fun! I'm not happy!
+😢😠😢
+Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.
+There are three kinds of lies: lies, damned lies, and statistics.
+Facebook says sorry for shutting down page of French town of Bitche
+u can def analyze slang w/ vader, its gr8! text analysis ftw!
+Although a double negative in English implies a positive meaning, there is no language in which a double positive implies a negative.
+Yeah, right.
+Sentiment analysis is the perfect and foolproof method for every research project ever --- NOT!
+Your items/lines can be up to 2,500 characters. Just make sure there are no newlines in your units of texts. Note that long texts (more than 250 words) can break VADER, and textblob handles longer texts better.`);
+
     this.analyzeBtn = document.getElementById('analyze-btn') as HTMLInputElement;
     this.resultsSection = document.getElementById('results-section') as HTMLElement;
     this.resultsTableContainer = document.getElementById('results-table') as HTMLElement;
@@ -146,8 +165,7 @@ class SentimentomaticApp {
     
     // Clear text
     this.clearTextBtn.addEventListener('click', () => {
-      this.textInput.value = '';
-      window.input_changed(this.textInput);
+      this.codeFlask.updateCode('');
       this.resultsSection.style.display = 'none';
     });
 
@@ -210,13 +228,13 @@ class SentimentomaticApp {
   }
 
   private async analyzeText(): Promise<void> {
-    const text = this.textInput.value.trim();
+    const text = this.codeFlask.getCode().trim();
     if (!text) {
       alert('Please enter some text to analyze');
       return;
     }
 
-    const lines = text.split('\n').filter(line => line.trim());
+    const lines = text.split('\n').filter((line: string) => line.trim());
     if (lines.length === 0) {
       alert('Please enter some text to analyze');
       return;

@@ -335,3 +335,76 @@ footer a:hover {
 body {
     padding-bottom: 60px;
 }
+
+/* CodeFlask Custom Styling - Simplified */
+#text-input {
+  height: 400px;
+  max-height: 400px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #ccc;
+}
+
+.codeflask {
+  position: relative;
+  height: 100%;
+  max-height: 100%;
+  overflow: auto;
+  background-color: #f8f8f8;
+}
+
+.codeflask__pre {
+  padding: 10px;
+  padding-left: 50px;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  min-height: 100%;
+}
+
+.codeflask__textarea {
+  padding: 10px;
+  padding-left: 50px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  caret-color: #333 !important;
+  color: transparent;
+  min-height: 100%;
+}
+
+.codeflask__lines {
+  padding: 10px 5px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #999;
+  background-color: #f0f0f0;
+  border-right: 1px solid #ddd;
+  text-align: right;
+  width: 40px;
+}
+
+/* Focus styles */
+#text-input:focus-within {
+  box-shadow: 0 0 0 2px #3498db;
+}
+
+/* Scrollbar styling */
+.codeflask .codeflask__textarea::-webkit-scrollbar,
+.codeflask .codeflask__pre::-webkit-scrollbar {
+  width: 12px;
+}
+
+.codeflask .codeflask__textarea::-webkit-scrollbar-thumb,
+.codeflask .codeflask__pre::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 6px;
+}
+
+.codeflask .codeflask__textarea::-webkit-scrollbar-track,
+.codeflask .codeflask__pre::-webkit-scrollbar-track {
+  background-color: #f8f8f8;
+}

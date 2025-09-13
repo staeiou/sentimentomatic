@@ -14,35 +14,8 @@
 
     <form>
       <div>
-        <textarea class="rownr" rows="15" cols="3" id="line-numbers" readonly>1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14</textarea>
-        <span>
-          <textarea class="txt" rows="15" cols="150" id="text-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeyup="keyup(this,event)" oninput="input_changed(this)" onscroll="scroll_changed(this)" onclick="selectionchanged(this)">Each line will be analyzed independently and given scores by various models.
-THIS IS SO SUPER COOL AND THE BEST EVER! YES!
-This means that lines are the units of analysis, no matter how many sentences. AWESOME! 😍
-Ugh, I hate hate HATE trying to write examples, it's not fun! I'm not happy!
-😢😠😢
-Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.
-There are three kinds of lies: lies, damned lies, and statistics.
-Facebook says sorry for shutting down page of French town of Bitche
-u can def analyze slang w/ vader, its gr8! text analysis ftw!
-Although a double negative in English implies a positive meaning, there is no language in which a double positive implies a negative.
-Yeah, right.
-Sentiment analysis is the perfect and foolproof method for every research project ever --- NOT!
-Your items/lines can be up to 2,500 characters. Just make sure there are no newlines in your units of texts. Note that long texts (more than 250 words) can break VADER, and textblob handles longer texts better.</textarea><br/><br/>
-        </span>
+        <div id="text-input" style="height: 400px; max-height: 400px; width: 100%; overflow: auto; position: relative;"></div>
+        <br/><br/>
       </div>
 
       <table class="invis">
