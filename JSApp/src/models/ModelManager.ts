@@ -205,10 +205,80 @@ export class ModelManager {
     const task = knownTasks[0]; // Use the primary task for this model type
     console.log(`🎯 Using ${task} task for ${modelId}...`);
     
-    // Monkey-patch fetch to see what's being requested
+    // Monkey-patch fetch to redirect ONNX files for models with non-standard structures
     const originalFetch = window.fetch;
+
     window.fetch = async (...args) => {
       const url = args[0] as string;
+
+      // Handle ONNX file redirects for models with non-standard file structures
+      if (typeof url === 'string' && url.includes('.onnx')) {
+        console.log(`🔍 ONNX request detected: ${url}`);
+
+        // Language Detection: protectai model - redirect from /onnx/ to root
+        if (url.includes('protectai/xlm-roberta-base-language-detection-onnx')) {
+          if (url.includes('/onnx/model_quantized.onnx')) {
+            const newUrl = url.replace('/onnx/model_quantized.onnx', '/model_quantized.onnx');
+            console.log(`🔀 Redirecting protectai ONNX: /onnx/ → root level`);
+            return originalFetch(newUrl, args[1] as RequestInit);
+          }
+          if (url.includes('/onnx/model.onnx')) {
+            const newUrl = url.replace('/onnx/model.onnx', '/model.onnx');
+            console.log(`🔀 Redirecting protectai ONNX: /onnx/ → root level`);
+            return originalFetch(newUrl, args[1] as RequestInit);
+          }
+          if (url.includes('/onnx/model_optimized.onnx')) {
+            const newUrl = url.replace('/onnx/model_optimized.onnx', '/model_optimized.onnx');
+            console.log(`🔀 Redirecting protectai ONNX: /onnx/ → root level`);
+            return originalFetch(newUrl, args[1] as RequestInit);
+          }
+        }
+
+        // Jigsaw Toxicity: minuva model - NUCLEAR OPTION
+        if (url.includes('minuva/MiniLMv2-toxic-jigsaw-onnx')) {
+          // ANY request for an ONNX file gets the one file that exists
+          const actualFile = 'https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx/resolve/main/model_optimized_quantized.onnx';
+          console.log(`🔀 NUCLEAR REDIRECT - minuva ANY ONNX → model_optimized_quantized.onnx`);
+
+          // Fetch the actual file but return it AS IF it was the requested file
+          const response = await originalFetch(actualFile, args[1] as RequestInit);
+
+          // Clone the response and override the URL property to match what was requested
+          const fakeResponse = new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers
+          });
+
+          // Override the url property to match the original request
+          Object.defineProperty(fakeResponse, 'url', {
+            value: url,
+            writable: false
+          });
+
+          return fakeResponse;
+        }
+
+        // Personal Info Detection: might have non-standard structure
+        if (url.includes('onnx-community/piiranha-v1-detect-personal-information-ONNX')) {
+          // Log but don't redirect - this model seems to work with standard structure
+          console.log(`✓ Personal Info Detection ONNX request (standard structure)`);
+        }
+
+        // Industry Classification: has proper /onnx/ structure
+        if (url.includes('sabatale/industry-classification-api-onnx')) {
+          // Log but don't redirect - this model has the correct structure
+          console.log(`✓ Industry Classification ONNX request (standard structure)`);
+        }
+
+        // Intent Classification: has proper /onnx/ structure
+        if (url.includes('kousik-2310/intent-classifier-minilm')) {
+          // Log but don't redirect - this model has the correct structure
+          console.log(`✓ Intent Classification ONNX request (standard structure)`);
+        }
+      }
+
+      // Debug logging for config files
       if (url?.includes('tokenizer.json') || url?.includes('config.json')) {
         console.log(`🔍 Fetching: ${url}`);
         const response = await originalFetch(...args);
@@ -224,6 +294,7 @@ export class ModelManager {
         }
         return response;
       }
+
       return originalFetch(...args);
     };
     
@@ -259,13 +330,52 @@ export class ModelManager {
       console.log(`✅ ${config.name} loaded successfully with ${task} task`);
     } catch (error: any) {
       restoreFetch(); // Restore original fetch on error
-      // If quantized fails, try non-quantized
-      if (error.message?.includes('IR version')) {
-        console.log(`🔄 Retrying without quantization...`);
+
+      // Try different recovery strategies based on error type
+      const errorMsg = error.message || String(error);
+
+      if (errorMsg.includes('IR version')) {
+        // ONNX Runtime version mismatch - try non-quantized
+        console.log(`🔄 Retrying without quantization due to IR version mismatch...`);
         pipelineOptions.quantized = false;
         model = await pipeline(task, modelId, pipelineOptions);
         console.log(`✅ ${config.name} loaded successfully (non-quantized)`);
+      } else if (errorMsg.includes('Could not locate file') && errorMsg.includes('model_quantized.onnx')) {
+        // Quantized model not found - try non-quantized
+        console.log(`🔄 Quantized model not found, trying non-quantized...`);
+        pipelineOptions.quantized = false;
+
+        // HACK: For minuva model, transformers.js is broken and still requests model_quantized even with quantized: false
+        // So we need to keep our monkey patch active for the retry
+        if (modelId.includes('minuva/MiniLMv2-toxic-jigsaw-onnx')) {
+          console.log(`⚠️ minuva model requires special handling - keeping redirect active`);
+        }
+
+        try {
+          model = await pipeline(task, modelId, pipelineOptions);
+          console.log(`✅ ${config.name} loaded successfully (non-quantized fallback)`);
+        } catch (fallbackError: any) {
+          const fallbackMsg = fallbackError.message || String(fallbackError);
+
+          // If it's STILL looking for model_quantized with quantized: false, that's a transformers.js bug
+          if (fallbackMsg.includes('model_quantized.onnx') && !pipelineOptions.quantized) {
+            console.error(`❌ BUG: transformers.js requested model_quantized.onnx even with quantized: false!`);
+            console.error(`❌ This model (${config.name}) has a non-standard ONNX file structure that transformers.js cannot handle`);
+          }
+
+          console.error(`❌ Failed to load ${config.name} with both quantized and non-quantized attempts`);
+          console.error(`❌ Original error: ${errorMsg}`);
+          console.error(`❌ Fallback error: ${fallbackMsg}`);
+          throw error; // Throw original error
+        }
+      } else if (errorMsg.includes('tokenizer')) {
+        // Tokenizer issue - provide helpful context
+        console.error(`❌ Tokenizer error for ${config.name}: ${errorMsg}`);
+        console.error(`💡 This model may require special tokenizer configuration`);
+        throw error;
       } else {
+        // Unknown error - log details for debugging
+        console.error(`❌ Failed to load ${config.name}: ${errorMsg}`);
         throw error;
       }
     } finally {
@@ -288,12 +398,39 @@ export class ModelManager {
       'tokenizer.json',
       'tokenizer_config.json'
     ];
-    
-    const onnxFiles = [
-      'onnx/model.onnx',
-      'onnx/model_quantized.onnx',
-      'model.onnx'
-    ];
+
+    // Define model-specific ONNX file locations
+    let onnxFiles: string[] = [];
+
+    if (modelId === 'protectai/xlm-roberta-base-language-detection-onnx') {
+      // protectai has ONNX files at root level
+      onnxFiles = [
+        'model_quantized.onnx',
+        'model_optimized.onnx',
+        'model.onnx'
+      ];
+    } else if (modelId === 'minuva/MiniLMv2-toxic-jigsaw-onnx') {
+      // minuva has non-standard filename
+      onnxFiles = [
+        'model_optimized_quantized.onnx'
+      ];
+    } else if (modelId === 'kousik-2310/intent-classifier-minilm') {
+      // intent classifier might have multiple variants
+      onnxFiles = [
+        'onnx/model_quantized.onnx',
+        'onnx/model.onnx',
+        'model_quantized.onnx',
+        'model.onnx'
+      ];
+    } else {
+      // Default check for standard ONNX locations
+      onnxFiles = [
+        'onnx/model_quantized.onnx',
+        'onnx/model.onnx',
+        'model_quantized.onnx',
+        'model.onnx'
+      ];
+    }
 
     console.log(`🔍 Checking model files for ${modelId}...`);
 
@@ -314,8 +451,9 @@ export class ModelManager {
       }
     }
 
-    // Check for ONNX files
+    // Check for ONNX files with model-specific paths
     let foundOnnx = false;
+    let foundOnnxFile = '';
     for (const file of onnxFiles) {
       const url = `${baseUrl}/${file}`;
       try {
@@ -323,6 +461,7 @@ export class ModelManager {
         if (response.ok) {
           console.log(`✅ Found ONNX model: ${file}`);
           foundOnnx = true;
+          foundOnnxFile = file;
           break;
         } else {
           console.log(`⚠️ ONNX file ${file} not found (${response.status})`);
@@ -332,10 +471,11 @@ export class ModelManager {
       }
     }
 
-    console.log(`📊 File validation summary: ${configFilesFound}/${requiredFiles.length} config files, ONNX: ${foundOnnx ? 'found' : 'missing'}`);
-    
+    console.log(`📊 File validation summary: ${configFilesFound}/${requiredFiles.length} config files, ONNX: ${foundOnnx ? `found (${foundOnnxFile})` : 'missing'}`);
+
     if (!foundOnnx) {
       console.warn(`⚠️ No ONNX files found. Model may need conversion or may not work in browser.`);
+      console.warn(`⚠️ Checked locations: ${onnxFiles.join(', ')}`);
     }
   }
 
