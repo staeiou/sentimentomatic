@@ -1,0 +1,270 @@
+/* COPIED DIRECTLY FROM FLASK VERSION */
+
+.tg {border-collapse:collapse;border-spacing:0;} .tg
+td{border-color:black;border-style:solid;border-width:1px;font-family:Arial,
+sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;} .tg
+th{border-color:black;border-style:solid;border-width:1px;font-family:Arial,
+sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px
+5px;word-break:normal;} .tg .tg-7q3x{font-family:Arial, Helvetica,
+sans-serif
+!important;;font-weight:bold;text-align:left;vertical-align:top} .tg
+.tg-wgsn{border-color:inherit;font-family:Arial, Helvetica, sans-serif
+!important;;text-align:left;vertical-align:top} .tg
+.tg-7fgd{border-color:inherit;font-family:Arial, Helvetica, sans-serif
+!important;;font-weight:bold;text-align:right;
+  vertical-align:middle} html {
+	background: #404550;
+}
+.g-recaptcha {
+    width: 50%;
+    height: auto;
+    font-size: 18px;
+    float:inline-start;
+}
+body {
+	font: 100% Arial, Helvetica, sans-serif;
+	line-height: 1.5;
+	position: relative;
+	background: #dfdfdf;
+	color: rgb(76, 67, 65);
+	font-weight:normal;
+	font-style:normal;
+	margin: 20px 20px 20px 20px;
+    padding: 20px;
+}
+form{
+	margin-bottom: 1em;
+    margin-left: auto;
+    margin-right: auto;
+    width: auto;
+}
+h1 {
+	font-size: 1.8em;
+	margin-bottom: .25em;
+  font-family: Helvetica, sans-serif;
+  color: #666666;
+}
+a { color: #222
+}
+/* Removed invalid SASS/SCSS syntax - keeping only valid CSS */
+.txt { background: rgba(0,0,0,.1); overflow-x: scroll; overflow-y:
+scroll;
+}
+input[type=submit] {
+    background: #222222;
+    color: white;
+    border: none;
+    float: none;
+    padding: 20px 20px;
+    margin: 20px 20px;
+}
+
+input[type=submit]:hover {
+    letter-spacing: 2px;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333;
+  -webkit-transition: .2s;
+  transition: .2s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+/* Rounded sliders */ .slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+
+table.dataTable thead .sorting {
+  background-image: url("https://sentiment.stuartgeiger.com/static/sort_both.png");
+}
+
+table.dataTable tbody tr:hover {
+  background-color: rgba(50, 115, 220, 0.3);
+}
+
+table.dataTable tbody tr:hover > .sorting_1 {
+  background-color: #ffa;
+}
+
+table.dataTable thead:hover {
+  background-color: #ffa;
+}
+
+/* Flask-specific styles */
+.rownr {
+    overflow-y: hidden;
+    background-color: rgb(105,105,105);
+    color: white;
+    text-align: right;
+    vertical-align: top;
+    z-index: 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 10px 5px;
+    border: none;
+    outline: none;
+    resize: none;
+}
+.txt {
+    width: 95%;
+    overflow-x: scroll;
+    overflow-y: scroll;
+    background: rgba(0,0,0,.07);
+    z-index: 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 10px 5px;
+    border: none;
+    outline: none;
+}
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-style:solid;border-width:0px;font-family:Arial, sans-serif;font-size:14px;overflow:hidden;
+  padding:10px 5px;word-break:normal;}
+.tg th{border-style:solid;border-width:0px;font-family:Arial, sans-serif;font-size:14px;font-weight:normal;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-0lax{text-align:left;vertical-align:top}
+
+.invis {border:0px;}
+.inv {border:0px;}
+
+.example_a {
+    background: #222222;
+    color: white;
+    border: none;
+    padding: 20px 20px;
+    margin: 20px 20px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.example_a:hover {
+    letter-spacing: 2px;
+}
+
+button {
+    background: #222222;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    margin: 5px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+#clear-cache {
+    background: #dc3545;
+}
+
+/* Results table styling */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.results-table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+.results-table th, .results-table td {
+    border: 1px solid black;
+    padding: 10px 5px;
+    text-align: left;
+    vertical-align: top;
+    white-space: nowrap; /* Prevent text wrapping */
+}
+
+.results-table th {
+    font-weight: bold;
+    background-color: #f0f0f0;
+}
+
+/* Specific styling for text content cells */
+.text-cell {
+    max-width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+}
+
+/* Progress styling */
+.progress-log {
+    background: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 20px;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #2196F3;
+    transition: width 0.3s ease;
+}
+
+.progress-status {
+    font-size: 14px;
+    color: #333;
+}

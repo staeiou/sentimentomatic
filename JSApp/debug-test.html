@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+    <script type="module">
+        console.log('Starting debug test...');
+        
+        try {
+            const { default: Sentiment } = await import('sentiment');
+            const sentiment = new Sentiment();
+            const result = sentiment.analyze('This is great!');
+            console.log('AFINN works:', result);
+        } catch (error) {
+            console.error('AFINN failed:', error);
+        }
+        
+        try {
+            const { SentimentIntensityAnalyzer } = await import('vader-sentiment');
+            const result = SentimentIntensityAnalyzer.polarity_scores('This is great!');
+            console.log('VADER works:', result);
+        } catch (error) {
+            console.error('VADER failed:', error);
+        }
+    </script>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <p>Check console...</p>
+</body>
+</html>

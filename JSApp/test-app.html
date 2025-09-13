@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test JS Sentimentomatic</title>
+    <script>
+        // Simple test to see if the app actually works
+        async function testApp() {
+            console.log('Testing if sentiment libraries actually work...');
+            
+            try {
+                // Test AFINN
+                const { default: Sentiment } = await import('./node_modules/sentiment/lib/index.js');
+                const sentiment = new Sentiment();
+                const afinnResult = sentiment.analyze('This is great!');
+                console.log('✅ AFINN works:', afinnResult);
+            } catch (error) {
+                console.log('❌ AFINN failed:', error);
+            }
+
+            try {
+                // Test VADER
+                const { SentimentIntensityAnalyzer } = await import('./node_modules/vader-sentiment/vaderSentiment.js');
+                const vaderResult = SentimentIntensityAnalyzer.polarity_scores('This is great!');
+                console.log('✅ VADER works:', vaderResult);
+            } catch (error) {
+                console.log('❌ VADER failed:', error);
+            }
+
+            try {
+                // Test Transformers.js
+                const { pipeline } = await import('./node_modules/@xenova/transformers/src/transformers.js');
+                console.log('✅ Transformers.js import works');
+            } catch (error) {
+                console.log('❌ Transformers.js failed:', error);
+            }
+        }
+
+        testApp();
+    </script>
+</head>
+<body>
+    <h1>Testing JS Sentimentomatic</h1>
+    <p>Check console for test results...</p>
+</body>
+</html>

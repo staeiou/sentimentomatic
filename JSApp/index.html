@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <meta name="robots" content="noindex">
+    <title>Stuart's Super Magic Sentiment-O-Matic</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="/src/style-compact.css">
+  </head>
+  <body>
+    <h1><a href="http://sentimentomatic.stuartgeiger.com">Stuart's Super Magic Sentiment-O-Matic</a></h1>
+    <p>Paste your text(s) below, one unit of text per line. Each line will be analyzed by <a href="https://github.com/cjhutto/vaderSentiment">vaderSentiment</a>, <a href="https://textblob.readthedocs.io/en/dev/">textblob</a>'s pattern sentiment and polarity classifiers, and advanced ML models. You are limited to 250 lines of text, with a maximum length of 2,500 characters per line. Results appear below in an interactive table.</p>
+    <p>NOTE: The purpose of this site is to help explore the utility and biases of these pre-trained, off-the-shelf classifiers. There are good reasons to be skeptical of their results. What scores do you think make the most sense? What seems completely off? Would you want these classifiers used in moderating social media posts?</p>
+
+    <form>
+      <div>
+        <textarea class="rownr" rows="15" cols="3" id="line-numbers" readonly>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14</textarea>
+        <span>
+          <textarea class="txt" rows="15" cols="150" id="text-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeyup="keyup(this,event)" oninput="input_changed(this)" onscroll="scroll_changed(this)" onclick="selectionchanged(this)">Each line will be analyzed independently and given scores by various models.
+THIS IS SO SUPER COOL AND THE BEST EVER! YES!
+This means that lines are the units of analysis, no matter how many sentences. AWESOME! 😍
+Ugh, I hate hate HATE trying to write examples, it's not fun! I'm not happy!
+😢😠😢
+Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.
+There are three kinds of lies: lies, damned lies, and statistics.
+Facebook says sorry for shutting down page of French town of Bitche
+u can def analyze slang w/ vader, its gr8! text analysis ftw!
+Although a double negative in English implies a positive meaning, there is no language in which a double positive implies a negative.
+Yeah, right.
+Sentiment analysis is the perfect and foolproof method for every research project ever --- NOT!
+Your items/lines can be up to 2,500 characters. Just make sure there are no newlines in your units of texts. Note that long texts (more than 250 words) can break VADER, and textblob handles longer texts better.</textarea><br/><br/>
+        </span>
+      </div>
+
+      <table class="invis">
+        <tbody>
+          <tr>
+            <td class="inv">
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
+                <div>
+                  <strong>Rule-Based:</strong><br/>
+                  <label><input type="checkbox" id="use-afinn" checked> AFINN</label><br/>
+                  <label><input type="checkbox" id="use-vader" checked> VADER</label><br/>
+                </div>
+                <div>
+                  <strong>Sentiment Models:</strong><br/>
+                  <label><input type="checkbox" id="use-distilbert" checked> DistilBERT SST-2 (250MB)</label><br/>
+                  <label><input type="checkbox" id="use-twitter-roberta"> Twitter RoBERTa (500MB)</label><br/>
+                  <label><input type="checkbox" id="use-financial"> Financial DistilRoBERTa (350MB)</label><br/>
+                  <label><input type="checkbox" id="use-multilingual"> Multilingual BERT (680MB)</label><br/>
+                  <label><input type="checkbox" id="use-multilingual-student"> Multilingual DistilBERT (280MB)</label><br/>
+                </div>
+                <div>
+                  <strong>Classification:</strong><br/>
+                  <label><input type="checkbox" id="use-goemotions"> GoEmotions (28 Emotions) (400MB)</label><br/>
+                  <label><input type="checkbox" id="use-koala-moderation"> KoalaAI Content Moderation (200MB)</label><br/>
+                  <label><input type="checkbox" id="use-iptc-news"> IPTC News Topics (300MB)</label><br/>
+                  <label><input type="checkbox" id="use-covid-misinfo"> COVID Misinformation (250MB)</label><br/>
+                  <label><input type="checkbox" id="use-imdb-sentiment"> IMDB Movie Sentiment (250MB)</label><br/>
+                </div>
+              </div>
+              <div id="cache-stats">
+                <span class="cache-size">0 MB used</span>
+                <button type="button" id="clear-cache">Clear Cache</button>
+              </div>
+            </td>
+            <td class="inv"><button type="button" id="clear-text-btn">Clear Text</button></td>
+            <td class="inv"><input class="example_a" type="submit" id="analyze-btn" value="Analyze"></td>
+          </tr>
+        </tbody>
+      </table>
+    </form>
+
+    <div id="results-section" style="display: none;">
+      <a name="results"><h2>Results</h2></a>
+      <div>
+        <button id="export-csv">Export CSV</button>
+        <button id="export-json">Export JSON</button>
+      </div>
+      <div class="table-responsive">
+        <div id="results-table"></div>
+      </div>
+    </div>
+
+    <span>by <a href="https://stuartgeiger.com">R. Stuart Geiger</a>, JS version with advanced ML models.</span>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
