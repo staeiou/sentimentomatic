@@ -46,7 +46,7 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
     speed: 'medium',
     accuracy: 'better',
     languages: ['en'],
-    huggingFaceId: 'Xenova/distilroberta-finetuned-financial-news-sentiment-analysis',
+    huggingFaceId: 'Xenova/finbert',
     metadata: {
       parameters: '82M',
       architecture: 'DistilRoBERTa',

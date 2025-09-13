@@ -36,8 +36,6 @@ class SentimentomaticApp {
   private goEmotionsCheckbox!: HTMLInputElement;
   private koalaModerationCheckbox!: HTMLInputElement;
   private iptcNewsCheckbox!: HTMLInputElement;
-  private covidMisinfoCheckbox!: HTMLInputElement;
-  private imdbSentimentCheckbox!: HTMLInputElement;
   
   // Other Controls
   private cacheStatsElement!: HTMLElement;
@@ -85,8 +83,6 @@ class SentimentomaticApp {
     this.goEmotionsCheckbox = document.getElementById('use-goemotions') as HTMLInputElement;
     this.koalaModerationCheckbox = document.getElementById('use-koala-moderation') as HTMLInputElement;
     this.iptcNewsCheckbox = document.getElementById('use-iptc-news') as HTMLInputElement;
-    this.covidMisinfoCheckbox = document.getElementById('use-covid-misinfo') as HTMLInputElement;
-    this.imdbSentimentCheckbox = document.getElementById('use-imdb-sentiment') as HTMLInputElement;
     
     // Other controls
     this.cacheStatsElement = document.getElementById('cache-stats') as HTMLElement;
@@ -152,9 +148,7 @@ class SentimentomaticApp {
       this.useMultilingualStudentCheckbox,
       this.goEmotionsCheckbox,
       this.koalaModerationCheckbox,
-      this.iptcNewsCheckbox,
-      this.covidMisinfoCheckbox,
-      this.imdbSentimentCheckbox
+      this.iptcNewsCheckbox
     ];
     
     allCheckboxes.forEach(checkbox => {
@@ -174,16 +168,14 @@ class SentimentomaticApp {
     const allModelMappings = [
       // Sentiment models
       { checkbox: this.useDistilbertCheckbox, id: 'distilbert', hfId: 'Xenova/distilbert-base-uncased-finetuned-sst-2-english', name: 'DistilBERT SST-2' },
-      { checkbox: this.useTwitterRobertaCheckbox, id: 'twitter-roberta', hfId: 'cardiffnlp/twitter-roberta-base-sentiment-latest', name: 'Twitter RoBERTa' },
-      { checkbox: this.useFinancialCheckbox, id: 'financial', hfId: 'ProsusAI/finbert', name: 'Financial DistilRoBERTa' },
+      { checkbox: this.useTwitterRobertaCheckbox, id: 'twitter-roberta', hfId: 'Xenova/twitter-roberta-base-sentiment-latest', name: 'Twitter RoBERTa' },
+      { checkbox: this.useFinancialCheckbox, id: 'financial', hfId: 'Xenova/finbert', name: 'Financial DistilRoBERTa' },
       { checkbox: this.useMultilingualCheckbox, id: 'multilingual', hfId: 'Xenova/bert-base-multilingual-uncased-sentiment', name: 'Multilingual BERT' },
       { checkbox: this.useMultilingualStudentCheckbox, id: 'multilingual-student', hfId: 'Xenova/distilbert-base-multilingual-cased-sentiments-student', name: 'Multilingual DistilBERT' },
       // Classification models
       { checkbox: this.goEmotionsCheckbox, id: 'go-emotions', hfId: 'SamLowe/roberta-base-go_emotions-onnx', name: 'GoEmotions' },
       { checkbox: this.koalaModerationCheckbox, id: 'text-moderation', hfId: 'KoalaAI/Text-Moderation', name: 'KoalaAI Moderation' },
-      { checkbox: this.iptcNewsCheckbox, id: 'iptc-news', hfId: 'onnx-community/multilingual-IPTC-news-topic-classifier-ONNX', name: 'IPTC News' },
-      { checkbox: this.covidMisinfoCheckbox, id: 'covid-misinfo', hfId: 'spencer-gable-cook/COVID-19_Misinformation_Detector', name: 'COVID Misinfo' },
-      { checkbox: this.imdbSentimentCheckbox, id: 'imdb-sentiment', hfId: 'pitangent-ds/distilbert-base-imdb', name: 'IMDB Sentiment' }
+      { checkbox: this.iptcNewsCheckbox, id: 'iptc-news', hfId: 'onnx-community/multilingual-IPTC-news-topic-classifier-ONNX', name: 'IPTC News' }
     ];
 
     allModelMappings.forEach(({ checkbox, id, hfId, name }) => {

@@ -46,7 +46,7 @@ export class StreamingAnalysisController {
     const selectedModels = config.selectedHuggingFaceModels || [];
 
     // Define which models are classification models
-    const classificationModels = new Set(['go-emotions', 'text-moderation', 'iptc-news', 'covid-misinfo', 'imdb-sentiment']);
+    const classificationModels = new Set(['go-emotions', 'text-moderation', 'iptc-news']);
 
     // Initialize unified results storage - use proper type
     const unifiedResults: UnifiedAnalysisResult[] = [];
