@@ -1,4 +1,4 @@
-import './style-compact.css';
+import './styles.css';
 import { AnalyzerRegistry } from './analyzers';
 import { MultiModelAnalyzer } from './analyzers/MultiModelAnalyzer';
 import { StreamingAnalysisController } from './analysis/StreamingAnalysisController';
@@ -6,7 +6,8 @@ import { IncrementalTableRenderer } from './analysis/IncrementalTableRenderer';
 import { CacheManager } from './models/CacheManager';
 import { exportToCSV, exportToJSON } from './utils/exportUtils';
 import type { MultiModalAnalysisResult } from './analysis/AnalysisStrategy';
-import CodeFlask from 'codeflask';
+import { EditorView, basicSetup } from "codemirror";
+import { EditorState } from "@codemirror/state";
 
 class SentimentomaticApp {
   private analyzerRegistry: AnalyzerRegistry;
@@ -16,7 +17,7 @@ class SentimentomaticApp {
   private currentResult: MultiModalAnalysisResult | null = null;
 
   // UI Elements
-  private codeFlask!: CodeFlask;
+  private editorView!: EditorView;
   private analyzeBtn!: HTMLInputElement;
   private resultsSection!: HTMLElement;
   private resultsTableContainer!: HTMLElement;
@@ -62,7 +63,6 @@ class SentimentomaticApp {
     );
 
     this.setupEventListeners();
-    this.loadStylesheet();
     this.updateCacheStats();
 
     // Initialize modal styles for classification results
@@ -70,15 +70,8 @@ class SentimentomaticApp {
   }
 
   private initializeElements(): void {
-    // Initialize CodeFlask
-    this.codeFlask = new CodeFlask('#text-input', {
-      language: 'text',
-      lineNumbers: true,
-      defaultTheme: false // Use our custom styling
-    });
-
-    // Set default text
-    this.codeFlask.updateCode(`Each line will be analyzed independently and given scores by various models.
+    // Initialize CodeMirror 6
+    const defaultText = `Each line will be analyzed independently and given scores by various models.
 THIS IS SO SUPER COOL AND THE BEST EVER! YES!
 This means that lines are the units of analysis, no matter how many sentences. AWESOME! 😍
 Ugh, I hate hate HATE trying to write examples, it's not fun! I'm not happy!
@@ -90,7 +83,20 @@ u can def analyze slang w/ vader, its gr8! text analysis ftw!
 Although a double negative in English implies a positive meaning, there is no language in which a double positive implies a negative.
 Yeah, right.
 Sentiment analysis is the perfect and foolproof method for every research project ever --- NOT!
-Your items/lines can be up to 2,500 characters. Just make sure there are no newlines in your units of texts. Note that long texts (more than 250 words) can break VADER, and textblob handles longer texts better.`);
+Your items/lines can be up to 2,500 characters. Just make sure there are no newlines in your units of texts. Note that long texts (more than 250 words) can break VADER, and textblob handles longer texts better.`;
+
+    const fixedHeightTheme = EditorView.theme({
+      "&": { height: "400px" },
+      ".cm-scroller": { overflow: "auto" }
+    });
+
+    this.editorView = new EditorView({
+      state: EditorState.create({
+        doc: defaultText,
+        extensions: [basicSetup, fixedHeightTheme]
+      }),
+      parent: document.getElementById('text-input')!
+    });
 
     this.analyzeBtn = document.getElementById('analyze-btn') as HTMLInputElement;
     this.resultsSection = document.getElementById('results-section') as HTMLElement;
@@ -126,24 +132,10 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
   }
 
   private setupEventListeners(): void {
-    // Line numbering is handled by HTML event handlers now, like Flask
-
-    // No more mode switching - all models work together
-
-    // Analyze button - prevent form submission and handle click
-    this.analyzeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
+    // Analyze button click handler
+    this.analyzeBtn.addEventListener('click', () => {
       this.analyzeText();
     });
-
-    // Also prevent form submission
-    const form = document.querySelector('form');
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        this.analyzeText();
-      });
-    }
 
     // Export buttons
     this.exportCsvBtn.addEventListener('click', () => {
@@ -165,8 +157,14 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     
     // Clear text
     this.clearTextBtn.addEventListener('click', () => {
-      this.codeFlask.updateCode('');
-      this.resultsSection.style.display = 'none';
+      this.editorView.dispatch({
+        changes: {
+          from: 0,
+          to: this.editorView.state.doc.length,
+          insert: ''
+        }
+      });
+      this.resultsSection.hidden = true;
     });
 
     // All models update together when any checkbox changes
@@ -228,7 +226,7 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
   }
 
   private async analyzeText(): Promise<void> {
-    const text = this.codeFlask.getCode().trim();
+    const text = this.editorView.state.doc.toString().trim();
     if (!text) {
       alert('Please enter some text to analyze');
       return;
@@ -251,7 +249,7 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       };
 
       // Show results section immediately and scroll to very bottom
-      this.resultsSection.style.display = 'block';
+      this.resultsSection.hidden = false;
       setTimeout(() => {
         window.scrollTo({
           top: document.documentElement.scrollHeight,
@@ -293,10 +291,6 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
 
   // Classification models are now part of the unified selection
   // Removed getSelectedClassificationModel method
-
-  private loadStylesheet(): void {
-    // Stylesheet already loaded in index.html
-  }
 
   private async updateCacheStats(): Promise<void> {
     try {
