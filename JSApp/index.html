@@ -52,22 +52,27 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
                 <div>
                   <strong>Rule-Based:</strong><br/>
-                  <label><input type="checkbox" id="use-afinn" checked> AFINN</label><br/>
-                  <label><input type="checkbox" id="use-vader" checked> VADER</label><br/>
+                  <label><input type="checkbox" id="use-afinn" checked> <a href="https://github.com/thisandagain/sentiment" target="_blank">AFINN</a></label><br/>
+                  <label><input type="checkbox" id="use-vader" checked> <a href="https://github.com/vaderSentiment/vaderSentiment-js" target="_blank">VADER</a></label><br/>
                 </div>
                 <div>
                   <strong>Sentiment Models:</strong><br/>
-                  <label><input type="checkbox" id="use-distilbert" checked> DistilBERT SST-2 (250MB)</label><br/>
-                  <label><input type="checkbox" id="use-twitter-roberta"> Twitter RoBERTa (500MB)</label><br/>
-                  <label><input type="checkbox" id="use-financial"> Financial DistilRoBERTa (350MB)</label><br/>
-                  <label><input type="checkbox" id="use-multilingual"> Multilingual BERT (680MB)</label><br/>
-                  <label><input type="checkbox" id="use-multilingual-student"> Multilingual DistilBERT (280MB)</label><br/>
+                  <label><input type="checkbox" id="use-distilbert" checked> <a href="https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english" target="_blank">DistilBERT SST-2</a> (250MB)</label><br/>
+                  <label><input type="checkbox" id="use-twitter-roberta"> <a href="https://huggingface.co/Xenova/twitter-roberta-base-sentiment-latest" target="_blank">Twitter RoBERTa</a> (500MB)</label><br/>
+                  <label><input type="checkbox" id="use-financial"> <a href="https://huggingface.co/Xenova/finbert" target="_blank">Financial DistilRoBERTa</a> (350MB)</label><br/>
+                  <label><input type="checkbox" id="use-multilingual"> <a href="https://huggingface.co/Xenova/bert-base-multilingual-uncased-sentiment" target="_blank">Multilingual BERT</a> (680MB)</label><br/>
+                  <label><input type="checkbox" id="use-multilingual-student"> <a href="https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student" target="_blank">Multilingual DistilBERT</a> (280MB)</label><br/>
                 </div>
                 <div>
                   <strong>Classification:</strong><br/>
-                  <label><input type="checkbox" id="use-goemotions"> GoEmotions (28 Emotions) (400MB)</label><br/>
-                  <label><input type="checkbox" id="use-koala-moderation"> KoalaAI Content Moderation (200MB)</label><br/>
-                  <label><input type="checkbox" id="use-iptc-news"> IPTC News Topics (300MB)</label><br/>
+                  <label><input type="checkbox" id="use-goemotions"> <a href="https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx" target="_blank">GoEmotions</a> (28 Emotions) (400MB)</label><br/>
+                  <label><input type="checkbox" id="use-koala-moderation"> <a href="https://huggingface.co/KoalaAI/Text-Moderation" target="_blank">KoalaAI Content Moderation</a> (200MB)</label><br/>
+                  <label><input type="checkbox" id="use-iptc-news"> <a href="https://huggingface.co/onnx-community/multilingual-IPTC-news-topic-classifier-ONNX" target="_blank">IPTC News Topics</a> (300MB)</label><br/>
+                  <label><input type="checkbox" id="use-language-detection"> <a href="https://huggingface.co/protectai/xlm-roberta-base-language-detection-onnx" target="_blank">Language Detection</a> (500MB)</label><br/>
+                  <label><input type="checkbox" id="use-intent-classification"> <a href="https://huggingface.co/kousik-2310/intent-classifier-minilm" target="_blank">Intent Classification</a> (150MB)</label><br/>
+                  <label><input type="checkbox" id="use-toxic-bert"> <a href="https://huggingface.co/Xenova/toxic-bert" target="_blank">Toxic BERT</a> (400MB)</label><br/>
+                  <label><input type="checkbox" id="use-jigsaw-toxicity"> <a href="https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx" target="_blank">Jigsaw Toxicity</a> (200MB)</label><br/>
+                  <label><input type="checkbox" id="use-industry-classification"> <a href="https://huggingface.co/sabatale/industry-classification-api-onnx" target="_blank">Industry Classification</a> (250MB)</label><br/>
                 </div>
               </div>
               <div id="cache-stats">

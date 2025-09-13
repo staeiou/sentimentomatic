@@ -2,6 +2,7 @@ import './style-compact.css';
 import { AnalyzerRegistry } from './analyzers';
 import { MultiModelAnalyzer } from './analyzers/MultiModelAnalyzer';
 import { StreamingAnalysisController } from './analysis/StreamingAnalysisController';
+import { IncrementalTableRenderer } from './analysis/IncrementalTableRenderer';
 import { CacheManager } from './models/CacheManager';
 // Line numbering handled by HTML event handlers and global functions
 import { exportToCSV, exportToJSON } from './utils/exportUtils';
@@ -36,6 +37,11 @@ class SentimentomaticApp {
   private goEmotionsCheckbox!: HTMLInputElement;
   private koalaModerationCheckbox!: HTMLInputElement;
   private iptcNewsCheckbox!: HTMLInputElement;
+  private languageDetectionCheckbox!: HTMLInputElement;
+  private intentClassificationCheckbox!: HTMLInputElement;
+  private toxicBertCheckbox!: HTMLInputElement;
+  private jigsawToxicityCheckbox!: HTMLInputElement;
+  private industryClassificationCheckbox!: HTMLInputElement;
   
   // Other Controls
   private cacheStatsElement!: HTMLElement;
@@ -48,7 +54,7 @@ class SentimentomaticApp {
     this.analyzerRegistry = new AnalyzerRegistry();
     this.multiModelAnalyzer = new MultiModelAnalyzer(this.analyzerRegistry.getModelManager());
     this.cacheManager = new CacheManager();
-    
+
     this.initializeElements();
     this.analysisController = new StreamingAnalysisController(
       this.analyzerRegistry,
@@ -59,6 +65,9 @@ class SentimentomaticApp {
     this.setupEventListeners();
     this.loadStylesheet();
     this.updateCacheStats();
+
+    // Initialize modal styles for classification results
+    IncrementalTableRenderer.initializeModalStyles();
   }
 
   private initializeElements(): void {
@@ -83,6 +92,11 @@ class SentimentomaticApp {
     this.goEmotionsCheckbox = document.getElementById('use-goemotions') as HTMLInputElement;
     this.koalaModerationCheckbox = document.getElementById('use-koala-moderation') as HTMLInputElement;
     this.iptcNewsCheckbox = document.getElementById('use-iptc-news') as HTMLInputElement;
+    this.languageDetectionCheckbox = document.getElementById('use-language-detection') as HTMLInputElement;
+    this.intentClassificationCheckbox = document.getElementById('use-intent-classification') as HTMLInputElement;
+    this.toxicBertCheckbox = document.getElementById('use-toxic-bert') as HTMLInputElement;
+    this.jigsawToxicityCheckbox = document.getElementById('use-jigsaw-toxicity') as HTMLInputElement;
+    this.industryClassificationCheckbox = document.getElementById('use-industry-classification') as HTMLInputElement;
     
     // Other controls
     this.cacheStatsElement = document.getElementById('cache-stats') as HTMLElement;
@@ -148,7 +162,12 @@ class SentimentomaticApp {
       this.useMultilingualStudentCheckbox,
       this.goEmotionsCheckbox,
       this.koalaModerationCheckbox,
-      this.iptcNewsCheckbox
+      this.iptcNewsCheckbox,
+      this.languageDetectionCheckbox,
+      this.intentClassificationCheckbox,
+      this.toxicBertCheckbox,
+      this.jigsawToxicityCheckbox,
+      this.industryClassificationCheckbox
     ];
     
     allCheckboxes.forEach(checkbox => {
@@ -175,7 +194,12 @@ class SentimentomaticApp {
       // Classification models
       { checkbox: this.goEmotionsCheckbox, id: 'go-emotions', hfId: 'SamLowe/roberta-base-go_emotions-onnx', name: 'GoEmotions' },
       { checkbox: this.koalaModerationCheckbox, id: 'text-moderation', hfId: 'KoalaAI/Text-Moderation', name: 'KoalaAI Moderation' },
-      { checkbox: this.iptcNewsCheckbox, id: 'iptc-news', hfId: 'onnx-community/multilingual-IPTC-news-topic-classifier-ONNX', name: 'IPTC News' }
+      { checkbox: this.iptcNewsCheckbox, id: 'iptc-news', hfId: 'onnx-community/multilingual-IPTC-news-topic-classifier-ONNX', name: 'IPTC News' },
+      { checkbox: this.languageDetectionCheckbox, id: 'language-detection', hfId: 'protectai/xlm-roberta-base-language-detection-onnx', name: 'Language Detection' },
+      { checkbox: this.intentClassificationCheckbox, id: 'intent-classification', hfId: 'kousik-2310/intent-classifier-minilm', name: 'Intent Classification' },
+      { checkbox: this.toxicBertCheckbox, id: 'toxic-bert', hfId: 'Xenova/toxic-bert', name: 'Toxic BERT' },
+      { checkbox: this.jigsawToxicityCheckbox, id: 'jigsaw-toxicity', hfId: 'minuva/MiniLMv2-toxic-jigsaw-onnx', name: 'Jigsaw Toxicity' },
+      { checkbox: this.industryClassificationCheckbox, id: 'industry-classification', hfId: 'sabatale/industry-classification-api-onnx', name: 'Industry Classification' }
     ];
 
     allModelMappings.forEach(({ checkbox, id, hfId, name }) => {
