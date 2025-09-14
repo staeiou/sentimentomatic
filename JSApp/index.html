@@ -44,18 +44,26 @@
       </div>
 
       <section class="input-section" aria-label="Text Input">
+        <div class="carnival-step step-1">STEP 1</div>
         <div class="input-header">
-          <h3>🎰 Feed The Machine!</h3>
-          <span class="input-hint">One line = One analysis</span>
+          <div class="header-left">
+            <h3>🎰 Insert Texts Here</h3>
+            <span class="input-hint">1 line = 1 unit of text to analyze</span>
+          </div>
+          <button type="button" id="clear-text-btn" class="btn btn-secondary btn-sm">Clear Text</button>
         </div>
         <div id="text-input" class="code-editor"></div>
-        <div class="example-prompt">
-          💡 Try the examples or add your own text!
-        </div>
       </section>
 
       <section class="controls-section" aria-label="Analysis Controls">
-        <h3 class="section-title">🎛️ Choose Your Analysis Models</h3>
+        <div class="carnival-step step-2">STEP 2</div>
+        <div class="controls-header">
+          <h3 class="section-title">🎛️ Choose Your Oracles</h3>
+          <div class="model-buttons">
+            <button type="button" id="select-all-models-btn" class="btn btn-secondary btn-sm">Select All Models</button>
+            <button type="button" id="clear-models-btn" class="btn btn-secondary btn-sm">Clear All Models</button>
+          </div>
+        </div>
         <p class="section-description">Each model analyzes sentiment differently - select the ones you want to compare</p>
         <div class="models-grid">
           <fieldset class="model-group">
@@ -84,27 +92,27 @@
               <label class="model-option">
                 <input type="checkbox" id="use-distilbert" checked>
                 <a href="https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english" target="_blank" rel="noopener">DistilBERT SST-2</a>
-                <span class="model-size">250MB</span>
+                <span class="model-size">65MB</span>
               </label>
               <label class="model-option">
                 <input type="checkbox" id="use-twitter-roberta">
                 <a href="https://huggingface.co/Xenova/twitter-roberta-base-sentiment-latest" target="_blank" rel="noopener">Twitter RoBERTa</a>
-                <span class="model-size">500MB</span>
+                <span class="model-size">122MB</span>
               </label>
               <label class="model-option">
                 <input type="checkbox" id="use-financial">
                 <a href="https://huggingface.co/Xenova/finbert" target="_blank" rel="noopener">Financial DistilRoBERTa</a>
-                <span class="model-size">350MB</span>
+                <span class="model-size">106MB</span>
               </label>
               <label class="model-option">
                 <input type="checkbox" id="use-multilingual">
                 <a href="https://huggingface.co/Xenova/bert-base-multilingual-uncased-sentiment" target="_blank" rel="noopener">Multilingual BERT</a>
-                <span class="model-size">680MB</span>
+                <span class="model-size">163MB</span>
               </label>
               <label class="model-option">
                 <input type="checkbox" id="use-multilingual-student">
                 <a href="https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student" target="_blank" rel="noopener">Multilingual DistilBERT</a>
-                <span class="model-size">280MB</span>
+                <span class="model-size">132MB</span>
               </label>
             </div>
           </fieldset>
@@ -118,42 +126,42 @@
             <label class="model-option">
               <input type="checkbox" id="use-goemotions" checked>
               <a href="https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx" target="_blank" rel="noopener">GoEmotions</a>
-              <span class="model-size">28 Emotions • 400MB</span>
+              <span class="model-size">122MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-koala-moderation" checked>
               <a href="https://huggingface.co/KoalaAI/Text-Moderation" target="_blank" rel="noopener">KoalaAI Content Moderation</a>
-              <span class="model-size">200MB</span>
+              <span class="model-size">140MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-iptc-news">
               <a href="https://huggingface.co/onnx-community/multilingual-IPTC-news-topic-classifier-ONNX" target="_blank" rel="noopener">IPTC News Topics</a>
-              <span class="model-size">300MB</span>
+              <span class="model-size">553MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-language-detection">
               <a href="https://huggingface.co/protectai/xlm-roberta-base-language-detection-onnx" target="_blank" rel="noopener">Language Detection</a>
-              <span class="model-size">500MB</span>
+              <span class="model-size">282MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-intent-classification">
               <a href="https://huggingface.co/kousik-2310/intent-classifier-minilm" target="_blank" rel="noopener">Intent Classification</a>
-              <span class="model-size">150MB</span>
+              <span class="model-size">23MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-toxic-bert">
               <a href="https://huggingface.co/Xenova/toxic-bert" target="_blank" rel="noopener">Toxic BERT</a>
-              <span class="model-size">400MB</span>
+              <span class="model-size">106MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-jigsaw-toxicity">
               <a href="https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx" target="_blank" rel="noopener">Jigsaw Toxicity</a>
-              <span class="model-size">200MB</span>
+              <span class="model-size">22MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-industry-classification">
               <a href="https://huggingface.co/sabatale/industry-classification-api-onnx" target="_blank" rel="noopener">Industry Classification</a>
-              <span class="model-size">250MB</span>
+              <span class="model-size">106MB</span>
             </label>
           </fieldset>
         </div>
@@ -173,9 +181,10 @@
         </div>
 
         <div class="action-bar">
-          <button type="button" id="clear-models-btn" class="btn btn-secondary">Clear All Models</button>
-          <button type="button" id="clear-text-btn" class="btn btn-secondary">Clear Text</button>
-          <button type="button" id="analyze-btn" class="btn btn-primary">Analyze</button>
+          <div class="carnival-step step-3">STEP 3</div>
+          <div class="analyze-button-container">
+            <button type="button" id="analyze-btn" class="btn btn-primary">Analyze</button>
+          </div>
         </div>
       </section>
 
@@ -183,6 +192,7 @@
         <h2>📊 Analysis Results</h2>
         <div class="results-toolbar">
           <button type="button" id="export-csv" class="btn btn-secondary">Export CSV</button>
+          <button type="button" id="export-excel" class="btn btn-secondary">Export Excel</button>
           <button type="button" id="export-json" class="btn btn-secondary">Export JSON</button>
         </div>
         <div id="results-table" class="results-container"></div>
