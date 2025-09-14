@@ -6,9 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:model-sizes": "playwright test tests/model-sizes.spec.ts",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"
   },
