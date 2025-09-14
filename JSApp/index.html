@@ -59,55 +59,69 @@
         <p class="section-description">Each model analyzes sentiment differently - select the ones you want to compare</p>
         <div class="models-grid">
           <fieldset class="model-group">
-            <legend>Rule-Based</legend>
-            <label class="model-option">
-              <input type="checkbox" id="use-afinn" checked>
-              <a href="https://github.com/thisandagain/sentiment" target="_blank" rel="noopener">AFINN</a>
-            </label>
-            <label class="model-option">
-              <input type="checkbox" id="use-vader" checked>
-              <a href="https://github.com/vaderSentiment/vaderSentiment-js" target="_blank" rel="noopener">VADER</a>
-            </label>
-          </fieldset>
-
-          <fieldset class="model-group">
             <legend>Sentiment Models</legend>
-            <label class="model-option">
-              <input type="checkbox" id="use-distilbert" checked>
-              <a href="https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english" target="_blank" rel="noopener">DistilBERT SST-2</a>
-              <span class="model-size">250MB</span>
-            </label>
-            <label class="model-option">
-              <input type="checkbox" id="use-twitter-roberta">
-              <a href="https://huggingface.co/Xenova/twitter-roberta-base-sentiment-latest" target="_blank" rel="noopener">Twitter RoBERTa</a>
-              <span class="model-size">500MB</span>
-            </label>
-            <label class="model-option">
-              <input type="checkbox" id="use-financial">
-              <a href="https://huggingface.co/Xenova/finbert" target="_blank" rel="noopener">Financial DistilRoBERTa</a>
-              <span class="model-size">350MB</span>
-            </label>
-            <label class="model-option">
-              <input type="checkbox" id="use-multilingual">
-              <a href="https://huggingface.co/Xenova/bert-base-multilingual-uncased-sentiment" target="_blank" rel="noopener">Multilingual BERT</a>
-              <span class="model-size">680MB</span>
-            </label>
-            <label class="model-option">
-              <input type="checkbox" id="use-multilingual-student">
-              <a href="https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student" target="_blank" rel="noopener">Multilingual DistilBERT</a>
-              <span class="model-size">280MB</span>
-            </label>
+            <div class="model-subgroup">
+              <div class="subgroup-header-row">
+                <h4 class="subgroup-header">Rule-Based Models</h4>
+                <span class="size-header">Size</span>
+              </div>
+              <label class="model-option">
+                <input type="checkbox" id="use-afinn">
+                <a href="https://github.com/thisandagain/sentiment" target="_blank" rel="noopener">AFINN</a>
+                <span class="model-size">1MB</span>
+              </label>
+              <label class="model-option">
+                <input type="checkbox" id="use-vader" checked>
+                <a href="https://github.com/vaderSentiment/vaderSentiment-js" target="_blank" rel="noopener">VADER</a>
+                <span class="model-size">1MB</span>
+              </label>
+            </div>
+            <div class="model-subgroup">
+              <div class="subgroup-header-row">
+                <h4 class="subgroup-header">Neural Network Models</h4>
+                <span class="size-header">Size</span>
+              </div>
+              <label class="model-option">
+                <input type="checkbox" id="use-distilbert" checked>
+                <a href="https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english" target="_blank" rel="noopener">DistilBERT SST-2</a>
+                <span class="model-size">250MB</span>
+              </label>
+              <label class="model-option">
+                <input type="checkbox" id="use-twitter-roberta">
+                <a href="https://huggingface.co/Xenova/twitter-roberta-base-sentiment-latest" target="_blank" rel="noopener">Twitter RoBERTa</a>
+                <span class="model-size">500MB</span>
+              </label>
+              <label class="model-option">
+                <input type="checkbox" id="use-financial">
+                <a href="https://huggingface.co/Xenova/finbert" target="_blank" rel="noopener">Financial DistilRoBERTa</a>
+                <span class="model-size">350MB</span>
+              </label>
+              <label class="model-option">
+                <input type="checkbox" id="use-multilingual">
+                <a href="https://huggingface.co/Xenova/bert-base-multilingual-uncased-sentiment" target="_blank" rel="noopener">Multilingual BERT</a>
+                <span class="model-size">680MB</span>
+              </label>
+              <label class="model-option">
+                <input type="checkbox" id="use-multilingual-student">
+                <a href="https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student" target="_blank" rel="noopener">Multilingual DistilBERT</a>
+                <span class="model-size">280MB</span>
+              </label>
+            </div>
           </fieldset>
 
           <fieldset class="model-group">
             <legend>Classification</legend>
+            <div class="classification-header-row">
+              <span class="classification-label">Model</span>
+              <span class="size-header">Size</span>
+            </div>
             <label class="model-option">
-              <input type="checkbox" id="use-goemotions">
+              <input type="checkbox" id="use-goemotions" checked>
               <a href="https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx" target="_blank" rel="noopener">GoEmotions</a>
               <span class="model-size">28 Emotions • 400MB</span>
             </label>
             <label class="model-option">
-              <input type="checkbox" id="use-koala-moderation">
+              <input type="checkbox" id="use-koala-moderation" checked>
               <a href="https://huggingface.co/KoalaAI/Text-Moderation" target="_blank" rel="noopener">KoalaAI Content Moderation</a>
               <span class="model-size">200MB</span>
             </label>
@@ -144,11 +158,22 @@
           </fieldset>
         </div>
 
-        <div class="action-bar">
-          <div class="cache-info">
-            <span class="cache-size">0 MB used</span>
-            <button type="button" id="clear-cache" class="btn btn-secondary">Clear Cache</button>
+        <div class="cache-options">
+          <div class="cache-controls">
+            <label class="cache-option">
+              <input type="checkbox" id="keep-models-cached" checked>
+              Keep downloaded models in browser cache
+            </label>
+            <button type="button" id="clear-cache" class="btn btn-secondary btn-sm">Clear Cache</button>
+            <button type="button" id="debug-cache" class="btn btn-secondary btn-sm">Debug Cache</button>
           </div>
+          <span id="cache-stats" class="cache-stats">
+            <span class="cache-size">0 MB used</span>
+          </span>
+        </div>
+
+        <div class="action-bar">
+          <button type="button" id="clear-models-btn" class="btn btn-secondary">Clear All Models</button>
           <button type="button" id="clear-text-btn" class="btn btn-secondary">Clear Text</button>
           <button type="button" id="analyze-btn" class="btn btn-primary">Analyze</button>
         </div>
