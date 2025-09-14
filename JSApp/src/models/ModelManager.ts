@@ -162,9 +162,8 @@ export class ModelManager {
     console.log(`🔧 Configuring Transformers.js environment...`);
     env.allowRemoteModels = true;
     env.allowLocalModels = false;
-    // Try to force cache bypass
-    env.cacheDir = null;
-    env.useBrowserCache = false;
+    // CRITICAL: Enable browser caching for persistence
+    env.useBrowserCache = true;
     env.backends.onnx.wasm.numThreads = 1;
     env.backends.onnx.wasm.simd = false;
     env.backends.onnx.webgl = false;
@@ -205,11 +204,17 @@ export class ModelManager {
     const task = knownTasks[0]; // Use the primary task for this model type
     console.log(`🎯 Using ${task} task for ${modelId}...`);
     
-    // Monkey-patch fetch to redirect ONNX files for models with non-standard structures
+    // Monkey-patch fetch to redirect ONNX files for models with non-standard structures AND monitor downloads
     const originalFetch = window.fetch;
+    const downloadedFiles: {url: string, size: number, timestamp: number}[] = [];
 
     window.fetch = async (...args) => {
       const url = args[0] as string;
+
+      // Log all transformers.js related requests
+      if (typeof url === 'string' && url.includes('huggingface.co') && url.includes(modelId)) {
+        console.log(`🌐 NETWORK: Fetching ${url}`);
+      }
 
       // Handle ONNX file redirects for models with non-standard file structures
       if (typeof url === 'string' && url.includes('.onnx')) {
@@ -295,7 +300,20 @@ export class ModelManager {
         return response;
       }
 
-      return originalFetch(...args);
+      // Execute the original fetch
+      const response = await originalFetch(...args);
+
+      // Track successful downloads for this model
+      if (typeof url === 'string' && url.includes('huggingface.co') && url.includes(modelId) && response.ok) {
+        const contentLength = response.headers.get('content-length');
+        const size = contentLength ? parseInt(contentLength) : 0;
+        const timestamp = Date.now();
+
+        downloadedFiles.push({ url, size, timestamp });
+        console.log(`✅ DOWNLOADED: ${url} (${size} bytes)`);
+      }
+
+      return response;
     };
     
     const pipelineOptions = {
@@ -328,6 +346,59 @@ export class ModelManager {
     try {
       model = await pipeline(task, modelId, pipelineOptions);
       console.log(`✅ ${config.name} loaded successfully with ${task} task`);
+
+      // COMPREHENSIVE DEBUG: Monitor cache status after model loading
+      setTimeout(async () => {
+        try {
+          console.log(`🔍 COMPREHENSIVE CACHE DEBUG for ${config.name} (${config.huggingFaceId})`);
+          console.log(`🔍 ================================`);
+
+          // Report downloaded files
+          console.log(`🌐 Downloaded ${downloadedFiles.length} files for this model:`);
+          downloadedFiles.forEach(file => {
+            const sizeKB = (file.size / 1024).toFixed(1);
+            console.log(`  📁 ${file.url} (${sizeKB} KB)`);
+          });
+          const totalSize = downloadedFiles.reduce((sum, file) => sum + file.size, 0);
+          console.log(`🌐 Total downloaded: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            console.log(`🔍 Available caches:`, cacheNames);
+
+            // Focus on transformers-cache specifically
+            if (cacheNames.includes('transformers-cache')) {
+              const cache = await caches.open('transformers-cache');
+              const keys = await cache.keys();
+              console.log(`🔍 transformers-cache now has ${keys.length} files total`);
+
+              // Filter to only this model's files
+              const modelFiles = keys.filter(req => req.url.includes(config.huggingFaceId || ''));
+              console.log(`🔍 Files for ${config.huggingFaceId}: ${modelFiles.length}`);
+
+              if (modelFiles.length > 0) {
+                console.log(`🔍 Model files cached:`, modelFiles.map(k => k.url));
+
+                // Test cache detection logic
+                const cacheManager = new (await import('../models/CacheManager')).CacheManager();
+                const isDetected = await cacheManager.isModelActuallyCached(config.huggingFaceId || '');
+                console.log(`🔍 Cache detection result: ${isDetected ? '✅ DETECTED' : '❌ NOT DETECTED'}`);
+              } else {
+                console.log(`❌ No files found for ${config.huggingFaceId} in transformers-cache`);
+              }
+            } else {
+              console.log(`❌ transformers-cache not found in available caches`);
+            }
+          } else {
+            console.log(`❌ Cache API not available`);
+          }
+
+          console.log(`🔍 ================================`);
+        } catch (debugError) {
+          console.warn('Comprehensive debug check failed:', debugError);
+        }
+      }, 2500); // Check cache 2.5 seconds after loading (after other delays)
+
     } catch (error: any) {
       restoreFetch(); // Restore original fetch on error
 

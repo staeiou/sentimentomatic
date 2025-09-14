@@ -1,123 +1,12 @@
-export interface CacheInfo {
-  modelId: string;
-  size: number; // bytes
-  lastAccessed: number;
-  downloadDate: number;
-  huggingFaceId: string;
-}
-
 export class CacheManager {
-  private readonly MAX_CACHE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
-  private readonly CACHE_INFO_KEY = 'hf-cache-info';
+  // localStorage cache metadata removed - now using browser cache directly
+
+  // localStorage cache metadata methods removed - we now use real browser cache directly
+
+  // Cache cleanup methods removed - browser manages cache automatically
 
   /**
-   * Get information about all cached models
-   */
-  async getCacheInfo(): Promise<CacheInfo[]> {
-    try {
-      const stored = localStorage.getItem(this.CACHE_INFO_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.warn('Failed to read cache info:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Update cache info for a model
-   */
-  async updateCacheInfo(modelId: string, huggingFaceId: string, estimatedSize: number): Promise<void> {
-    const cacheInfo = await this.getCacheInfo();
-    const existing = cacheInfo.find(info => info.modelId === modelId);
-    
-    if (existing) {
-      existing.lastAccessed = Date.now();
-    } else {
-      cacheInfo.push({
-        modelId,
-        size: estimatedSize,
-        lastAccessed: Date.now(),
-        downloadDate: Date.now(),
-        huggingFaceId
-      });
-    }
-    
-    localStorage.setItem(this.CACHE_INFO_KEY, JSON.stringify(cacheInfo));
-  }
-
-  /**
-   * Get total cache size
-   */
-  async getTotalCacheSize(): Promise<number> {
-    const cacheInfo = await this.getCacheInfo();
-    return cacheInfo.reduce((total, info) => total + info.size, 0);
-  }
-
-  /**
-   * Check if cache cleanup is needed
-   */
-  async needsCleanup(): Promise<boolean> {
-    const totalSize = await this.getTotalCacheSize();
-    return totalSize > this.MAX_CACHE_SIZE;
-  }
-
-  /**
-   * Clean up old cached models
-   */
-  async cleanup(): Promise<string[]> {
-    const cacheInfo = await this.getCacheInfo();
-    const totalSize = await this.getTotalCacheSize();
-    
-    if (totalSize <= this.MAX_CACHE_SIZE) {
-      return [];
-    }
-
-    console.log(`🧹 Cache cleanup needed: ${Math.round(totalSize / 1024 / 1024)}MB > ${Math.round(this.MAX_CACHE_SIZE / 1024 / 1024)}MB`);
-    
-    // Sort by last accessed (oldest first)
-    const sortedModels = [...cacheInfo].sort((a, b) => a.lastAccessed - b.lastAccessed);
-    
-    const removedModels: string[] = [];
-    let currentSize = totalSize;
-    
-    for (const model of sortedModels) {
-      if (currentSize <= this.MAX_CACHE_SIZE * 0.8) { // Clean to 80% of limit
-        break;
-      }
-      
-      try {
-        await this.clearModelCache(model.modelId);
-        removedModels.push(model.huggingFaceId);
-        currentSize -= model.size;
-        console.log(`🗑️ Removed cached model: ${model.huggingFaceId} (${Math.round(model.size / 1024 / 1024)}MB)`);
-      } catch (error) {
-        console.warn(`Failed to remove cached model ${model.modelId}:`, error);
-      }
-    }
-    
-    // Update cache info
-    const remainingInfo = cacheInfo.filter(info => !removedModels.includes(info.huggingFaceId));
-    localStorage.setItem(this.CACHE_INFO_KEY, JSON.stringify(remainingInfo));
-    
-    return removedModels;
-  }
-
-  /**
-   * Clear cache for a specific model
-   */
-  async clearModelCache(modelId: string): Promise<void> {
-    // Clear from cache info
-    const cacheInfo = await this.getCacheInfo();
-    const filtered = cacheInfo.filter(info => info.modelId !== modelId);
-    localStorage.setItem(this.CACHE_INFO_KEY, JSON.stringify(filtered));
-    
-    // Note: We can't easily clear the actual ONNX model files from transformers.js cache
-    // as they're stored in browser's internal cache. This is a limitation.
-    // The best we can do is track what we think is cached.
-  }
-
-  /**
-   * Get cache statistics for display
+   * Get cache statistics for display - computed directly from actual browser cache
    */
   async getCacheStats(): Promise<{
     totalSize: number;
@@ -125,21 +14,69 @@ export class CacheManager {
     oldestModel?: string;
     newestModel?: string;
   }> {
-    const cacheInfo = await this.getCacheInfo();
-    const totalSize = cacheInfo.reduce((sum, info) => sum + info.size, 0);
-    
-    if (cacheInfo.length === 0) {
+    try {
+      // Check if Cache API is available
+      if (!('caches' in window)) {
+        console.log('📊 Cache API not available, returning zero stats');
+        return { totalSize: 0, modelCount: 0 };
+      }
+
+      // Get actual cache contents
+      const cache = await caches.open('transformers-cache');
+      const requests = await cache.keys();
+
+      if (requests.length === 0) {
+        console.log('📊 transformers-cache is empty');
+        return { totalSize: 0, modelCount: 0 };
+      }
+
+      console.log(`📊 Found ${requests.length} files in transformers-cache`);
+
+      // Calculate real size from actual cached responses
+      let totalSize = 0;
+      const modelUrls = new Set<string>(); // Track unique models
+
+      for (const request of requests) {
+        try {
+          const response = await cache.match(request);
+          if (response) {
+            // Try to get size from Content-Length header
+            const contentLength = response.headers.get('content-length');
+            if (contentLength) {
+              totalSize += parseInt(contentLength);
+            } else {
+              // If no Content-Length, read the blob to get actual size
+              const blob = await response.blob();
+              totalSize += blob.size;
+            }
+
+            // Extract model name from URL for counting unique models
+            const url = request.url;
+            const modelMatch = url.match(/huggingface\.co\/([^\/]+\/[^\/]+)/);
+            if (modelMatch) {
+              modelUrls.add(modelMatch[1]);
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to get size for ${request.url}:`, error);
+        }
+      }
+
+      const result = {
+        totalSize,
+        modelCount: modelUrls.size,
+        // Note: We can't easily determine oldest/newest from cache API alone
+        // The Cache API doesn't preserve timestamps
+      };
+
+      console.log(`📊 Real cache stats: ${this.formatSize(totalSize)} across ${modelUrls.size} models`);
+      return result;
+
+    } catch (error) {
+      console.warn('Failed to get real cache stats:', error);
+      // If cache API fails, return zero stats
       return { totalSize: 0, modelCount: 0 };
     }
-    
-    const sortedByDate = [...cacheInfo].sort((a, b) => a.downloadDate - b.downloadDate);
-    
-    return {
-      totalSize,
-      modelCount: cacheInfo.length,
-      oldestModel: sortedByDate[0]?.huggingFaceId,
-      newestModel: sortedByDate[sortedByDate.length - 1]?.huggingFaceId
-    };
   }
 
   /**
@@ -168,15 +105,131 @@ export class CacheManager {
   }
 
   /**
-   * Clear all cached models
+   * Check if a specific model is actually cached in transformers-cache
+   */
+  async isModelActuallyCached(huggingFaceId: string): Promise<boolean> {
+    try {
+      // Check if Cache API is available
+      if (!('caches' in window)) {
+        return false;
+      }
+
+      // Transformers.js uses 'transformers-cache' by default
+      const cache = await caches.open('transformers-cache');
+
+      // Core files that MUST be cached for a model to be considered ready
+      const coreFiles = [
+        // Essential config files (at least one must be present)
+        `https://huggingface.co/${huggingFaceId}/resolve/main/config.json`,
+        `https://huggingface.co/${huggingFaceId}/resolve/main/tokenizer_config.json`
+      ];
+
+      // ONNX model files that could be cached (at least one must be present)
+      const onnxFiles = [
+        // Standard ONNX locations (quantized preferred)
+        `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/model_quantized.onnx`,
+        `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/model.onnx`,
+        `https://huggingface.co/${huggingFaceId}/resolve/main/model_quantized.onnx`,
+        `https://huggingface.co/${huggingFaceId}/resolve/main/model.onnx`,
+
+        // Special cases for non-standard model structures
+        `https://huggingface.co/${huggingFaceId}/resolve/main/model_optimized_quantized.onnx`, // minuva models
+        `https://huggingface.co/${huggingFaceId}/resolve/main/model_optimized.onnx`,
+
+        // Multi-part models
+        `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/encoder_model.onnx`,
+        `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/decoder_model.onnx`,
+        `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/decoder_model_merged.onnx`
+      ];
+
+      // Check for at least one core config file
+      let hasConfigFile = false;
+      for (const url of coreFiles) {
+        const cachedResponse = await cache.match(url);
+        if (cachedResponse) {
+          console.log(`✅ Found cached config file: ${url}`);
+          hasConfigFile = true;
+          break;
+        }
+      }
+
+      if (!hasConfigFile) {
+        console.log(`❌ No config files found in cache for ${huggingFaceId}`);
+        return false;
+      }
+
+      // Check for at least one ONNX model file
+      let hasOnnxFile = false;
+      for (const url of onnxFiles) {
+        const cachedResponse = await cache.match(url);
+        if (cachedResponse) {
+          console.log(`✅ Found cached ONNX file: ${url}`);
+          hasOnnxFile = true;
+          break;
+        }
+      }
+
+      if (!hasOnnxFile) {
+        console.log(`❌ No ONNX files found in cache for ${huggingFaceId}`);
+        return false;
+      }
+
+      console.log(`✅ Model ${huggingFaceId} is properly cached (has both config and ONNX files)`);
+      return true;
+
+    } catch (error) {
+      console.warn('Failed to check transformers-cache:', error);
+      return false;
+    }
+  }
+
+  // updateModelCacheStatus removed - no longer needed since we read cache directly
+
+  /**
+   * List all files in transformers-cache for debugging
+   */
+  async debugListCachedFiles(): Promise<string[]> {
+    try {
+      if (!('caches' in window)) {
+        return [];
+      }
+
+      const cache = await caches.open('transformers-cache');
+      const keys = await cache.keys();
+      const urls = keys.map(req => req.url);
+
+      console.log(`📋 Found ${urls.length} files in transformers-cache:`, urls);
+      return urls;
+    } catch (error) {
+      console.warn('Failed to list cached files:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Clear all cached models from browser Cache API
    */
   async clearCache(): Promise<void> {
-    // Clear cache info from localStorage
-    localStorage.removeItem(this.CACHE_INFO_KEY);
-    
-    // Note: We can't easily clear the actual ONNX model files from transformers.js cache
-    // as they're stored in browser's internal cache. This is a limitation.
-    console.log('✅ Cache info cleared from localStorage');
+    try {
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        console.log('Available caches:', cacheNames);
+
+        // Clear transformers-related caches
+        for (const cacheName of cacheNames) {
+          if (cacheName.includes('transformers') ||
+              cacheName.includes('huggingface') ||
+              cacheName.includes('onnx')) {
+            await caches.delete(cacheName);
+            console.log(`🗑️ Cleared cache: ${cacheName}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to clear browser cache:', error);
+    }
+
+    console.log('✅ Browser cache cleared');
   }
 
   /**
