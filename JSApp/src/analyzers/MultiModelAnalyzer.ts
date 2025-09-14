@@ -71,6 +71,87 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
   }
 
   /**
+   * Initialize a single model for memory-efficient processing
+   */
+  async initializeSingleModel(modelId: string, progressCallback?: (status: string, progress: number) => void): Promise<void> {
+    const model = this.enabledModels.get(modelId);
+    if (!model) {
+      throw new Error(`Model ${modelId} not found in enabled models`);
+    }
+
+    // Skip if already loaded
+    if (this.loadedPipelines.has(modelId)) {
+      console.log(`✅ ${model.displayName} already loaded`);
+      return;
+    }
+
+    console.log(`📦 Loading single model: ${model.displayName}...`);
+    progressCallback?.(`Loading ${model.displayName}...`, 0);
+
+    try {
+      // Create model config
+      const modelConfig = {
+        id: model.id,
+        name: model.displayName,
+        description: `Custom HuggingFace model: ${model.huggingFaceId}`,
+        provider: 'transformers' as const,
+        size: 'Unknown',
+        speed: 'medium' as const,
+        accuracy: 'unknown' as const,
+        languages: ['en'],
+        huggingFaceId: model.huggingFaceId,
+        metadata: {
+          architecture: 'Unknown',
+          framework: 'transformers.js'
+        }
+      };
+
+      // Register temporarily and load
+      (this.modelManager as any).tempModelConfigs = (this.modelManager as any).tempModelConfigs || new Map();
+      (this.modelManager as any).tempModelConfigs.set(model.id, modelConfig);
+
+      const pipeline = await this.modelManager.loadModel(model.id);
+      this.loadedPipelines.set(model.id, pipeline);
+
+      // Cache tracking no longer needed - we read directly from browser cache
+
+      console.log(`✅ ${model.displayName} loaded successfully`);
+      progressCallback?.(`✅ Loaded ${model.displayName}`, 100);
+    } catch (error) {
+      console.error(`❌ Failed to load ${model.displayName}:`, error);
+      progressCallback?.(`Failed to load ${model.displayName}`, 0);
+      throw error;
+    }
+  }
+
+  /**
+   * Unload a single model and clear its cache to free memory
+   */
+  async unloadSingleModel(modelId: string): Promise<void> {
+    const model = this.enabledModels.get(modelId);
+    const modelName = model ? model.displayName : modelId;
+
+    console.log(`🗑️ Unloading ${modelName} and clearing cache...`);
+
+    // Unload from model manager
+    this.modelManager.unloadModel(modelId);
+
+    // Remove from loaded pipelines
+    this.loadedPipelines.delete(modelId);
+
+    // No need to clear cache metadata - we use browser cache directly now
+
+    console.log(`✅ ${modelName} unloaded and cache cleared`);
+  }
+
+  /**
+   * Get the cache manager for updating cache status
+   */
+  getCacheManager() {
+    return this.cacheManager;
+  }
+
+  /**
    * Get ALL predictions from a model (not just top one)
    */
   async getAllPredictions(text: string, modelId: string): Promise<Array<{label: string, score: number}> | null> {
@@ -188,9 +269,7 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
         const pipeline = await this.modelManager.loadModel(model.id);
         this.loadedPipelines.set(model.id, pipeline);
         
-        // Track in cache
-        const estimatedSize = this.cacheManager.estimateModelSize(model.huggingFaceId);
-        await this.cacheManager.updateCacheInfo(model.id, model.huggingFaceId, estimatedSize);
+        // Cache tracking no longer needed - we read directly from browser cache
         
         console.log(`✅ ${model.displayName} loaded successfully`);
         
@@ -264,9 +343,7 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
         pipeline = await this.modelManager.loadModel(model.id);
         this.loadedPipelines.set(model.id, pipeline);
         
-        // Track in cache
-        const estimatedSize = this.cacheManager.estimateModelSize(model.huggingFaceId);
-        await this.cacheManager.updateCacheInfo(model.id, model.huggingFaceId, estimatedSize);
+        // Cache tracking no longer needed - we read directly from browser cache
       }
 
       // Perform analysis
@@ -481,9 +558,7 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
           
           pipeline = await this.modelManager.loadModel(model.id);
           
-          // Track in cache
-          const estimatedSize = this.cacheManager.estimateModelSize(model.huggingFaceId);
-          await this.cacheManager.updateCacheInfo(model.id, model.huggingFaceId, estimatedSize);
+          // Cache tracking no longer needed - we read directly from browser cache
         }
 
         // Perform analysis

@@ -22,6 +22,7 @@ export class StreamingAnalysisController {
     config: {
       selectedRuleBasedAnalyzers?: string[];
       selectedHuggingFaceModels?: string[];
+      keepModelsCached?: boolean;
     },
     progressCallback?: (status: string, progress: number) => void
   ): Promise<MultiModalAnalysisResult | null> {
@@ -39,6 +40,7 @@ export class StreamingAnalysisController {
     config: {
       selectedRuleBasedAnalyzers?: string[];
       selectedHuggingFaceModels?: string[];
+      keepModelsCached?: boolean;
     },
     progressCallback?: (status: string, progress: number) => void
   ): Promise<void> {
@@ -77,130 +79,186 @@ export class StreamingAnalysisController {
       columns.push({ name: displayName, type: modelType, modelId });
     }
     
-    // Initialize unified table
-    this.incrementalRenderer.initializeUnifiedTable(columns);
-    
-    // Initialize analyzers
-    progressCallback?.('Initializing analyzers...', 0);
-    
+    // Initialize table with all text rows upfront
+    this.incrementalRenderer.initializeTableWithAllText(columns, lines);
+
+    // Initialize rule-based analyzers only (no ML models yet)
+    progressCallback?.('Initializing rule-based analyzers...', 0);
+
     for (const analyzerName of selectedAnalyzers) {
       if (!this.analyzerRegistry.isAnalyzerReady(analyzerName)) {
         await this.analyzerRegistry.initializeAnalyzer(analyzerName);
       }
     }
-    
-    if (selectedModels.length > 0) {
-      progressCallback?.('Loading ML models...', 10);
-      await this.multiModelAnalyzer.initialize((status, progress) => {
-        progressCallback?.(status, progress * 0.3); // 0-30% for model loading
+
+    // Initialize unified results storage for export
+    for (let i = 0; i < lines.length; i++) {
+      unifiedResults.push({
+        lineIndex: i,
+        text: lines[i],
+        results: []
       });
     }
-    
-    // Process lines ONE BY ONE with actual streaming
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const text = lines[lineIndex];
-      const lineProgress = 30 + ((lineIndex / lines.length) * 70); // 30-100% for analysis
-      
-      progressCallback?.(`Analyzing line ${lineIndex + 1} of ${lines.length}...`, lineProgress);
-      
-      const lineResults: any[] = [];
-      
-      // Analyze with each rule-based analyzer (all sentiment)
-      for (const analyzerName of selectedAnalyzers) {
-        const analyzer = this.analyzerRegistry.getAnalyzer(analyzerName);
-        if (analyzer?.isReady()) {
-          try {
-            const result = await analyzer.analyze(text);
-            const processedResult = Array.isArray(result) ? result[0] : result;
-            lineResults.push({
-              analyzer: processedResult.analyzer,
-              type: 'sentiment',
-              score: processedResult.score,
-              sentiment: processedResult.sentiment,
-              metadata: processedResult.metadata
-            });
-          } catch (error) {
-            console.warn(`Failed to analyze with ${analyzerName}:`, error);
-            lineResults.push({
-              analyzer: analyzerName.toUpperCase(),
-              type: 'sentiment',
-              score: 0,
-              sentiment: 'neutral',
-              metadata: { error: true }
-            });
-          }
+
+    // Process ANALYZER BY ANALYZER across all lines
+    const totalAnalyzers = selectedAnalyzers.length + selectedModels.length;
+    let completedAnalyzers = 0;
+
+    // Process rule-based analyzers
+    for (const analyzerName of selectedAnalyzers) {
+      const analyzer = this.analyzerRegistry.getAnalyzer(analyzerName);
+      if (!analyzer?.isReady()) continue;
+
+      progressCallback?.(`Running ${analyzerName.toUpperCase()} on all lines...`, 30 + (completedAnalyzers / totalAnalyzers) * 70);
+
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        const text = lines[lineIndex];
+
+        try {
+          const result = await analyzer.analyze(text);
+          const processedResult = Array.isArray(result) ? result[0] : result;
+
+          const cellResult = {
+            analyzer: processedResult.analyzer,
+            type: 'sentiment' as const,
+            score: processedResult.score,
+            sentiment: processedResult.sentiment,
+            metadata: processedResult.metadata
+          };
+
+          // Update cell in table
+          this.incrementalRenderer.updateAnalysisCell(lineIndex, analyzerName.toUpperCase(), cellResult);
+
+          // Store for export
+          unifiedResults[lineIndex].results.push(cellResult);
+
+        } catch (error) {
+          console.warn(`Failed to analyze with ${analyzerName} on line ${lineIndex + 1}:`, error);
+          const errorResult = {
+            analyzer: analyzerName.toUpperCase(),
+            type: 'sentiment' as const,
+            score: 0,
+            sentiment: 'neutral' as const,
+            metadata: { error: true }
+          };
+
+          this.incrementalRenderer.updateAnalysisCell(lineIndex, analyzerName.toUpperCase(), errorResult);
+          unifiedResults[lineIndex].results.push(errorResult);
         }
+
+        // Small delay for visual effect
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
-      
-      // Analyze with ML models (mixed sentiment and classification)
-      if (selectedModels.length > 0 && this.multiModelAnalyzer.isReady()) {
-        for (const modelId of selectedModels) {
-          const modelInfo = this.multiModelAnalyzer.getEnabledModels().get(modelId);
-          if (!modelInfo) continue;
-          
-          try {
-            if (classificationModels.has(modelId)) {
-              // Handle classification models
-              const predictions = await this.multiModelAnalyzer.getAllPredictions(text, modelId);
-              if (predictions && predictions.length > 0) {
-                const topPrediction = predictions.reduce((max, current) => 
-                  current.score > max.score ? current : max
-                );
-                lineResults.push({
-                  analyzer: modelInfo.displayName,
-                  type: 'classification',
-                  topClass: topPrediction.label,
-                  confidence: topPrediction.score,
-                  allClasses: predictions.reduce((acc, pred) => {
-                    acc[pred.label] = pred.score;
-                    return acc;
-                  }, {} as {[key: string]: number})
-                });
+
+      completedAnalyzers++;
+    }
+
+    // Process ML models with download-run-clear pattern for memory efficiency
+    if (selectedModels.length > 0) {
+      for (const modelId of selectedModels) {
+        const modelInfo = this.multiModelAnalyzer.getEnabledModels().get(modelId);
+        if (!modelInfo) continue;
+
+        try {
+          // STEP 1: Download/Load this specific model
+          progressCallback?.(`📥 Loading ${modelInfo.displayName}...`, 30 + (completedAnalyzers / totalAnalyzers) * 70);
+          await this.multiModelAnalyzer.initializeSingleModel(modelId, (status) => {
+            progressCallback?.(`${status}`, 30 + (completedAnalyzers / totalAnalyzers) * 70);
+          });
+
+          // No need to update cache status - we read directly from browser cache now
+
+          // STEP 2: Run this model on all lines
+          progressCallback?.(`🔍 Running ${modelInfo.displayName} on all lines...`, 30 + ((completedAnalyzers + 0.5) / totalAnalyzers) * 70);
+
+          for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            const text = lines[lineIndex];
+
+            try {
+              if (classificationModels.has(modelId)) {
+                // Handle classification models
+                const predictions = await this.multiModelAnalyzer.getAllPredictions(text, modelId);
+                if (predictions && predictions.length > 0) {
+                  const topPrediction = predictions.reduce((max, current) =>
+                    current.score > max.score ? current : max
+                  );
+
+                  const cellResult = {
+                    analyzer: modelInfo.displayName,
+                    type: 'classification' as const,
+                    topClass: topPrediction.label,
+                    confidence: topPrediction.score,
+                    allClasses: predictions.reduce((acc, pred) => {
+                      acc[pred.label] = pred.score;
+                      return acc;
+                    }, {} as {[key: string]: number})
+                  };
+
+                  this.incrementalRenderer.updateAnalysisCell(lineIndex, modelInfo.displayName, cellResult);
+                  unifiedResults[lineIndex].results.push(cellResult);
+                }
+              } else {
+                // Handle sentiment models
+                const result = await this.multiModelAnalyzer.analyzeWithModel(text, modelId);
+                if (result) {
+                  const cellResult = {
+                    analyzer: result.analyzer,
+                    type: 'sentiment' as const,
+                    score: result.score,
+                    sentiment: result.sentiment,
+                    metadata: result.metadata
+                  };
+
+                  this.incrementalRenderer.updateAnalysisCell(lineIndex, modelInfo.displayName, cellResult);
+                  unifiedResults[lineIndex].results.push(cellResult);
+                }
               }
-            } else {
-              // Handle sentiment models
-              const result = await this.multiModelAnalyzer.analyzeWithModel(text, modelId);
-              if (result) {
-                lineResults.push({
-                  analyzer: result.analyzer,
-                  type: 'sentiment',
-                  score: result.score,
-                  sentiment: result.sentiment,
-                  metadata: result.metadata
-                });
-              }
+            } catch (error) {
+              console.warn(`Model ${modelInfo.displayName} failed on line ${lineIndex + 1}:`, error);
+              const errorResult = {
+                analyzer: modelInfo.displayName,
+                type: classificationModels.has(modelId) ? 'classification' as const : 'sentiment' as const,
+                score: 0,
+                sentiment: 'error' as const,
+                topClass: 'ERROR',
+                confidence: 0,
+                metadata: { error: true }
+              };
+
+              this.incrementalRenderer.updateAnalysisCell(lineIndex, modelInfo.displayName, errorResult);
+              unifiedResults[lineIndex].results.push(errorResult);
             }
-          } catch (error) {
-            console.warn(`Model ${modelInfo.displayName} failed on line ${lineIndex + 1}:`, error);
-            lineResults.push({
-              analyzer: modelInfo.displayName,
-              type: classificationModels.has(modelId) ? 'classification' : 'sentiment',
-              score: 0,
-              sentiment: 'error',
-              topClass: 'ERROR',
-              confidence: 0,
-              metadata: { error: true }
-            });
+
+            // Small delay for visual effect
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+
+          // DEBUG: Check cache before deciding to unload
+          console.log(`🔍 DEBUG: About to handle caching for ${modelInfo.displayName}. keepModelsCached = ${config.keepModelsCached}`);
+
+          // STEP 3: Unload model and clear cache (only if user doesn't want to keep them)
+          if (config.keepModelsCached === false) {
+            progressCallback?.(`🗑️ Clearing ${modelInfo.displayName} from cache...`, 30 + ((completedAnalyzers + 0.9) / totalAnalyzers) * 70);
+            await this.multiModelAnalyzer.unloadSingleModel(modelId);
+          } else {
+            progressCallback?.(`✅ Keeping ${modelInfo.displayName} cached for future use`, 30 + ((completedAnalyzers + 0.9) / totalAnalyzers) * 70);
+            console.log(`🔍 DEBUG: Model ${modelInfo.displayName} should stay cached`);
+          }
+
+        } catch (error) {
+          console.error(`❌ Failed to process model ${modelInfo.displayName}:`, error);
+          // Still try to unload the model if it was partially loaded (only if not keeping cached)
+          if (config.keepModelsCached === false) {
+            try {
+              await this.multiModelAnalyzer.unloadSingleModel(modelId);
+            } catch (unloadError) {
+              console.warn(`Failed to unload ${modelInfo.displayName}:`, unloadError);
+            }
           }
         }
+
+        completedAnalyzers++;
       }
-      
-      // Add unified row with mixed results
-      await this.incrementalRenderer.addUnifiedRow({
-        lineIndex,
-        text,
-        results: lineResults
-      });
-
-      // Store unified results for export - keep the same structure as the UI
-      unifiedResults.push({
-        lineIndex,
-        text,
-        results: lineResults
-      });
-
-      // Small delay for visual streaming effect
-      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     // Mark complete
