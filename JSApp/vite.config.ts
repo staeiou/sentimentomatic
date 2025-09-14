@@ -4,12 +4,12 @@ export default defineConfig({
   base: './',  // Use relative paths for GitHub Pages custom domain
   optimizeDeps: {
     include: ['sentiment', 'vader-sentiment'],
-    exclude: ['@xenova/transformers', 'onnxruntime-web', 'onnxruntime-common'],
+    exclude: ['onnxruntime-web', 'onnxruntime-common'],
     force: true
   },
   build: {
     rollupOptions: {
-      external: ['@xenova/transformers'],
+      external: [],
       output: {
         manualChunks: {
           'sentiment-core': ['sentiment', 'vader-sentiment']
