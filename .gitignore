@@ -63,3 +63,6 @@ temp/
 /JSApp/tests/screenshots/
 /validation-test/
 /clean-validation/
+.ipynb_checkpont*
+.ipynb*
+*.ipynb*
