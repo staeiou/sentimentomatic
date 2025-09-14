@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classifier-O-Matic</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>🎯 Classifier-O-Matic</h1>
+      <p class="tagline">Zero-shot text classification in your browser</p>
+    </header>
+
+    <main class="app-main">
+      <!-- Step 1: Label Management -->
+      <section class="step-section">
+        <h2>Step 1: Define Your Labels</h2>
+        <p class="help-text">Add labels and describe what each one means</p>
+
+        <div id="labels-container" class="labels-container">
+          <!-- Labels will be added dynamically -->
+        </div>
+
+        <div class="add-label-form">
+          <input type="text" id="new-label-name" placeholder="Label name (e.g., positive)" />
+          <button id="add-label-btn" class="btn btn-primary">Add Label</button>
+          <button id="reset-labels-btn" class="btn btn-secondary">Reset to Defaults</button>
+        </div>
+
+        <div class="template-section">
+          <label for="sentence-template">Sentence Template:</label>
+          <input type="text" id="sentence-template" value="This text is emotionally {}." />
+          <p class="template-help">Use {} where the label name should go. Templates tested:<br/>• "This text is emotionally {}." - 90% accuracy, perfect neutral detection (recommended for sentiment)<br/>• "This text is about {}." - good for topic classification<br/>• "This message is {}." - good for spam/content type detection</p>
+        </div>
+      </section>
+
+      <!-- Step 2: Input Text -->
+      <section class="step-section">
+        <h2>Step 2: Enter Your Text</h2>
+        <p class="help-text">One text per line</p>
+        <textarea id="text-input" rows="10" placeholder="Enter your text here...
+One line = one text to classify"></textarea>
+        <div class="corpus-selection">
+          <label for="test-corpus">Load test corpus:</label>
+          <select id="test-corpus" class="corpus-select">
+            <option value="">-- Select test texts --</option>
+            <option value="sentiment-mixed">Mixed Sentiment (25 cases)</option>
+            <option value="sentiment-focused">Focused Sentiment (10 cases)</option>
+            <option value="topic-classification">Topic Classification</option>
+            <option value="content-type">Content Type Detection</option>
+            <option value="spam-detection">Spam Detection</option>
+            <option value="communication-intent">Communication Intent</option>
+          </select>
+          <p class="corpus-help">Pre-tested examples from our validation suite</p>
+        </div>
+        <div class="text-stats">
+          <span id="line-count">0 lines</span>
+        </div>
+      </section>
+
+      <!-- Step 3: Settings -->
+      <section class="step-section">
+        <h2>Step 3: Settings</h2>
+
+        <div class="settings-group">
+          <label for="model-select">Model Size:</label>
+          <select id="model-select" class="model-select">
+            <option value="Xenova/nli-deberta-v3-xsmall" data-quantized="true">XSmall (~22M params, ~45MB)</option>
+            <option value="Xenova/nli-deberta-base" data-quantized="true">Base (~140M params, ~280MB)</option>
+            <option value="Xenova/nli-deberta-v3-base" data-quantized="true" selected>V3 Base (~180M params, ~360MB) ⭐ Recommended</option>
+            <option value="Xenova/nli-deberta-v3-large" data-quantized="true">V3 Large (~434M params, ~560MB int8)</option>
+            <option value="MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli" data-quantized="true">V3 Large MNLI+ Quantized (~643MB int8) 🔥 Best Accuracy</option>
+            <option value="MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli" data-quantized="false">V3 Large MNLI+ Full (~1.74GB fp32) ⚠️ Memory Intensive</option>
+          </select>
+          <p class="help-text">V3 Base offers the best accuracy/speed trade-off. Larger models = better accuracy but slower loading.</p>
+        </div>
+
+        <div class="settings-group">
+          <label>
+            <input type="checkbox" id="multi-label" />
+            Allow multiple labels per text
+          </label>
+        </div>
+
+        <div class="settings-group">
+          <label for="threshold">Classification Threshold:</label>
+          <input type="range" id="threshold" min="0" max="100" value="50" />
+          <span id="threshold-value">0.50</span>
+          <p class="help-text">Higher = more strict (fewer matches)</p>
+        </div>
+
+        <div class="settings-group">
+          <label>
+            <input type="checkbox" id="keep-model-cached" checked />
+            Keep model cached for faster re-runs
+          </label>
+        </div>
+      </section>
+
+      <!-- Step 4: Run Classification -->
+      <section class="step-section">
+        <h2>Step 4: Classify</h2>
+        <button id="classify-btn" class="btn btn-primary btn-lg">🚀 Run Classification</button>
+        <div id="progress-container" class="progress-container" hidden>
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <span id="progress-text" class="progress-text">Initializing...</span>
+        </div>
+      </section>
+
+      <!-- Results Section -->
+      <section id="results-section" class="results-section" hidden>
+        <h2>📊 Results</h2>
+        <div class="results-toolbar">
+          <button id="export-csv" class="btn btn-secondary">Export CSV</button>
+          <button id="export-json" class="btn btn-secondary">Export JSON</button>
+        </div>
+        <div id="results-table" class="results-container">
+          <!-- Results will be inserted here -->
+        </div>
+      </section>
+
+      <!-- Model Info -->
+      <section class="info-section">
+        <h3>ℹ️ About</h3>
+        <p>
+          This tool uses zero-shot classification to categorize text without training.
+          It runs entirely in your browser using WebAssembly - no data leaves your device.
+        </p>
+        <p>
+          Models: Choose from XSmall (45MB, fastest) to V3 Large (560MB int8, most accurate).
+          Downloaded once and cached in your browser.
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

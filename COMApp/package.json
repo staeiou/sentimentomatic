@@ -1,0 +1,20 @@
+{
+  "name": "classifier-o-matic",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test:models": "node test-models.js",
+    "test:templates": "node test-templates.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.0.2"
+  }
+}
