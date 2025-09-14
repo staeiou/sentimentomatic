@@ -30,7 +30,6 @@ class SentimentomaticApp {
   private useDistilbertCheckbox!: HTMLInputElement;
   private useTwitterRobertaCheckbox!: HTMLInputElement;
   private useFinancialCheckbox!: HTMLInputElement;
-  private useMultilingualCheckbox!: HTMLInputElement;
   private useMultilingualStudentCheckbox!: HTMLInputElement;
   
   // Classification Controls (now checkboxes)
@@ -38,7 +37,6 @@ class SentimentomaticApp {
   private koalaModerationCheckbox!: HTMLInputElement;
   private iptcNewsCheckbox!: HTMLInputElement;
   private languageDetectionCheckbox!: HTMLInputElement;
-  private intentClassificationCheckbox!: HTMLInputElement;
   private toxicBertCheckbox!: HTMLInputElement;
   private jigsawToxicityCheckbox!: HTMLInputElement;
   private industryClassificationCheckbox!: HTMLInputElement;
@@ -115,7 +113,6 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     this.useDistilbertCheckbox = document.getElementById('use-distilbert') as HTMLInputElement;
     this.useTwitterRobertaCheckbox = document.getElementById('use-twitter-roberta') as HTMLInputElement;
     this.useFinancialCheckbox = document.getElementById('use-financial') as HTMLInputElement;
-    this.useMultilingualCheckbox = document.getElementById('use-multilingual') as HTMLInputElement;
     this.useMultilingualStudentCheckbox = document.getElementById('use-multilingual-student') as HTMLInputElement;
     
     // Classification controls (now checkboxes)
@@ -123,7 +120,6 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     this.koalaModerationCheckbox = document.getElementById('use-koala-moderation') as HTMLInputElement;
     this.iptcNewsCheckbox = document.getElementById('use-iptc-news') as HTMLInputElement;
     this.languageDetectionCheckbox = document.getElementById('use-language-detection') as HTMLInputElement;
-    this.intentClassificationCheckbox = document.getElementById('use-intent-classification') as HTMLInputElement;
     this.toxicBertCheckbox = document.getElementById('use-toxic-bert') as HTMLInputElement;
     this.jigsawToxicityCheckbox = document.getElementById('use-jigsaw-toxicity') as HTMLInputElement;
     this.industryClassificationCheckbox = document.getElementById('use-industry-classification') as HTMLInputElement;
@@ -204,13 +200,11 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       this.useDistilbertCheckbox,
       this.useTwitterRobertaCheckbox,
       this.useFinancialCheckbox,
-      this.useMultilingualCheckbox,
       this.useMultilingualStudentCheckbox,
       this.goEmotionsCheckbox,
       this.koalaModerationCheckbox,
       this.iptcNewsCheckbox,
       this.languageDetectionCheckbox,
-      this.intentClassificationCheckbox,
       this.toxicBertCheckbox,
       this.jigsawToxicityCheckbox,
       this.industryClassificationCheckbox
@@ -241,14 +235,12 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       { checkbox: this.useDistilbertCheckbox, id: 'distilbert', hfId: 'Xenova/distilbert-base-uncased-finetuned-sst-2-english', name: 'DistilBERT SST-2' },
       { checkbox: this.useTwitterRobertaCheckbox, id: 'twitter-roberta', hfId: 'Xenova/twitter-roberta-base-sentiment-latest', name: 'Twitter RoBERTa' },
       { checkbox: this.useFinancialCheckbox, id: 'financial', hfId: 'Xenova/finbert', name: 'Financial DistilRoBERTa' },
-      { checkbox: this.useMultilingualCheckbox, id: 'multilingual', hfId: 'Xenova/bert-base-multilingual-uncased-sentiment', name: 'Multilingual BERT' },
       { checkbox: this.useMultilingualStudentCheckbox, id: 'multilingual-student', hfId: 'Xenova/distilbert-base-multilingual-cased-sentiments-student', name: 'Multilingual DistilBERT' },
       // Classification models
       { checkbox: this.goEmotionsCheckbox, id: 'go-emotions', hfId: 'SamLowe/roberta-base-go_emotions-onnx', name: 'GoEmotions' },
       { checkbox: this.koalaModerationCheckbox, id: 'text-moderation', hfId: 'KoalaAI/Text-Moderation', name: 'KoalaAI Moderation' },
       { checkbox: this.iptcNewsCheckbox, id: 'iptc-news', hfId: 'onnx-community/multilingual-IPTC-news-topic-classifier-ONNX', name: 'IPTC News' },
       { checkbox: this.languageDetectionCheckbox, id: 'language-detection', hfId: 'protectai/xlm-roberta-base-language-detection-onnx', name: 'Language Detection' },
-      { checkbox: this.intentClassificationCheckbox, id: 'intent-classification', hfId: 'kousik-2310/intent-classifier-minilm', name: 'Intent Classification' },
       { checkbox: this.toxicBertCheckbox, id: 'toxic-bert', hfId: 'Xenova/toxic-bert', name: 'Toxic BERT' },
       { checkbox: this.jigsawToxicityCheckbox, id: 'jigsaw-toxicity', hfId: 'minuva/MiniLMv2-toxic-jigsaw-onnx', name: 'Jigsaw Toxicity' },
       { checkbox: this.industryClassificationCheckbox, id: 'industry-classification', hfId: 'sabatale/industry-classification-api-onnx', name: 'Industry Classification' }
@@ -396,13 +388,11 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       this.useDistilbertCheckbox,
       this.useTwitterRobertaCheckbox,
       this.useFinancialCheckbox,
-      this.useMultilingualCheckbox,
       this.useMultilingualStudentCheckbox,
       this.goEmotionsCheckbox,
       this.koalaModerationCheckbox,
       this.iptcNewsCheckbox,
       this.languageDetectionCheckbox,
-      this.intentClassificationCheckbox,
       this.toxicBertCheckbox,
       this.jigsawToxicityCheckbox,
       this.industryClassificationCheckbox
@@ -427,13 +417,11 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       this.useDistilbertCheckbox,
       this.useTwitterRobertaCheckbox,
       this.useFinancialCheckbox,
-      this.useMultilingualCheckbox,
       this.useMultilingualStudentCheckbox,
       this.goEmotionsCheckbox,
       this.koalaModerationCheckbox,
       this.iptcNewsCheckbox,
       this.languageDetectionCheckbox,
-      this.intentClassificationCheckbox,
       this.toxicBertCheckbox,
       this.jigsawToxicityCheckbox,
       this.industryClassificationCheckbox

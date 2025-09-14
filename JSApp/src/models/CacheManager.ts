@@ -88,13 +88,11 @@ export class CacheManager {
       'Xenova/distilbert-base-uncased-finetuned-sst-2-english': 65,
       'Xenova/twitter-roberta-base-sentiment-latest': 122,
       'Xenova/finbert': 106,
-      'Xenova/bert-base-multilingual-uncased-sentiment': 163,
       'Xenova/distilbert-base-multilingual-cased-sentiments-student': 132,
       'SamLowe/roberta-base-go_emotions-onnx': 122,
       'KoalaAI/Text-Moderation': 140,
       'onnx-community/multilingual-IPTC-news-topic-classifier-ONNX': 553,
       'protectai/xlm-roberta-base-language-detection-onnx': 282,
-      'kousik-2310/intent-classifier-minilm': 23,
       'Xenova/toxic-bert': 106,
       'minuva/MiniLMv2-toxic-jigsaw-onnx': 22,
       'sabatale/industry-classification-api-onnx': 106
