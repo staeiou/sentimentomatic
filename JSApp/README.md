@@ -347,7 +347,7 @@ async showCacheDebugModal(): Promise<void> {
 }
 ```
 
-## Adding New Models - The Real Process
+## Adding New Models - Complete Process
 
 ### 13. Steps to Add a Model
 
@@ -360,9 +360,42 @@ async showCacheDebugModal(): Promise<void> {
    https://huggingface.co/onnx-community/MODEL_NAME
    ```
 
-2. **Add to main.ts mappings**:
+2. **Add property declaration in main.ts**:
+   ```typescript
+   // In class SentimentomaticApp
+   private newModelCheckbox!: HTMLInputElement;
+   ```
+
+3. **Initialize the element in main.ts initializeElements()**:
+   ```typescript
+   this.newModelCheckbox = document.getElementById('use-new-model') as HTMLInputElement;
+   ```
+
+4. **Add to ALL checkbox arrays in main.ts** (3 places):
+   ```typescript
+   // In setupEventListeners() for change events (~line 197)
+   const allCheckboxes = [
+     // ... existing checkboxes
+     this.newModelCheckbox
+   ];
+
+   // In selectAllModels() method (~line 393)
+   const allCheckboxes = [
+     // ... existing checkboxes
+     this.newModelCheckbox
+   ];
+
+   // In clearAllModels() method (~line 422)
+   const allCheckboxes = [
+     // ... existing checkboxes
+     this.newModelCheckbox
+   ];
+   ```
+
+5. **Add to model mappings in main.ts updateAllModelSelections()**:
    ```typescript
    const allModelMappings = [
+     // ... existing models
      {
        checkbox: this.newModelCheckbox,
        id: 'unique-id',
@@ -372,27 +405,56 @@ async showCacheDebugModal(): Promise<void> {
    ];
    ```
 
-3. **Add checkbox to index.html**:
+6. **Add checkbox to index.html** in appropriate section:
    ```html
    <label class="model-option">
      <input type="checkbox" id="use-new-model">
      <a href="https://huggingface.co/Xenova/model">Model Name</a>
-     <span class="model-size">350MB</span>
+     <span class="model-size">XXXmb</span>
    </label>
    ```
 
-4. **Handle output format** in `MultiModelAnalyzer.analyzeWithModel()`:
+7. **Add size to CacheManager.ts estimateModelSize()**:
+   ```typescript
+   const sizeMap: { [key: string]: number } = {
+     // ... existing models
+     'Xenova/new-model-name': 136,  // Size in MB from actual cache
+   };
+   ```
+
+8. **Handle output format** in `MultiModelAnalyzer.analyzeWithModel()` (only if non-standard):
    ```typescript
    if (model.displayName.includes('YourModel')) {
      // Parse the specific output format
    }
    ```
 
-5. **Test loading**:
+9. **Test thoroughly**:
    - Open DevTools Network tab
    - Check model loads from correct URL
    - Verify cache detection works
    - Test output parsing
+   - Check download size calculation
+   - Test Select All / Clear All buttons
+
+### 14. Steps to Remove a Model
+
+1. **Remove from index.html** - Delete the entire `<label>` element
+
+2. **Remove property from main.ts** - Delete the private property declaration
+
+3. **Remove initialization from main.ts** - Delete the getElementById line
+
+4. **Remove from ALL checkbox arrays** in main.ts (3 places):
+   - setupEventListeners() array
+   - selectAllModels() array
+   - clearAllModels() array
+
+5. **Remove from model mappings** in updateAllModelSelections()
+
+6. **Remove from CacheManager.ts** sizeMap if present
+
+7. **Remove any special parsing logic** from MultiModelAnalyzer if applicable
 
 ## Common Failure Modes
 
