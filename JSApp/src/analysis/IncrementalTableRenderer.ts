@@ -378,9 +378,6 @@ export class IncrementalTableRenderer {
     row.offsetHeight;
     row.classList.add('visible');
 
-    // Add click handlers for classification cells
-    this.setupClassificationClickHandlers(row);
-    
     // Auto-scroll viewport to show the new row at the bottom
     requestAnimationFrame(() => {
       // Scroll to the absolute bottom
@@ -498,19 +495,6 @@ export class IncrementalTableRenderer {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-  }
-
-  /**
-   * Set up click handlers for classification cells in a row
-   */
-  private setupClassificationClickHandlers(row: HTMLElement): void {
-    const classificationCells = row.querySelectorAll('.classification-cell.clickable');
-    classificationCells.forEach(cell => {
-      cell.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.showClassificationModal(cell as HTMLElement);
-      });
-    });
   }
 
   /**
@@ -673,7 +657,7 @@ export class IncrementalTableRenderer {
       if (display) {
         display.addEventListener('click', (e) => {
           e.preventDefault();
-          this.showClassificationModal(cell);
+          this.showClassificationModal(display as HTMLElement);
         });
       }
     } else {
