@@ -80,27 +80,44 @@ export class CacheManager {
   }
 
   /**
-   * Estimate model size based on name/type
+   * Estimate model size based on actual cache measurements
    */
   estimateModelSize(huggingFaceId: string): number {
+    // Size estimates in MB based on ACTUAL cached sizes
+    const sizeMap: { [key: string]: number } = {
+      'Xenova/distilbert-base-uncased-finetuned-sst-2-english': 65,
+      'Xenova/twitter-roberta-base-sentiment-latest': 122,
+      'Xenova/finbert': 106,
+      'Xenova/bert-base-multilingual-uncased-sentiment': 163,
+      'Xenova/distilbert-base-multilingual-cased-sentiments-student': 132,
+      'SamLowe/roberta-base-go_emotions-onnx': 122,
+      'KoalaAI/Text-Moderation': 140,
+      'onnx-community/multilingual-IPTC-news-topic-classifier-ONNX': 553,
+      'protectai/xlm-roberta-base-language-detection-onnx': 282,
+      'kousik-2310/intent-classifier-minilm': 23,
+      'Xenova/toxic-bert': 106,
+      'minuva/MiniLMv2-toxic-jigsaw-onnx': 22,
+      'sabatale/industry-classification-api-onnx': 106
+    };
+
+    // Return exact size if we have it
+    if (sizeMap[huggingFaceId]) {
+      return sizeMap[huggingFaceId];
+    }
+
+    // Otherwise estimate based on model type
     const id = huggingFaceId.toLowerCase();
-    
-    // Size estimates in bytes based on typical model sizes
-    if (id.includes('distilbert')) {
-      return 250 * 1024 * 1024; // 250MB
-    } else if (id.includes('roberta-base')) {
-      return 500 * 1024 * 1024; // 500MB  
-    } else if (id.includes('bert-base-multilingual')) {
-      return 680 * 1024 * 1024; // 680MB
-    } else if (id.includes('bert-base')) {
-      return 440 * 1024 * 1024; // 440MB
-    } else if (id.includes('electra')) {
-      return 220 * 1024 * 1024; // 220MB
-    } else if (id.includes('albert')) {
-      return 180 * 1024 * 1024; // 180MB
+    if (id.includes('minilm')) {
+      return 23; // Small models like MiniLM
+    } else if (id.includes('distilbert')) {
+      return 100; // Average of distilbert models
+    } else if (id.includes('roberta')) {
+      return 122; // Average of roberta models
+    } else if (id.includes('bert')) {
+      return 130; // Average of BERT models
     } else {
       // Default estimate for unknown models
-      return 400 * 1024 * 1024; // 400MB
+      return 100;
     }
   }
 
