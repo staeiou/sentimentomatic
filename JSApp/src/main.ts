@@ -46,6 +46,9 @@ class SentimentomaticApp {
   // Other Controls
   private cacheStatsElement!: HTMLElement;
   private clearCacheBtn!: HTMLButtonElement;
+  private debugCacheBtn!: HTMLButtonElement;
+  private keepModelsCachedCheckbox!: HTMLInputElement;
+  private clearModelsBtn!: HTMLButtonElement;
   private clearTextBtn!: HTMLButtonElement;
   private exportCsvBtn!: HTMLButtonElement;
   private exportJsonBtn!: HTMLButtonElement;
@@ -126,6 +129,9 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     // Other controls
     this.cacheStatsElement = document.getElementById('cache-stats') as HTMLElement;
     this.clearCacheBtn = document.getElementById('clear-cache') as HTMLButtonElement; // Button exists in HTML
+    this.debugCacheBtn = document.getElementById('debug-cache') as HTMLButtonElement;
+    this.keepModelsCachedCheckbox = document.getElementById('keep-models-cached') as HTMLInputElement;
+    this.clearModelsBtn = document.getElementById('clear-models-btn') as HTMLButtonElement;
     this.clearTextBtn = document.getElementById('clear-text-btn') as HTMLButtonElement;
     this.exportCsvBtn = document.getElementById('export-csv') as HTMLButtonElement;
     this.exportJsonBtn = document.getElementById('export-json') as HTMLButtonElement;
@@ -154,7 +160,17 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       console.log('Clear cache button clicked');
       await this.clearModelCache();
     });
-    
+
+    // Debug cache
+    this.debugCacheBtn.addEventListener('click', async () => {
+      await this.showCacheDebugModal();
+    });
+
+    // Clear all models
+    this.clearModelsBtn.addEventListener('click', () => {
+      this.clearAllModels();
+    });
+
     // Clear text
     this.clearTextBtn.addEventListener('click', () => {
       this.editorView.dispatch({
@@ -185,12 +201,18 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       this.jigsawToxicityCheckbox,
       this.industryClassificationCheckbox
     ];
-    
+
     allCheckboxes.forEach(checkbox => {
       if (checkbox) {
-        checkbox.addEventListener('change', () => this.updateAllModelSelections());
+        checkbox.addEventListener('change', async () => {
+          this.updateAllModelSelections();
+          await this.updateDownloadSizeDisplay();
+        });
       }
     });
+
+    // Initial download size display
+    this.updateDownloadSizeDisplay().catch(console.error);
   }
 
   // No more mode switching - removed switchToMode method
@@ -241,12 +263,24 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     try {
       // Update all model selections before analysis
       this.updateAllModelSelections();
-      
+
       // Prepare configuration with all selected models
       const config = {
         selectedRuleBasedAnalyzers: this.getSelectedRuleBasedAnalyzers(),
-        selectedHuggingFaceModels: this.multiModelAnalyzer.getEnabledModelIds()
+        selectedHuggingFaceModels: this.multiModelAnalyzer.getEnabledModelIds(),
+        keepModelsCached: this.keepModelsCachedCheckbox.checked
       };
+
+      // Check if any models are selected and show download confirmation
+      if (config.selectedHuggingFaceModels.length > 0 || config.selectedRuleBasedAnalyzers.length > 0) {
+        const modelsToDownload = await this.getModelDownloadInfo(config.selectedHuggingFaceModels);
+        const confirmed = await IncrementalTableRenderer.showDownloadConfirmation(modelsToDownload);
+
+        if (!confirmed) {
+          console.log('User cancelled download');
+          return;
+        }
+      }
 
       // Show results section immediately and scroll to very bottom
       this.resultsSection.hidden = false;
@@ -274,6 +308,14 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       // Store results for export functionality
       this.currentResult = result;
 
+      // Refresh cache status display after analysis completes (with delay to ensure cache is written)
+      console.log('🔄 Refreshing cache status in 3 seconds...');
+      setTimeout(async () => {
+        await this.updateDownloadSizeDisplay();
+        await this.updateCacheStats(); // Also update cache stats
+        console.log('✅ Cache status refreshed after analysis');
+      }, 3000); // 3 second delay to allow all cache operations to complete
+
       console.log('✅ Analysis complete');
 
     } catch (error) {
@@ -289,15 +331,284 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     return selected;
   }
 
+  private async getModelDownloadInfo(selectedModelIds: string[]): Promise<Array<{name: string, size: number, huggingFaceId: string, cached: boolean}>> {
+    const models = [];
+    const enabledModels = this.multiModelAnalyzer.getEnabledModels();
+    const selectedRuleBased = this.getSelectedRuleBasedAnalyzers();
+
+    // Add rule-based models with 1MB size each (always considered "cached" since they're local)
+    for (const analyzer of selectedRuleBased) {
+      models.push({
+        name: analyzer.toUpperCase(),
+        size: 1 * 1024 * 1024, // 1MB in bytes
+        huggingFaceId: `Rule-based ${analyzer} analyzer`,
+        cached: true // Rule-based models are always available locally
+      });
+    }
+
+    // Add neural network models with their estimated sizes and ACTUAL cache status
+    for (const modelId of selectedModelIds) {
+      const modelInfo = enabledModels.get(modelId);
+      if (modelInfo) {
+        const estimatedSize = this.cacheManager.estimateModelSize(modelInfo.huggingFaceId);
+
+        // Check actual browser cache instead of just localStorage metadata
+        const isCached = await this.cacheManager.isModelActuallyCached(modelInfo.huggingFaceId);
+
+        models.push({
+          name: modelInfo.displayName,
+          size: estimatedSize,
+          huggingFaceId: modelInfo.huggingFaceId,
+          cached: isCached
+        });
+      }
+    }
+
+    return models;
+  }
+
+  private formatSize(bytes: number): string {
+    if (bytes >= 1024 * 1024 * 1024) {
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    }
+    return `${Math.round(bytes / (1024 * 1024))} MB`;
+  }
+
+  private clearAllModels(): void {
+    // Uncheck all model checkboxes
+    const allCheckboxes = [
+      this.useAfinnCheckbox,
+      this.useVaderCheckbox,
+      this.useDistilbertCheckbox,
+      this.useTwitterRobertaCheckbox,
+      this.useFinancialCheckbox,
+      this.useMultilingualCheckbox,
+      this.useMultilingualStudentCheckbox,
+      this.goEmotionsCheckbox,
+      this.koalaModerationCheckbox,
+      this.iptcNewsCheckbox,
+      this.languageDetectionCheckbox,
+      this.intentClassificationCheckbox,
+      this.toxicBertCheckbox,
+      this.jigsawToxicityCheckbox,
+      this.industryClassificationCheckbox
+    ];
+
+    allCheckboxes.forEach(checkbox => {
+      if (checkbox) {
+        checkbox.checked = false;
+      }
+    });
+
+    // Update model selections and download size display
+    this.updateAllModelSelections();
+    this.updateDownloadSizeDisplay().catch(console.error);
+  }
+
+  private async updateDownloadSizeDisplay(): Promise<void> {
+    // Update model selections to get current enabled models
+    this.updateAllModelSelections();
+
+    const config = {
+      selectedRuleBasedAnalyzers: this.getSelectedRuleBasedAnalyzers(),
+      selectedHuggingFaceModels: this.multiModelAnalyzer.getEnabledModelIds()
+    };
+
+    const modelsInfo = await this.getModelDownloadInfo(config.selectedHuggingFaceModels);
+
+    // Separate cached and non-cached models
+    const cachedModels = modelsInfo.filter(m => m.cached);
+    const modelsToDownload = modelsInfo.filter(m => !m.cached);
+    const downloadSize = modelsToDownload.reduce((sum, model) => sum + model.size, 0);
+    const totalSize = modelsInfo.reduce((sum, model) => sum + model.size, 0);
+
+    // Find or create download size display element
+    let sizeDisplay = document.querySelector('.download-size-display') as HTMLElement;
+    if (!sizeDisplay) {
+      sizeDisplay = document.createElement('div');
+      sizeDisplay.className = 'download-size-display';
+
+      // Insert right before the action bar
+      const actionBar = document.querySelector('.action-bar');
+      if (actionBar && actionBar.parentNode) {
+        actionBar.parentNode.insertBefore(sizeDisplay, actionBar);
+      }
+    }
+
+    if (modelsInfo.length > 0) {
+      const totalModelsCount = modelsInfo.length;
+      const cachedCount = cachedModels.length;
+
+      if (downloadSize > 0) {
+        // Some models need downloading
+        sizeDisplay.innerHTML = `
+          <div class="size-info">
+            <span class="size-label">Download Needed:</span>
+            <span class="size-value">${this.formatSize(downloadSize)}</span>
+            <span class="model-counts">(${cachedCount}/${totalModelsCount} models cached)</span>
+          </div>
+        `;
+      } else {
+        // All models are cached
+        sizeDisplay.innerHTML = `
+          <div class="size-info">
+            <span class="size-label">All Cached:</span>
+            <span class="size-value cached">${this.formatSize(totalSize)}</span>
+            <span class="model-counts">✅ No download needed</span>
+          </div>
+        `;
+      }
+      sizeDisplay.style.display = 'block';
+    } else {
+      sizeDisplay.style.display = 'none';
+    }
+  }
+
+  private async showCacheDebugModal(): Promise<void> {
+    try {
+      // Check if Cache API is available
+      if (!('caches' in window)) {
+        alert('Cache API not available in this browser/context');
+        return;
+      }
+
+      // Get all cache names available
+      const cacheNames = await caches.keys();
+
+      // Check ALL caches for any files
+      let allCacheContents: {[cacheName: string]: string[]} = {};
+      let totalCachedFiles = 0;
+
+      for (const cacheName of cacheNames) {
+        try {
+          const cache = await caches.open(cacheName);
+          const keys = await cache.keys();
+          const urls = keys.map(req => req.url);
+          allCacheContents[cacheName] = urls;
+          totalCachedFiles += urls.length;
+        } catch (error) {
+          allCacheContents[cacheName] = [`Error: ${error}`];
+        }
+      }
+
+      // Get transformers-cache contents specifically
+      let transformersCacheFiles: string[] = [];
+      let transformersCacheSize = 0;
+
+      try {
+        const cache = await caches.open('transformers-cache');
+        const keys = await cache.keys();
+        transformersCacheFiles = keys.map(req => req.url);
+
+        // Calculate approximate size
+        for (const req of keys) {
+          const resp = await cache.match(req);
+          if (resp) {
+            const contentLength = resp.headers.get('content-length');
+            if (contentLength) {
+              transformersCacheSize += parseInt(contentLength);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Could not access transformers-cache:', error);
+      }
+
+      // localStorage cache metadata removed - now using browser cache directly
+
+      const modalHtml = `
+        <div class="cache-debug-overlay" onclick="event.target === this && this.remove()">
+          <div class="cache-debug-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+              <h3>🔍 Cache Debug - Raw Data</h3>
+              <button class="modal-close" onclick="this.closest('.cache-debug-overlay').remove();">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="cache-section">
+                <h4>ALL Cache Contents (${totalCachedFiles} total files across ${cacheNames.length} caches)</h4>
+                <pre>${JSON.stringify(allCacheContents, null, 2)}</pre>
+              </div>
+
+              <div class="cache-section">
+                <h4>transformers-cache Specific (${transformersCacheFiles.length} files, ~${this.formatSize(transformersCacheSize)})</h4>
+                <div class="file-list">
+                  ${transformersCacheFiles.length > 0
+                    ? transformersCacheFiles.map(url => `<div class="file-url">${url}</div>`).join('')
+                    : '<div class="no-files">❌ EMPTY - This is the problem!</div>'
+                  }
+                </div>
+              </div>
+
+              <div class="cache-section">
+                <h4>Cache System</h4>
+                <p>Now using browser cache directly - no localStorage metadata</p>
+              </div>
+
+              <div class="cache-section">
+                <h4>Current Model Detection Results</h4>
+                ${await this.debugCurrentModels()}
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onclick="this.closest('.cache-debug-overlay').remove();">Close</button>
+              <button class="btn btn-primary" onclick="window.location.reload();">Refresh Page</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    } catch (error) {
+      console.error('Failed to show cache debug modal:', error);
+      alert(`Cache debug failed: ${error}`);
+    }
+  }
+
+  private async debugCurrentModels(): Promise<string> {
+    const config = {
+      selectedRuleBasedAnalyzers: this.getSelectedRuleBasedAnalyzers(),
+      selectedHuggingFaceModels: this.multiModelAnalyzer.getEnabledModelIds()
+    };
+
+    let debugHtml = '<div class="model-debug">';
+
+    for (const modelId of config.selectedHuggingFaceModels) {
+      const modelInfo = this.multiModelAnalyzer.getEnabledModels().get(modelId);
+      if (modelInfo) {
+        const isCached = await this.cacheManager.isModelActuallyCached(modelInfo.huggingFaceId);
+        debugHtml += `
+          <div class="model-debug-item">
+            <strong>${modelInfo.displayName}</strong><br>
+            HF ID: ${modelInfo.huggingFaceId}<br>
+            Detected as cached: ${isCached ? '✅ YES' : '❌ NO'}
+          </div>
+        `;
+      }
+    }
+
+    debugHtml += '</div>';
+    return debugHtml;
+  }
+
   // Classification models are now part of the unified selection
   // Removed getSelectedClassificationModel method
 
   private async updateCacheStats(): Promise<void> {
     try {
+      console.log('🔄 Updating cache stats...');
       const stats = await this.cacheManager.getCacheStats();
+      console.log('📊 Cache stats:', stats);
+
       const sizeSpan = this.cacheStatsElement.querySelector('.cache-size');
+      console.log('📍 Size span element:', sizeSpan);
+
       if (sizeSpan) {
-        sizeSpan.textContent = `${(stats.totalSize / (1024 * 1024)).toFixed(1)} MB used`;
+        const sizeText = `${(stats.totalSize / (1024 * 1024)).toFixed(1)} MB used`;
+        sizeSpan.textContent = sizeText;
+        console.log('✅ Updated cache display to:', sizeText);
+      } else {
+        console.error('❌ Could not find .cache-size element');
       }
     } catch (error) {
       console.warn('Failed to update cache stats:', error);
@@ -314,11 +625,16 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       
       console.log('🧹 Clearing model cache...');
       await this.cacheManager.clearCache();
-      
+
       // Clear loaded models from memory too
       this.multiModelAnalyzer.clearAllModels();
-      
+
+      // Force immediate cache stats update
+      console.log('🔄 Updating cache stats after clear...');
       await this.updateCacheStats();
+
+      // Also update download size display
+      await this.updateDownloadSizeDisplay();
       
       // Show success feedback
       if (this.clearCacheBtn) {
