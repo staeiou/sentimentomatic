@@ -466,9 +466,9 @@ export class IncrementalTableRenderer {
 
   private getSentimentIcon(sentiment: string): string {
     switch (sentiment) {
-      case 'positive': return '😊';
-      case 'negative': return '😔';
-      case 'neutral': return '😐';
+      case 'positive': return '😃';
+      case 'negative': return '😡';
+      case 'neutral': return '<span class="neutral-emoji">😐</span>';
       default: return '❓';
     }
   }

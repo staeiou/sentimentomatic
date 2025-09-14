@@ -940,6 +940,11 @@ a:hover {
 /* ===========================================
    10. RESULTS SECTION
    =========================================== */
+.neutral-emoji {
+  filter: grayscale(100%) brightness(0.8);
+  display: inline-block;
+}
+
 .results-section {
   position: relative;
   background: white;
