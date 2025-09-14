@@ -572,6 +572,296 @@ export class IncrementalTableRenderer {
   }
 
   /**
+   * Initialize table with all text rows upfront, analysis cells as pending
+   */
+  initializeTableWithAllText(columns: UnifiedColumn[], texts: string[]): void {
+    this.columns = columns;
+
+    this.container.innerHTML = `
+      <div class="incremental-table-container">
+        <table class="results-table unified-table">
+          <thead>
+            <tr>
+              <th class="line-number-col">
+                <span class="header-icon">#</span>
+              </th>
+              <th class="text-col">
+                <span class="header-icon">📝</span>
+                Text
+              </th>
+              ${columns.map(col => {
+                const icon = this.getColumnIcon(col);
+                const typeClass = col.type === 'classification' ? 'classification-col' : 'sentiment-col';
+                return `
+                  <th class="score-col ${typeClass} analyzer-${col.name.toLowerCase().replace(/\s+/g, '-')}">
+                    <div class="analyzer-header">
+                      <span class="analyzer-icon">${icon}</span>
+                      <span class="analyzer-name">${col.name}</span>
+                    </div>
+                  </th>
+                `;
+              }).join('')}
+            </tr>
+          </thead>
+          <tbody id="results-tbody">
+            ${texts.map((text, index) => {
+              const pendingCells = columns.map(() =>
+                '<td class="score-cell pending"><span class="pending-dot">⋯</span></td>'
+              ).join('');
+
+              return `
+                <tr class="result-row" data-line-index="${index}">
+                  <td class="line-number-cell">
+                    <span class="line-number">${index + 1}</span>
+                  </td>
+                  <td class="text-cell">
+                    <div class="text-content">${this.escapeHtml(text)}</div>
+                  </td>
+                  ${pendingCells}
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+        <div class="table-status">
+          <span class="status-text">Ready to analyze ${texts.length} lines...</span>
+          <div class="pulse-indicator"></div>
+        </div>
+      </div>
+    `;
+
+    this.tbody = document.getElementById('results-tbody');
+    this.currentRow = texts.length; // All rows are already created
+  }
+
+  /**
+   * Update a specific cell with analysis result
+   */
+  updateAnalysisCell(lineIndex: number, columnName: string, result: any): void {
+    if (!this.tbody) return;
+
+    const row = this.tbody.querySelector(`tr[data-line-index="${lineIndex}"]`) as HTMLTableRowElement;
+    if (!row) return;
+
+    // Find column index
+    const columnIndex = this.columns.findIndex(col => col.name === columnName);
+    if (columnIndex === -1) return;
+
+    // Cell index is +2 for line number and text columns
+    const cellIndex = columnIndex + 2;
+    const cell = row.cells[cellIndex];
+    if (!cell) return;
+
+    // Update cell content based on result type
+    if (result.type === 'classification') {
+      const allClassesJson = JSON.stringify(result.allClasses || {}).replace(/"/g, '&quot;');
+      cell.innerHTML = `
+        <div class="classification-display clickable"
+             data-all-classes="${allClassesJson}"
+             data-analyzer="${columnName}"
+             data-line="${lineIndex + 1}"
+             title="Click to see all class probabilities">
+          <span class="class-label">${result.topClass || 'N/A'}</span>
+          <span class="confidence">${((result.confidence || 0) * 100).toFixed(1)}%</span>
+          <span class="expand-icon">⊕</span>
+        </div>
+      `;
+      cell.className = 'score-cell classification-cell clickable';
+
+      // Add click handler
+      const display = cell.querySelector('.classification-display');
+      if (display) {
+        display.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showClassificationModal(cell);
+        });
+      }
+    } else {
+      // Sentiment result
+      const colorClass = this.getScoreColorClass(result.sentiment || 'neutral', result.score || 0);
+      const icon = this.getSentimentIcon(result.sentiment || 'neutral');
+      cell.innerHTML = `
+        <div class="score-display ${colorClass}">
+          <span class="sentiment-icon">${icon}</span>
+          <span class="score-value">${(result.score || 0).toFixed(3)}</span>
+        </div>
+      `;
+      cell.className = 'score-cell';
+    }
+
+    // Add update animation
+    cell.classList.add('cell-update');
+    setTimeout(() => cell.classList.remove('cell-update'), 300);
+  }
+
+  /**
+   * Update progress for the new approach
+   */
+  updateAnalysisProgress(status: string, completed: number, total: number): void {
+    this.updateStatus(`${status} (${completed}/${total} complete)`);
+  }
+
+  /**
+   * Show download confirmation dialog for ML models
+   */
+  static async showDownloadConfirmation(models: Array<{name: string, size: number, huggingFaceId: string, cached: boolean}>): Promise<boolean> {
+    return new Promise((resolve) => {
+      // Separate cached and non-cached models
+      const cachedModels = models.filter(m => m.cached);
+      const modelsToDownload = models.filter(m => !m.cached);
+      const downloadSize = modelsToDownload.reduce((sum, model) => sum + model.size, 0);
+      const totalSize = models.reduce((sum, model) => sum + model.size, 0);
+
+      const formatSize = (bytes: number): string => {
+        if (bytes >= 1024 * 1024 * 1024) {
+          return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+        }
+        return `${Math.round(bytes / (1024 * 1024))} MB`;
+      };
+
+      // If everything is cached, show different dialog
+      if (downloadSize === 0) {
+        const modalHtml = `
+          <div class="download-confirmation-overlay" onclick="event.target === this && this.remove()">
+            <div class="download-confirmation-modal compact" onclick="event.stopPropagation()">
+              <div class="modal-header compact cached">
+                <h3>✅ All Models Cached - ${formatSize(totalSize)}</h3>
+                <button class="modal-close" onclick="this.closest('.download-confirmation-overlay').remove(); arguments[0].resolve(true);">×</button>
+              </div>
+              <div class="modal-body compact">
+                <div class="models-table">
+                  ${models.map(model => `
+                    <div class="model-row">
+                      <span class="model-name">✅ ${model.name}</span>
+                      <span class="model-size-badge cached">${formatSize(model.size)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+                <div class="total-size cached">
+                  <strong>All models ready instantly!</strong>
+                  <span class="download-note">No download required</span>
+                </div>
+              </div>
+              <div class="modal-footer compact">
+                <button class="btn btn-primary download-btn">🚀 Start Analysis</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Add modal and set up handlers (simplified for cached case)
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHtml;
+        const modal = modalContainer.firstElementChild as HTMLElement;
+
+        const downloadBtn = modal.querySelector('.download-btn') as HTMLButtonElement;
+        downloadBtn.onclick = () => {
+          modal.remove();
+          resolve(true);
+        };
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            modal.remove();
+            resolve(false);
+          }
+        });
+
+        document.body.appendChild(modal);
+        setTimeout(() => downloadBtn.focus(), 100);
+        return;
+      }
+
+      const modalHtml = `
+        <div class="download-confirmation-overlay" onclick="event.target === this && this.remove()">
+          <div class="download-confirmation-modal compact" onclick="event.stopPropagation()">
+            <div class="modal-header compact">
+              <h3>📥 Download Required - ${formatSize(downloadSize)}</h3>
+              <button class="modal-close" onclick="this.closest('.download-confirmation-overlay').remove(); arguments[0].resolve(false);">×</button>
+            </div>
+            <div class="modal-body compact">
+              <div class="models-table">
+                ${(() => {
+                  let html = '';
+
+                  // Show cached models first (if any)
+                  if (cachedModels.length > 0) {
+                    html += '<div class="model-group-header">✅ Cached Models</div>';
+                    html += cachedModels.map(model => `
+                      <div class="model-row">
+                        <span class="model-name">✅ ${model.name}</span>
+                        <span class="model-size-badge cached">${formatSize(model.size)}</span>
+                      </div>
+                    `).join('');
+                  }
+
+                  // Show models to download
+                  if (modelsToDownload.length > 0) {
+                    html += '<div class="model-group-header">📥 To Download</div>';
+                    html += modelsToDownload.map(model => `
+                      <div class="model-row">
+                        <span class="model-name">${model.name}</span>
+                        <span class="model-size-badge ${model.huggingFaceId.startsWith('Rule-based') ? 'rule-based' : 'neural'}">${formatSize(model.size)}</span>
+                      </div>
+                    `).join('');
+                  }
+
+                  return html;
+                })()}
+              </div>
+              <div class="total-size">
+                <strong>Download: ${formatSize(downloadSize)}</strong>
+                <span class="download-note">
+                  ${cachedModels.length > 0 ? `${cachedModels.length} model${cachedModels.length > 1 ? 's' : ''} already cached` :
+                    downloadSize > 1024 * 1024 * 1024 ? '⚠️ Large download' : '💡 Cached after first download'}
+                </span>
+              </div>
+            </div>
+            <div class="modal-footer compact">
+              <button class="btn btn-secondary cancel-btn">Cancel</button>
+              <button class="btn btn-primary download-btn">📥 Download & Analyze</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Add modal to document
+      const modalContainer = document.createElement('div');
+      modalContainer.innerHTML = modalHtml;
+      const modal = modalContainer.firstElementChild as HTMLElement;
+
+      // Set up event handlers
+      const cancelBtn = modal.querySelector('.cancel-btn') as HTMLButtonElement;
+      const downloadBtn = modal.querySelector('.download-btn') as HTMLButtonElement;
+
+      cancelBtn.onclick = () => {
+        modal.remove();
+        resolve(false);
+      };
+
+      downloadBtn.onclick = () => {
+        modal.remove();
+        resolve(true);
+      };
+
+      // Handle escape key
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          modal.remove();
+          document.removeEventListener('keydown', handleEscape);
+          resolve(false);
+        }
+      };
+
+      document.addEventListener('keydown', handleEscape);
+      document.body.appendChild(modal);
+
+      // Focus the download button
+      setTimeout(() => downloadBtn.focus(), 100);
+    });
+  }
+
+  /**
    * Initialize modal CSS (call once on page load)
    */
   static initializeModalStyles(): void {
@@ -721,6 +1011,217 @@ export class IncrementalTableRenderer {
       @keyframes slideIn {
         from { transform: translateY(-20px) scale(0.95); opacity: 0; }
         to { transform: translateY(0) scale(1); opacity: 1; }
+      }
+
+      .cell-update {
+        animation: cellUpdateFlash 0.3s ease;
+      }
+
+      @keyframes cellUpdateFlash {
+        0% { background-color: rgba(52, 152, 219, 0.3); }
+        100% { background-color: transparent; }
+      }
+
+      /* Download Confirmation Modal Styles */
+      .download-confirmation-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 15000;
+        animation: fadeIn 0.2s ease;
+      }
+
+      .download-confirmation-modal {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        max-width: 500px;
+        width: 90%;
+        animation: slideIn 0.3s ease;
+      }
+
+      .download-confirmation-modal.compact {
+        max-width: 450px;
+      }
+
+      .download-confirmation-modal .modal-header {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .download-confirmation-modal .modal-header.compact {
+        padding: 10px 16px;
+      }
+
+      .download-confirmation-modal .modal-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .download-confirmation-modal .modal-body {
+        padding: 16px;
+      }
+
+      .download-confirmation-modal .modal-body.compact {
+        padding: 12px 16px;
+      }
+
+      .models-table {
+        margin-bottom: 12px;
+      }
+
+      .model-group-header {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 13px;
+        margin: 8px 0 4px 0;
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 2px;
+      }
+
+      .model-group-header:first-child {
+        margin-top: 0;
+      }
+
+      .model-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 3px 0;
+        font-size: 13px;
+      }
+
+      .model-name {
+        color: #2c3e50;
+        flex-grow: 1;
+      }
+
+      .model-size-badge {
+        color: white;
+        padding: 1px 6px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 40px;
+        text-align: center;
+      }
+
+      .model-size-badge.rule-based {
+        background: #27ae60;
+      }
+
+      .model-size-badge.neural {
+        background: #e74c3c;
+      }
+
+      .model-size-badge.cached {
+        background: #28a745;
+      }
+
+      .modal-header.cached {
+        background: linear-gradient(135deg, #28a745, #20c997);
+      }
+
+      .total-size.cached {
+        border-top: 2px solid #28a745;
+      }
+
+      .total-size {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-top: 2px solid #3498db;
+      }
+
+      .total-size strong {
+        color: #2c3e50;
+        font-size: 14px;
+      }
+
+      .download-note {
+        color: #6c757d;
+        font-size: 11px;
+        font-style: italic;
+      }
+
+      .modal-footer {
+        padding: 12px 16px;
+        background: #f8f9fa;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .modal-footer.compact {
+        padding: 8px 16px;
+      }
+
+      .modal-footer .btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 14px;
+      }
+
+      .modal-footer .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .modal-footer .btn-secondary:hover {
+        background: #5a6268;
+      }
+
+      .modal-footer .btn-primary {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+      }
+
+      .modal-footer .btn-primary:hover {
+        background: linear-gradient(135deg, #218838, #1fa080);
+      }
+
+      .download-icon {
+        margin-right: 8px;
+      }
+
+      .model-group-section {
+        margin-bottom: 20px;
+      }
+
+      .model-group-section h5 {
+        margin: 0 0 12px 0;
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 16px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #ecf0f1;
+      }
+
+      .model-size.rule-based {
+        background: #27ae60;
+      }
+
+      .model-size.neural {
+        background: #e74c3c;
       }
     `;
     document.head.appendChild(styles);
