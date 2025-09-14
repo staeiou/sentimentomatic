@@ -4,7 +4,7 @@ import { MultiModelAnalyzer } from './analyzers/MultiModelAnalyzer';
 import { StreamingAnalysisController } from './analysis/StreamingAnalysisController';
 import { IncrementalTableRenderer } from './analysis/IncrementalTableRenderer';
 import { CacheManager } from './models/CacheManager';
-import { exportToCSV, exportToJSON } from './utils/exportUtils';
+import { exportToCSV, exportToJSON, exportToExcel } from './utils/exportUtils';
 import type { MultiModalAnalysisResult } from './analysis/AnalysisStrategy';
 import { EditorView, basicSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
@@ -48,9 +48,11 @@ class SentimentomaticApp {
   private clearCacheBtn!: HTMLButtonElement;
   private debugCacheBtn!: HTMLButtonElement;
   private keepModelsCachedCheckbox!: HTMLInputElement;
+  private selectAllModelsBtn!: HTMLButtonElement;
   private clearModelsBtn!: HTMLButtonElement;
   private clearTextBtn!: HTMLButtonElement;
   private exportCsvBtn!: HTMLButtonElement;
+  private exportExcelBtn!: HTMLButtonElement;
   private exportJsonBtn!: HTMLButtonElement;
 
   constructor() {
@@ -131,9 +133,11 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     this.clearCacheBtn = document.getElementById('clear-cache') as HTMLButtonElement; // Button exists in HTML
     this.debugCacheBtn = document.getElementById('debug-cache') as HTMLButtonElement;
     this.keepModelsCachedCheckbox = document.getElementById('keep-models-cached') as HTMLInputElement;
+    this.selectAllModelsBtn = document.getElementById('select-all-models-btn') as HTMLButtonElement;
     this.clearModelsBtn = document.getElementById('clear-models-btn') as HTMLButtonElement;
     this.clearTextBtn = document.getElementById('clear-text-btn') as HTMLButtonElement;
     this.exportCsvBtn = document.getElementById('export-csv') as HTMLButtonElement;
+    this.exportExcelBtn = document.getElementById('export-excel') as HTMLButtonElement;
     this.exportJsonBtn = document.getElementById('export-json') as HTMLButtonElement;
   }
 
@@ -147,6 +151,11 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     this.exportCsvBtn.addEventListener('click', () => {
       if (this.currentResult) {
         exportToCSV(this.currentResult);
+      }
+    });
+    this.exportExcelBtn.addEventListener('click', () => {
+      if (this.currentResult) {
+        exportToExcel(this.currentResult);
       }
     });
     this.exportJsonBtn.addEventListener('click', () => {
@@ -164,6 +173,11 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     // Debug cache
     this.debugCacheBtn.addEventListener('click', async () => {
       await this.showCacheDebugModal();
+    });
+
+    // Select all models
+    this.selectAllModelsBtn.addEventListener('click', () => {
+      this.selectAllModels();
     });
 
     // Clear all models
@@ -282,12 +296,12 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
         }
       }
 
-      // Show results section immediately and scroll to very bottom
+      // Show results section immediately and scroll to top of results
       this.resultsSection.hidden = false;
       setTimeout(() => {
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: 'smooth'
+        this.resultsSection.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
         });
       }, 100);
 
@@ -350,14 +364,14 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     for (const modelId of selectedModelIds) {
       const modelInfo = enabledModels.get(modelId);
       if (modelInfo) {
-        const estimatedSize = this.cacheManager.estimateModelSize(modelInfo.huggingFaceId);
+        const estimatedSizeMB = this.cacheManager.estimateModelSize(modelInfo.huggingFaceId);
 
         // Check actual browser cache instead of just localStorage metadata
         const isCached = await this.cacheManager.isModelActuallyCached(modelInfo.huggingFaceId);
 
         models.push({
           name: modelInfo.displayName,
-          size: estimatedSize,
+          size: estimatedSizeMB * 1024 * 1024, // Convert MB to bytes
           huggingFaceId: modelInfo.huggingFaceId,
           cached: isCached
         });
@@ -372,6 +386,37 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
     }
     return `${Math.round(bytes / (1024 * 1024))} MB`;
+  }
+
+  private selectAllModels(): void {
+    // Check all model checkboxes
+    const allCheckboxes = [
+      this.useAfinnCheckbox,
+      this.useVaderCheckbox,
+      this.useDistilbertCheckbox,
+      this.useTwitterRobertaCheckbox,
+      this.useFinancialCheckbox,
+      this.useMultilingualCheckbox,
+      this.useMultilingualStudentCheckbox,
+      this.goEmotionsCheckbox,
+      this.koalaModerationCheckbox,
+      this.iptcNewsCheckbox,
+      this.languageDetectionCheckbox,
+      this.intentClassificationCheckbox,
+      this.toxicBertCheckbox,
+      this.jigsawToxicityCheckbox,
+      this.industryClassificationCheckbox
+    ];
+
+    allCheckboxes.forEach(checkbox => {
+      if (checkbox) {
+        checkbox.checked = true;
+      }
+    });
+
+    // Update model selections and download size
+    this.updateAllModelSelections();
+    this.updateDownloadSizeDisplay().catch(console.error);
   }
 
   private clearAllModels(): void {
@@ -573,14 +618,42 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
 
     let debugHtml = '<div class="model-debug">';
 
+    // Open the cache to calculate actual sizes
+    const cache = await caches.open('transformers-cache');
+    const allKeys = await cache.keys();
+
     for (const modelId of config.selectedHuggingFaceModels) {
       const modelInfo = this.multiModelAnalyzer.getEnabledModels().get(modelId);
       if (modelInfo) {
         const isCached = await this.cacheManager.isModelActuallyCached(modelInfo.huggingFaceId);
+
+        // Calculate ACTUAL size from cache
+        let actualSize = 0;
+        for (const req of allKeys) {
+          if (req.url.includes(modelInfo.huggingFaceId)) {
+            const resp = await cache.match(req);
+            if (resp) {
+              const contentLength = resp.headers.get('content-length');
+              if (contentLength) {
+                actualSize += parseInt(contentLength);
+              } else {
+                // If no content-length header, try to get blob size
+                try {
+                  const blob = await resp.blob();
+                  actualSize += blob.size;
+                } catch (e) {
+                  console.warn('Could not get size for', req.url);
+                }
+              }
+            }
+          }
+        }
+
         debugHtml += `
           <div class="model-debug-item">
             <strong>${modelInfo.displayName}</strong><br>
             HF ID: ${modelInfo.huggingFaceId}<br>
+            Actual Cache Size: ${actualSize > 0 ? this.formatSize(actualSize) : 'Not cached'}<br>
             Detected as cached: ${isCached ? '✅ YES' : '❌ NO'}
           </div>
         `;
