@@ -13,21 +13,16 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
   readonly name = 'HuggingFace Models';
   readonly type = 'ml' as const;
 
-  private modelManager: ModelManager;
   private cacheManager: CacheManager;
   private enabledModels: Map<string, HuggingFaceModel> = new Map();
   private loadedPipelines: Map<string, any> = new Map();
   private workerManager: WorkerModelManager | null = null;
-  private useWorker: boolean = false;
 
-  constructor(modelManager: ModelManager, options?: { useWorker?: boolean }) {
-    this.modelManager = modelManager;
+  constructor(_modelManager: ModelManager) {
+    // ModelManager passed for compatibility but NOT USED - worker handles everything
     this.cacheManager = new CacheManager();
-    this.useWorker = options?.useWorker ?? false;
-
-    if (this.useWorker) {
-      console.log('🔧 MultiModelAnalyzer configured to use Web Worker for complete memory cleanup');
-    }
+    // ALWAYS use worker - it's the ONLY way to free memory
+    console.log('🔧 MultiModelAnalyzer: Worker mode ENABLED (mandatory for memory management)');
   }
 
   /**
@@ -80,9 +75,11 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
 
   /**
    * Initialize worker for memory-efficient processing
+   * MUST be called before any model operations
    */
   async initializeWorker(): Promise<void> {
-    if (!this.useWorker) {
+    if (this.workerManager?.isWorkerActive()) {
+      console.log('✅ Worker already initialized');
       return;
     }
 
@@ -96,7 +93,8 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
    * Terminate worker to completely free all memory
    */
   async terminateWorker(): Promise<void> {
-    if (!this.useWorker || !this.workerManager) {
+    if (!this.workerManager) {
+      console.log('⚠️ No worker to terminate');
       return;
     }
 
@@ -126,41 +124,17 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
     progressCallback?.(`Loading ${model.displayName}...`, 0);
 
     try {
-      // Use worker if enabled
-      if (this.useWorker) {
-        // Ensure worker is initialized
-        if (!this.workerManager) {
-          this.workerManager = getWorkerModelManager();
-          await this.workerManager.initializeWorker();
-        }
-        // Determine task type for the model
-        const task = this.getTaskForModel(model.huggingFaceId);
-        await this.workerManager.loadModel(model.id, model.huggingFaceId, task);
-        this.loadedPipelines.set(model.id, 'worker'); // Mark as loaded in worker
-      } else {
-        // Original non-worker path
-        const modelConfig = {
-          id: model.id,
-          name: model.displayName,
-          description: `Custom HuggingFace model: ${model.huggingFaceId}`,
-          provider: 'transformers' as const,
-          size: 'Unknown',
-          speed: 'medium' as const,
-          accuracy: 'unknown' as const,
-          languages: ['en'],
-          huggingFaceId: model.huggingFaceId,
-          metadata: {
-            architecture: 'Unknown',
-            framework: 'transformers.js'
-          }
-        };
-
-        (this.modelManager as any).tempModelConfigs = (this.modelManager as any).tempModelConfigs || new Map();
-        (this.modelManager as any).tempModelConfigs.set(model.id, modelConfig);
-
-        const pipeline = await this.modelManager.loadModel(model.id);
-        this.loadedPipelines.set(model.id, pipeline);
+      // ALWAYS use worker - no other option
+      // Ensure worker is initialized
+      if (!this.workerManager) {
+        console.log('🔧 Worker not initialized, initializing now...');
+        await this.initializeWorker();
       }
+
+      // Determine task type for the model
+      const task = this.getTaskForModel(model.huggingFaceId);
+      await this.workerManager!.loadModel(model.id, model.huggingFaceId, task);
+      this.loadedPipelines.set(model.id, 'worker'); // Mark as loaded in worker
 
       console.log(`✅ ${model.displayName} loaded successfully`);
       progressCallback?.(`✅ Loaded ${model.displayName}`, 100);
@@ -182,42 +156,28 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
   }
 
   /**
-   * Unload a single model and clear its cache to free memory
+   * Unload a single model from the worker
    */
   async unloadSingleModel(modelId: string): Promise<void> {
     const model = this.enabledModels.get(modelId);
     const modelName = model ? model.displayName : modelId;
 
-    console.log(`🗑️ Unloading ${modelName} to free memory...`);
+    console.log(`🗑️ Unloading ${modelName} from worker...`);
 
-    // Get pipeline before deleting for proper cleanup
-    const pipeline = this.loadedPipelines.get(modelId);
-    if (pipeline) {
-      // Clear any references in the pipeline object
-      if (typeof pipeline === 'object') {
-        Object.keys(pipeline).forEach(key => {
-          pipeline[key] = null;
-        });
-      }
-    }
-
-    // Remove from loaded pipelines FIRST
+    // Remove from loaded pipelines
     this.loadedPipelines.delete(modelId);
 
-    // Then unload from model manager (which will dispose tensors)
-    await this.modelManager.unloadModel(modelId);
-
-    // Force garbage collection hint if available
-    if (typeof (globalThis as any).gc === 'function') {
+    // Dispose in worker if available
+    if (this.workerManager) {
       try {
-        (globalThis as any).gc();
-        console.log(`🧹 Triggered garbage collection for ${modelName}`);
+        await this.workerManager.disposeModel(modelId);
+        console.log(`✅ ${modelName} disposed in worker`);
       } catch (error) {
-        // Ignore GC errors
+        console.warn(`⚠️ Failed to dispose ${modelName} in worker:`, error);
       }
     }
 
-    console.log(`✅ ${modelName} fully unloaded from memory`);
+    console.log(`✅ ${modelName} unloaded`);
   }
 
   /**
@@ -228,47 +188,26 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
   }
 
   /**
-   * Unload ALL models and clear all caches to free memory
-   * Should be called before starting a new analysis to prevent memory accumulation
+   * Unload ALL models by terminating the worker
+   * This is the MOST EFFECTIVE way to free all memory
    */
   async unloadAllModels(): Promise<void> {
-    console.log('🧹 Unloading all models from memory...');
+    console.log('🧹 Unloading all models...');
 
-    // Get all loaded pipeline IDs
-    const loadedIds = Array.from(this.loadedPipelines.keys());
-
-    // Unload each model
-    for (const modelId of loadedIds) {
-      try {
-        await this.unloadSingleModel(modelId);
-      } catch (error) {
-        console.warn(`Failed to unload ${modelId}:`, error);
-      }
-    }
-
-    // Clear the pipelines map completely
+    // Clear the pipelines map
     this.loadedPipelines.clear();
 
-    // Also clear from model manager
-    for (const modelId of this.enabledModels.keys()) {
+    // Dispose all models in worker if available
+    if (this.workerManager) {
       try {
-        await this.modelManager.unloadModel(modelId);
+        await this.workerManager.disposeAll();
+        console.log('✅ All models disposed in worker');
       } catch (error) {
-        // Ignore errors
+        console.warn('⚠️ Failed to dispose all models in worker:', error);
       }
     }
 
-    // Force garbage collection if available
-    if (typeof (globalThis as any).gc === 'function') {
-      try {
-        (globalThis as any).gc();
-        console.log('🧹 Triggered garbage collection');
-      } catch (error) {
-        // Ignore GC errors
-      }
-    }
-
-    console.log('✅ All models unloaded from memory');
+    console.log('✅ All models unloaded');
   }
 
   /**
@@ -325,37 +264,23 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
     }
 
     try {
-      let pipeline = this.loadedPipelines.get(model.id);
-      if (!pipeline) {
-        // Load the model if not cached
-        const modelConfig = {
-          id: model.id,
-          name: model.displayName,
-          description: `Custom HuggingFace model: ${model.huggingFaceId}`,
-          provider: 'transformers' as const,
-          size: 'Unknown',
-          speed: 'medium' as const,
-          accuracy: 'unknown' as const,
-          languages: ['en'],
-          huggingFaceId: model.huggingFaceId,
-          metadata: {
-            architecture: 'Unknown',
-            framework: 'transformers.js'
-          }
-        };
-
-        (this.modelManager as any).tempModelConfigs = (this.modelManager as any).tempModelConfigs || new Map();
-        (this.modelManager as any).tempModelConfigs.set(model.id, modelConfig);
-        
-        pipeline = await this.modelManager.loadModel(model.id);
-        this.loadedPipelines.set(model.id, pipeline);
+      // CRITICAL FIX: Use worker for getAllPredictions too
+      // Ensure worker is initialized
+      if (!this.workerManager) {
+        console.log('🔧 Worker not initialized in getAllPredictions(), initializing now...');
+        await this.initializeWorker();
       }
 
-      // Get raw result from pipeline - request ALL class probabilities
-      const result = await pipeline(text, {
-        top_k: null,  // Return all classes
-        return_all_scores: true
-      });
+      // Load model in worker if not already loaded
+      let pipeline = this.loadedPipelines.get(model.id);
+      if (!pipeline) {
+        const task = this.getTaskForModel(model.huggingFaceId);
+        await this.workerManager!.loadModel(model.id, model.huggingFaceId, task);
+        this.loadedPipelines.set(model.id, 'worker');
+      }
+
+      // Get raw result using WORKER
+      const result = await this.workerManager!.runInference(model.id, text);
 
       // Apply KoalaAI label mapping if needed
       let processedResult = Array.isArray(result) ? result : [result];
@@ -393,50 +318,33 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
       return;
     }
 
+    // Initialize worker first
+    if (!this.workerManager) {
+      await this.initializeWorker();
+    }
+
     const models = Array.from(this.enabledModels.values());
-    console.log(`🤖 Initializing ${models.length} HuggingFace models serially...`);
+    console.log(`🤖 Initializing ${models.length} HuggingFace models in worker...`);
     console.log(`🔍 Enabled models:`, models.map(m => `${m.displayName} (${m.huggingFaceId})`));
 
-    // Load models one by one to avoid memory issues
+    // Load models one by one in worker
     for (let i = 0; i < models.length; i++) {
       const model = models[i];
       const modelProgress = (i / models.length) * 100;
-      
+
       try {
         if (progressCallback) {
           progressCallback(`Loading ${model.displayName} (${i + 1}/${models.length})...`, modelProgress);
         }
-        console.log(`📦 Loading ${model.displayName} (${i + 1}/${models.length})...`);
-        
-        // Create a unique model config for this HuggingFace model
-        const modelConfig = {
-          id: model.id,
-          name: model.displayName,
-          description: `Custom HuggingFace model: ${model.huggingFaceId}`,
-          provider: 'transformers' as const,
-          size: 'Unknown',
-          speed: 'medium' as const,
-          accuracy: 'unknown' as const,
-          languages: ['en'],
-          huggingFaceId: model.huggingFaceId,
-          metadata: {
-            architecture: 'Unknown',
-            framework: 'transformers.js'
-          }
-        };
+        console.log(`📦 Loading ${model.displayName} (${i + 1}/${models.length}) in worker...`);
 
-        // Register the model config temporarily
-        (this.modelManager as any).tempModelConfigs = (this.modelManager as any).tempModelConfigs || new Map();
-        (this.modelManager as any).tempModelConfigs.set(model.id, modelConfig);
+        // Load model in worker
+        const task = this.getTaskForModel(model.huggingFaceId);
+        await this.workerManager!.loadModel(model.id, model.huggingFaceId, task);
+        this.loadedPipelines.set(model.id, 'worker');
 
-        // Load the model
-        const pipeline = await this.modelManager.loadModel(model.id);
-        this.loadedPipelines.set(model.id, pipeline);
-        
-        // Cache tracking no longer needed - we read directly from browser cache
-        
-        console.log(`✅ ${model.displayName} loaded successfully`);
-        
+        console.log(`✅ ${model.displayName} loaded successfully in worker`);
+
         // Update progress to show successful load
         const loadedProgress = ((i + 1) / models.length) * 100;
         if (progressCallback) {
@@ -444,20 +352,20 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
         }
       } catch (error) {
         console.error(`❌ Failed to load ${model.displayName}:`, error);
-        
+
         // Provide user-friendly error message
         if (progressCallback) {
           progressCallback(`Failed to load ${model.displayName}: ${error instanceof Error ? error.message : String(error)}`, modelProgress);
         }
-        
+
         this.enabledModels.delete(model.id);
       }
     }
 
     if (progressCallback) {
-      progressCallback(`Loaded ${this.loadedPipelines.size} models`, 100);
+      progressCallback(`Loaded ${this.loadedPipelines.size} models in worker`, 100);
     }
-    console.log(`🎉 Loaded ${this.loadedPipelines.size}/${models.length} models`);
+    console.log(`🎉 Loaded ${this.loadedPipelines.size}/${models.length} models in worker`);
   }
 
   isReady(): boolean {
@@ -483,56 +391,28 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
       // Load model if not already loaded
       let pipeline = this.loadedPipelines.get(model.id);
       if (!pipeline) {
-        // Use worker if enabled
-        if (this.useWorker) {
-          // Ensure worker is initialized
-          if (!this.workerManager) {
-            this.workerManager = getWorkerModelManager();
-            await this.workerManager.initializeWorker();
-          }
-          const task = this.getTaskForModel(model.huggingFaceId);
-          await this.workerManager.loadModel(model.id, model.huggingFaceId, task);
-          pipeline = 'worker';
-          this.loadedPipelines.set(model.id, 'worker');
-        } else {
-          // Original non-worker path
-          const modelConfig = {
-            id: model.id,
-            name: model.displayName,
-            description: `Custom HuggingFace model: ${model.huggingFaceId}`,
-            provider: 'transformers' as const,
-            size: 'Unknown',
-            speed: 'medium' as const,
-            accuracy: 'unknown' as const,
-            languages: ['en'],
-            huggingFaceId: model.huggingFaceId,
-            metadata: {
-              architecture: 'Unknown',
-              framework: 'transformers.js'
-            }
-          };
-
-          (this.modelManager as any).tempModelConfigs = (this.modelManager as any).tempModelConfigs || new Map();
-          (this.modelManager as any).tempModelConfigs.set(model.id, modelConfig);
-
-          pipeline = await this.modelManager.loadModel(model.id);
-          this.loadedPipelines.set(model.id, pipeline);
+        // ALWAYS use worker - it's mandatory
+        // Ensure worker is initialized
+        if (!this.workerManager) {
+          console.log('🔧 Worker not initialized, initializing now...');
+          await this.initializeWorker();
         }
+
+        const task = this.getTaskForModel(model.huggingFaceId);
+        await this.workerManager!.loadModel(model.id, model.huggingFaceId, task);
+        pipeline = 'worker';
+        this.loadedPipelines.set(model.id, 'worker');
       }
 
       // Perform analysis
       const startTime = performance.now();
-      let rawResult;
 
-      // Use worker if enabled
-      if (this.useWorker && this.workerManager && pipeline === 'worker') {
-        rawResult = await this.workerManager.runInference(model.id, text);
-      } else {
-        rawResult = await pipeline(text, {
-          top_k: null,  // Return all classes
-          return_all_scores: true
-        });
+      // ALWAYS use worker for inference
+      if (!this.workerManager) {
+        throw new Error('Worker not initialized for inference');
       }
+
+      const rawResult = await this.workerManager.runInference(model.id, text);
 
       const processingTime = performance.now() - startTime;
 
@@ -679,38 +559,25 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
         }
         console.log(`🔍 Analyzing with ${model.displayName} (${i + 1}/${models.length})...`);
 
-        // Load model if not already loaded
-        let pipeline = this.loadedPipelines.get(model.id);
-        if (!pipeline) {
-          // Create model config
-          const modelConfig = {
-            id: model.id,
-            name: model.displayName,
-            description: `Custom HuggingFace model: ${model.huggingFaceId}`,
-            provider: 'transformers' as const,
-            size: 'Unknown',
-            speed: 'medium' as const,
-            accuracy: 'unknown' as const,
-            languages: ['en'],
-            huggingFaceId: model.huggingFaceId,
-            metadata: {
-              architecture: 'Unknown',
-              framework: 'transformers.js'
-            }
-          };
-
-          // Register temporarily and load
-          (this.modelManager as any).tempModelConfigs = (this.modelManager as any).tempModelConfigs || new Map();
-          (this.modelManager as any).tempModelConfigs.set(model.id, modelConfig);
-          
-          pipeline = await this.modelManager.loadModel(model.id);
-          
-          // Cache tracking no longer needed - we read directly from browser cache
+        // CRITICAL FIX: Use worker for ALL model loading
+        // Ensure worker is initialized
+        if (!this.workerManager) {
+          console.log('🔧 Worker not initialized in analyze(), initializing now...');
+          await this.initializeWorker();
         }
 
-        // Perform analysis with full output
+        // Load model in worker if not already loaded
+        let pipeline = this.loadedPipelines.get(model.id);
+        if (!pipeline) {
+          const task = this.getTaskForModel(model.huggingFaceId);
+          await this.workerManager!.loadModel(model.id, model.huggingFaceId, task);
+          pipeline = 'worker';
+          this.loadedPipelines.set(model.id, 'worker');
+        }
+
+        // Perform analysis with full output using WORKER
         const startTime = performance.now();
-        const result = await pipeline(text, { top_k: null, return_all_scores: true });
+        const result = await this.workerManager!.runInference(model.id, text);
         const processingTime = performance.now() - startTime;
 
         // Get full output array and top prediction
@@ -789,15 +656,19 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
         results.push(analysisResult);
         console.log(`✅ ${model.displayName} analysis complete`);
 
-        // ALWAYS unload model to save memory after processing
-        await this.modelManager.unloadModel(model.id);
+        // ALWAYS dispose model in worker to save memory after processing
+        if (this.workerManager) {
+          await this.workerManager.disposeModel(model.id);
+        }
         this.loadedPipelines.delete(model.id);
-        console.log(`🗑️ Unloaded ${model.displayName} to save memory`);
+        console.log(`🗑️ Disposed ${model.displayName} in worker to save memory`);
 
       } catch (error) {
         console.error(`❌ Analysis failed for ${model.displayName}:`, error);
-        // Still unload the model on error
-        await this.modelManager.unloadModel(model.id);
+        // Still dispose the model on error
+        if (this.workerManager) {
+          await this.workerManager.disposeModel(model.id);
+        }
         this.loadedPipelines.delete(model.id);
       }
     }
@@ -810,7 +681,12 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
     return results;
   }
 
-  cleanup(): void {
+  async cleanup(): Promise<void> {
+    // Terminate worker to free ALL memory
+    if (this.workerManager) {
+      await this.terminateWorker();
+    }
+
     this.loadedPipelines.clear();
     this.enabledModels.clear();
     console.log('🧹 Multi-model analyzer cleaned up');

@@ -1,11 +1,13 @@
 import { AnalyzerRegistry } from '../analyzers';
 import { MultiModelAnalyzer } from '../analyzers/MultiModelAnalyzer';
 import { IncrementalTableRenderer } from './IncrementalTableRenderer';
+import { CacheManager } from '../models/CacheManager';
 import type { MultiModalAnalysisResult, UnifiedAnalysisResult } from './AnalysisStrategy';
 
 export class StreamingAnalysisController {
   private incrementalRenderer: IncrementalTableRenderer;
   private collectedResults: MultiModalAnalysisResult | null = null;
+  private cacheManager: CacheManager;
 
   constructor(
     private analyzerRegistry: AnalyzerRegistry,
@@ -13,6 +15,7 @@ export class StreamingAnalysisController {
     resultsContainer: HTMLElement
   ) {
     this.incrementalRenderer = new IncrementalTableRenderer(resultsContainer);
+    this.cacheManager = new CacheManager();
   }
 
   // No more modes - all models work together
@@ -64,8 +67,7 @@ export class StreamingAnalysisController {
     const selectedAnalyzers = config.selectedRuleBasedAnalyzers || [];
     const selectedModels = config.selectedHuggingFaceModels || [];
 
-    // Initialize worker at the start if using worker mode
-    await this.multiModelAnalyzer.initializeWorker();
+    // DO NOT initialize worker here - we'll create/destroy for EACH model
 
     // Helper function to determine if a model result is classification
     const isClassificationResult = (metadata: any): boolean => {
@@ -180,15 +182,17 @@ export class StreamingAnalysisController {
         if (!modelInfo) continue;
 
         try {
-          // STEP 1: Download/Load this specific model
+          // STEP 1: Create NEW worker for THIS model
+          progressCallback?.(`🚀 Creating worker for ${modelInfo.displayName}...`, 30 + (completedAnalyzers / totalAnalyzers) * 70);
+          await this.multiModelAnalyzer.initializeWorker();
+
+          // STEP 2: Load this specific model in the NEW worker
           progressCallback?.(`📥 Loading ${modelInfo.displayName}...`, 30 + (completedAnalyzers / totalAnalyzers) * 70);
           await this.multiModelAnalyzer.initializeSingleModel(modelId, (status) => {
             progressCallback?.(`${status}`, 30 + (completedAnalyzers / totalAnalyzers) * 70);
           });
 
-          // No need to update cache status - we read directly from browser cache now
-
-          // STEP 2: Run this model on all lines
+          // STEP 3: Run this model on all lines
           progressCallback?.(`🔍 Running ${modelInfo.displayName} on all lines...`, 30 + ((completedAnalyzers + 0.5) / totalAnalyzers) * 70);
 
           for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
@@ -252,28 +256,35 @@ export class StreamingAnalysisController {
             await new Promise(resolve => setTimeout(resolve, 50));
           }
 
-          // STEP 3: ALWAYS unload model to free memory after processing all rows
-          // Only keep cached if explicitly requested AND it's not the last model
-          const shouldKeepCached = config.keepModelsCached === true;
+          // STEP 4: TERMINATE WORKER to completely free ALL memory for this model
+          // This is the KEY - we kill the worker after EACH model, not at the end
+          progressCallback?.(`💥 Terminating worker to free ALL memory for ${modelInfo.displayName}...`, 30 + ((completedAnalyzers + 0.9) / totalAnalyzers) * 70);
+          await this.multiModelAnalyzer.terminateWorker();
+          console.log(`✅ Worker terminated - ALL memory freed for ${modelInfo.displayName}`);
 
-          if (shouldKeepCached) {
-            progressCallback?.(`✅ Keeping ${modelInfo.displayName} cached for future use`, 30 + ((completedAnalyzers + 0.9) / totalAnalyzers) * 70);
-            console.log(`📦 Model ${modelInfo.displayName} kept in memory (user requested)`);
+          // STEP 5: Clear browser cache for this model if not keeping cached
+          if (config.keepModelsCached === false) {
+            console.log(`🗑️ Clearing browser cache for ${modelInfo.displayName} (keepModelsCached=false)...`);
+            await this.cacheManager.clearModelCache(modelInfo.huggingFaceId);
+            progressCallback?.(`🗑️ Cleared cache for ${modelInfo.displayName}`, 30 + ((completedAnalyzers + 0.95) / totalAnalyzers) * 70);
           } else {
-            // Default behavior: ALWAYS unload to free memory
-            progressCallback?.(`🗑️ Unloading ${modelInfo.displayName} to free memory...`, 30 + ((completedAnalyzers + 0.9) / totalAnalyzers) * 70);
-            await this.multiModelAnalyzer.unloadSingleModel(modelId);
-            console.log(`✅ Model ${modelInfo.displayName} unloaded to free ${modelInfo.displayName} memory`);
+            console.log(`📦 Keeping ${modelInfo.displayName} in browser cache for faster next run`);
           }
 
         } catch (error) {
           console.error(`❌ Failed to process model ${modelInfo.displayName}:`, error);
-          // ALWAYS unload the model on error to free memory
+          // ALWAYS terminate worker on error to free memory
           try {
-            await this.multiModelAnalyzer.unloadSingleModel(modelId);
-            console.log(`🗑️ Unloaded ${modelInfo.displayName} after error to free memory`);
-          } catch (unloadError) {
-            console.warn(`⚠️ Failed to unload ${modelInfo.displayName}:`, unloadError);
+            await this.multiModelAnalyzer.terminateWorker();
+            console.log(`🗑️ Terminated worker after error for ${modelInfo.displayName}`);
+
+            // Also clear cache on error if not keeping cached
+            if (config.keepModelsCached === false) {
+              console.log(`🗑️ Clearing cache for failed model ${modelInfo.displayName}...`);
+              await this.cacheManager.clearModelCache(modelInfo.huggingFaceId);
+            }
+          } catch (terminateError) {
+            console.warn(`⚠️ Failed to terminate worker for ${modelInfo.displayName}:`, terminateError);
           }
         }
 
@@ -297,17 +308,9 @@ export class StreamingAnalysisController {
       this.collectedResults = null;
     }
 
-    // CRITICAL: Terminate worker to COMPLETELY FREE ALL MEMORY
-    // This is the ONLY way to truly free WASM memory
-    if (!config.keepModelsCached) {
-      console.log('💥 TERMINATING WORKER TO FREE ALL MEMORY...');
-      await this.multiModelAnalyzer.terminateWorker();
-
-      // Also unload non-worker models if any
-      await this.multiModelAnalyzer.unloadAllModels();
-
-      console.log('✅ ALL MEMORY FREED - Worker terminated and models unloaded');
-    }
+    // No need for final cleanup - we terminated the worker after EACH model
+    // This ensures memory is freed progressively, not accumulated until the end
+    console.log('✅ All models processed - memory was freed after each model');
   }
 
   // Removed analyzeClassificationWithStreaming - all models are handled together now

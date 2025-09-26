@@ -43,6 +43,13 @@
         </div>
       </div>
 
+      <div class="privacy-banner">
+        <span class="privacy-icon">🎪</span>
+        <span class="privacy-text">
+          <strong>No Cloud Behind the Curtain:</strong> Local-first privacy • Your text is processed 100% in your browser and is not sent to any server • Internet is only used to download this web app and models from HuggingFace
+        </span>
+      </div>
+
       <section class="input-section" aria-label="Text Input">
         <div class="carnival-step step-1">STEP 1</div>
         <div class="input-header">
@@ -50,7 +57,10 @@
             <h3>🎰 Insert Texts Here</h3>
             <span class="input-hint">1 line = 1 unit of text to analyze</span>
           </div>
-          <button type="button" id="clear-text-btn" class="btn btn-secondary btn-sm">Clear Text</button>
+          <div class="text-buttons">
+            <button type="button" id="template-generator-btn" class="btn btn-secondary btn-sm">🎭 Generate from Mad Libs Template</button>
+            <button type="button" id="clear-text-btn" class="btn btn-secondary btn-sm">Clear Text</button>
+          </div>
         </div>
         <div id="text-input" class="code-editor"></div>
       </section>
@@ -159,7 +169,7 @@
         <div class="cache-options">
           <div class="cache-controls">
             <label class="cache-option">
-              <input type="checkbox" id="keep-models-cached" checked>
+              <input type="checkbox" id="keep-models-cached">
               Keep downloaded models in browser cache
             </label>
             <button type="button" id="clear-cache" class="btn btn-secondary btn-sm">Clear Cache</button>

@@ -63,7 +63,10 @@ export class VaderAnalyzer implements SentimentAnalyzer {
           positive: '>=0.05',
           negative: '<=-0.05',
           neutral: '-0.05 to 0.05'
-        }
+        },
+        fullRawOutput: scores,  // Store complete raw output
+        topLabel: sentiment,    // For consistent display
+        topScore: scores.compound  // The compound score
       }
     };
   }

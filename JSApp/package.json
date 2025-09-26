@@ -21,6 +21,7 @@
     "@codemirror/commands": "^6.8.1",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.2",
+    "@huggingface/transformers": "^3.7.3",
     "codemirror": "^6.0.2",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",

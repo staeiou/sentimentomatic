@@ -56,10 +56,10 @@ class SentimentomaticApp {
 
   constructor() {
     this.analyzerRegistry = new AnalyzerRegistry();
-    // Enable worker mode for COMPLETE memory cleanup
+    // Worker mode is now MANDATORY - it's the ONLY way to free memory
     this.multiModelAnalyzer = new MultiModelAnalyzer(
-      this.analyzerRegistry.getModelManager(),
-      { useWorker: true }  // This allows COMPLETE memory freeing by terminating worker
+      this.analyzerRegistry.getModelManager()
+      // No options needed - worker mode is always on
     );
     this.cacheManager = new CacheManager();
 

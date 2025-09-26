@@ -62,7 +62,10 @@ export class AfinnAnalyzer implements SentimentAnalyzer {
         words: result.words,
         positiveWords: result.positive,
         negativeWords: result.negative,
-        calculation: result.calculation
+        calculation: result.calculation,
+        fullRawOutput: result,  // Store complete raw output
+        topLabel: sentiment,    // For consistent display
+        topScore: result.comparative  // The comparative score
       }
     };
   }

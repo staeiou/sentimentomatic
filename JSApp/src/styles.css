@@ -1265,3 +1265,282 @@ a:hover {
     height: 300px;
   }
 }
+
+/* ===========================================
+   TEMPLATE GENERATOR MODAL STYLES
+   =========================================== */
+.text-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.template-generator-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+  animation: fadeIn 0.2s ease;
+}
+
+.template-generator-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  max-width: 700px;
+  width: 90%;
+  max-height: 85vh;
+  overflow: hidden;
+  animation: slideIn 0.3s ease;
+}
+
+.template-generator-modal .modal-header {
+  background: linear-gradient(135deg, var(--color-accent), #FF8C00);
+  color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid var(--color-primary);
+}
+
+.template-generator-modal .modal-header h3 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+}
+
+.template-generator-modal .modal-body {
+  padding: var(--spacing-lg);
+  max-height: calc(85vh - 140px);
+  overflow-y: auto;
+}
+
+.template-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.template-section label {
+  display: block;
+  font-weight: 600;
+  color: var(--color-secondary);
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.template-input {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+
+.template-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+#detect-variables {
+  margin-top: var(--spacing-sm);
+}
+
+.variables-section {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-light);
+}
+
+.variable-input-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.variable-input-group:last-child {
+  margin-bottom: 0;
+}
+
+.variable-input-group label {
+  display: block;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+}
+
+.variable-input {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  background: white;
+  transition: border-color var(--transition-fast);
+}
+
+.variable-input:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 2px rgba(0, 78, 100, 0.1);
+}
+
+.no-variables {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: var(--spacing-md);
+}
+
+.preview-section {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: #f0f8ff;
+  border-radius: var(--border-radius-md);
+  border: 1px solid #b3d9ff;
+}
+
+.preview-section label {
+  display: block;
+  font-weight: 600;
+  color: var(--color-secondary);
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.preview-output {
+  background: white;
+  border: 1px solid #d0e7ff;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-sm);
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.preview-line {
+  padding: var(--spacing-xs);
+  border-bottom: 1px solid #f0f0f0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.preview-line:last-child {
+  border-bottom: none;
+}
+
+.preview-more {
+  padding: var(--spacing-xs);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  text-align: center;
+  font-size: var(--font-size-sm);
+}
+
+.template-generator-modal .modal-footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.template-success-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  z-index: 30000;
+  animation: slideInRight 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+  font-weight: 600;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Responsive adjustments for template modal */
+@media (max-width: 768px) {
+  .template-generator-modal {
+    max-width: 95%;
+    max-height: 90vh;
+  }
+
+  .template-generator-modal .modal-body {
+    padding: var(--spacing-md);
+    max-height: calc(90vh - 120px);
+  }
+
+  .text-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .text-buttons .btn {
+    width: 100%;
+  }
+}
+
+/* Privacy Banner - Matching Purple Carnival Theme */
+.privacy-banner {
+  background: linear-gradient(135deg, #9D50BB 0%, #6E48AA 50%, #667eea 100%);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.privacy-icon {
+  font-size: 1.75rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.privacy-text {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 1.2rem;
+  line-height: 1.4;
+  font-weight: 400;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.privacy-text strong {
+  color: #ffd700;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}

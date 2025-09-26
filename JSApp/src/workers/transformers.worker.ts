@@ -84,7 +84,9 @@ async function handleLoadModel(payload: {
 
   console.log(`[Worker] Loading model ${modelId} (${huggingFaceId})...`);
 
-  const pipelineInstance = await pipeline(task, huggingFaceId, {
+  // Special handling for models with non-standard file structures
+  let modelPath = huggingFaceId;
+  let options: any = {
     quantized: true,
     progress_callback: (data: any) => {
       if (data.status === 'downloading' || data.status === 'download') {
@@ -98,7 +100,27 @@ async function handleLoadModel(payload: {
         });
       }
     }
-  });
+  };
+
+  // Handle models with non-standard ONNX file locations
+  // These models have their ONNX files in root directory, not in /onnx/ subdirectory
+  if (huggingFaceId === 'protectai/xlm-roberta-base-language-detection-onnx') {
+    // This model has files in root, not in /onnx/
+    // File is model_quantized.onnx
+    options.subfolder = '';  // Override the default 'onnx' subfolder
+    options.model_file_name = 'model';  // Base name without _quantized
+    options.dtype = 'q8';  // This will add _quantized suffix to make model_quantized.onnx
+    console.log(`[Worker] Overriding subfolder to root for ${huggingFaceId}`);
+  } else if (huggingFaceId === 'minuva/MiniLMv2-toxic-jigsaw-onnx') {
+    // This model has files in root with different naming
+    // File is actually model_optimized_quantized.onnx (not model_quantized.onnx)
+    options.subfolder = '';  // Override the default 'onnx' subfolder
+    options.model_file_name = 'model_optimized';  // Base name without _quantized
+    options.dtype = 'q8';  // This will add _quantized suffix to make model_optimized_quantized.onnx
+    console.log(`[Worker] Overriding subfolder and filename for ${huggingFaceId}`);
+  }
+
+  const pipelineInstance = await pipeline(task, modelPath, options);
 
   loadedPipelines.set(modelId, pipelineInstance);
 

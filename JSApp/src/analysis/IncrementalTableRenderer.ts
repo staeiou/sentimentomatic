@@ -274,10 +274,10 @@ export class IncrementalTableRenderer {
         <table class="results-table unified-table">
           <thead>
             <tr>
-              <th class="line-number-col">
+              <th class="line-number-col" rowspan="2">
                 <span class="header-icon">#</span>
               </th>
-              <th class="text-col">
+              <th class="text-col" rowspan="2">
                 <span class="header-icon">📝</span>
                 Text
               </th>
@@ -285,10 +285,25 @@ export class IncrementalTableRenderer {
                 const icon = this.getColumnIcon(col);
                 const typeClass = col.type === 'classification' ? 'classification-col' : 'sentiment-col';
                 return `
-                  <th class="score-col ${typeClass} analyzer-${col.name.toLowerCase().replace(/\s+/g, '-')}">
+                  <th class="model-header ${typeClass}" colspan="2">
                     <div class="analyzer-header">
                       <span class="analyzer-icon">${icon}</span>
                       <span class="analyzer-name">${col.name}</span>
+                    </div>
+                  </th>
+                `;
+              }).join('')}
+            </tr>
+            <tr class="subheader-row">
+              ${columns.map(col => {
+                // Dynamic headers based on column type and analyzer
+                const headers = this.getColumnHeaders(col);
+                // Use innerHTML to properly render HTML in headers
+                return `
+                  <th class="pred-header">${headers.class}</th>
+                  <th class="conf-header">
+                    <div style="line-height: 1.2;">
+                      ${headers.score}
                     </div>
                   </th>
                 `;
@@ -335,35 +350,28 @@ export class IncrementalTableRenderer {
       const colResult = result.results.find(r => r.analyzer === col.name);
       
       if (colResult) {
-        if (colResult.type === 'classification') {
-          // Classification result - clickable to show all classes
-          const allClassesJson = JSON.stringify(colResult.allClasses || {}).replace(/"/g, '&quot;');
-          rowHtml += `
-            <td class="score-cell classification-cell clickable"
-                data-all-classes="${allClassesJson}"
-                data-analyzer="${col.name}"
-                data-line="${result.lineIndex + 1}"
-                title="Click to see all class probabilities">
-              <div class="classification-display">
-                <span class="class-label">${colResult.topClass || 'N/A'}</span>
-                <span class="confidence">${((colResult.confidence || 0) * 100).toFixed(1)}%</span>
-                <span class="expand-icon">⊕</span>
-              </div>
-            </td>
-          `;
-        } else {
-          // Sentiment result
-          const colorClass = this.getScoreColorClass(colResult.sentiment || 'neutral', colResult.score || 0);
-          const icon = this.getSentimentIcon(colResult.sentiment || 'neutral');
-          rowHtml += `
-            <td class="score-cell">
-              <div class="score-display ${colorClass}">
-                <span class="sentiment-icon">${icon}</span>
-                <span class="score-value">${(colResult.score || 0).toFixed(3)}</span>
-              </div>
-            </td>
-          `;
-        }
+        // Get raw output from metadata
+        const rawOutput = colResult.metadata?.fullRawOutput || colResult.metadata?.rawPrediction || null;
+        const topLabel = colResult.metadata?.topLabel || colResult.sentiment || 'N/A';
+        const topScore = colResult.metadata?.topScore !== undefined ? colResult.metadata.topScore : Math.abs(colResult.score || 0);
+
+        // Serialize raw output for data attribute
+        const rawOutputJson = JSON.stringify(rawOutput || {}).replace(/"/g, '&quot;');
+
+        // Make ALL cells clickable to show raw output
+        rowHtml += `
+          <td class="score-cell clickable"
+              data-raw-output="${rawOutputJson}"
+              data-analyzer="${col.name}"
+              data-line="${result.lineIndex + 1}"
+              title="Click to see raw model output">
+            <div class="output-display">
+              <span class="output-label">${topLabel}</span>
+              <span class="output-score">${topScore.toFixed(3)}</span>
+              <span class="expand-icon">⊕</span>
+            </div>
+          </td>
+        `;
       } else {
         // No result for this column yet
         rowHtml += '<td class="score-cell pending"><span class="pending-dot">⋯</span></td>';
@@ -408,6 +416,26 @@ export class IncrementalTableRenderer {
     if (name.includes('bert')) return '🤖';
     if (name.includes('roberta')) return '🧠';
     return col.type === 'classification' ? '🏷️' : '🔬';
+  }
+
+  /**
+   * Get appropriate column headers based on model type and name
+   */
+  private getColumnHeaders(col: UnifiedColumn): { class: string, score: string } {
+    const name = col.name.toLowerCase();
+
+    // Rule-based analyzers with their specific ranges
+    if (name.includes('afinn')) {
+      // AFINN uses comparative score (typically -5 to +5 but can exceed)
+      return { class: 'Prediction', score: 'How Strong?<br>(-5 to +5)' };
+    }
+    if (name.includes('vader')) {
+      // VADER uses compound score (-1 to +1)
+      return { class: 'Prediction', score: 'How Strong?<br>(-1 to +1)' };
+    }
+
+    // All ML models use "How Certain?" (always 0-100%)
+    return { class: 'Prediction', score: 'How Certain?<br>(0% to 100%)' };
   }
 
   /**
@@ -501,18 +529,33 @@ export class IncrementalTableRenderer {
    * Show modal with all class probabilities
    */
   private showClassificationModal(cell: HTMLElement): void {
+    // Handle both old format (data-all-classes) and new format (data-raw-output)
+    const rawOutputData = cell.getAttribute('data-raw-output');
     const allClassesData = cell.getAttribute('data-all-classes');
     const analyzer = cell.getAttribute('data-analyzer');
     const line = cell.getAttribute('data-line');
 
-    if (!allClassesData || !analyzer) return;
+    if (!analyzer) return;
 
     try {
-      const allClasses = JSON.parse(allClassesData.replace(/&quot;/g, '"'));
+      let outputArray: any[] = [];
 
-      // Sort classes by confidence (descending)
-      const sortedClasses = Object.entries(allClasses)
-        .sort((a, b) => (b[1] as number) - (a[1] as number));
+      if (rawOutputData) {
+        // New format: raw output from transformers
+        const rawOutput = JSON.parse(rawOutputData.replace(/&quot;/g, '"'));
+        outputArray = Array.isArray(rawOutput) ? rawOutput : [rawOutput];
+      } else if (allClassesData) {
+        // Old format: convert to array format
+        const allClasses = JSON.parse(allClassesData.replace(/&quot;/g, '"'));
+        outputArray = Object.entries(allClasses).map(([label, score]) => ({ label, score }));
+      } else {
+        return;
+      }
+
+      // Sort outputs by score (descending)
+      const sortedOutputs = outputArray
+        .filter(item => item && typeof item === 'object')
+        .sort((a, b) => (b.score || 0) - (a.score || 0));
 
       // Create modal content
       const modalHtml = `
@@ -524,21 +567,31 @@ export class IncrementalTableRenderer {
             </div>
             <div class="modal-body">
               <div class="all-classes-list">
-                ${sortedClasses.map(([className, confidence], index) => {
-                  const percentage = ((confidence as number) * 100).toFixed(1);
-                  const isTop = index === 0;
-                  return `
-                    <div class="class-item ${isTop ? 'top-class' : ''}">
-                      <div class="class-info">
-                        <span class="class-name">${className}</span>
-                        <span class="class-percentage">${percentage}%</span>
+                <div class="raw-json-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                  <span>📋 Show/Hide Raw JSON</span>
+                </div>
+                <div class="raw-output-display" style="display: none; background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto;">
+                  <pre>${JSON.stringify(outputArray, null, 2)}</pre>
+                </div>
+                <div class="parsed-outputs">
+                  ${sortedOutputs.map((item, index) => {
+                    const label = item.label || 'unknown';
+                    const score = item.score || 0;
+                    const percentage = (score * 100).toFixed(1);
+                    const isTop = index === 0;
+                    return `
+                      <div class="class-item ${isTop ? 'top-class' : ''}">
+                        <div class="class-info">
+                          <span class="class-name">${label}</span>
+                          <span class="class-percentage">${percentage}%</span>
+                        </div>
+                        <div class="confidence-bar">
+                          <div class="confidence-fill" style="width: ${percentage}%"></div>
+                        </div>
                       </div>
-                      <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: ${percentage}%"></div>
-                      </div>
-                    </div>
-                  `;
-                }).join('')}
+                    `;
+                  }).join('')}
+                </div>
               </div>
             </div>
           </div>
@@ -566,10 +619,10 @@ export class IncrementalTableRenderer {
         <table class="results-table unified-table">
           <thead>
             <tr>
-              <th class="line-number-col">
+              <th class="line-number-col" rowspan="2">
                 <span class="header-icon">#</span>
               </th>
-              <th class="text-col">
+              <th class="text-col" rowspan="2">
                 <span class="header-icon">📝</span>
                 Text
               </th>
@@ -577,10 +630,25 @@ export class IncrementalTableRenderer {
                 const icon = this.getColumnIcon(col);
                 const typeClass = col.type === 'classification' ? 'classification-col' : 'sentiment-col';
                 return `
-                  <th class="score-col ${typeClass} analyzer-${col.name.toLowerCase().replace(/\s+/g, '-')}">
+                  <th class="model-header ${typeClass}" colspan="2">
                     <div class="analyzer-header">
                       <span class="analyzer-icon">${icon}</span>
                       <span class="analyzer-name">${col.name}</span>
+                    </div>
+                  </th>
+                `;
+              }).join('')}
+            </tr>
+            <tr class="subheader-row">
+              ${columns.map(col => {
+                // Dynamic headers based on column type and analyzer
+                const headers = this.getColumnHeaders(col);
+                // Use innerHTML to properly render HTML in headers
+                return `
+                  <th class="pred-header">${headers.class}</th>
+                  <th class="conf-header">
+                    <div style="line-height: 1.2;">
+                      ${headers.score}
                     </div>
                   </th>
                 `;
@@ -590,7 +658,8 @@ export class IncrementalTableRenderer {
           <tbody id="results-tbody">
             ${texts.map((text, index) => {
               const pendingCells = columns.map(() =>
-                '<td class="score-cell pending"><span class="pending-dot">⋯</span></td>'
+                '<td class="pred-cell pending"><span class="pending-dot">⋯</span></td>' +
+                '<td class="conf-cell pending"><span class="pending-dot">⋯</span></td>'
               ).join('');
 
               return `
@@ -616,6 +685,18 @@ export class IncrementalTableRenderer {
 
     this.tbody = document.getElementById('results-tbody');
     this.currentRow = texts.length; // All rows are already created
+
+    // Add event delegation for clickable cells
+    if (this.tbody) {
+      this.tbody.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const cell = target.closest('td.clickable');
+        if (cell && (cell.classList.contains('pred-cell') || cell.classList.contains('conf-cell'))) {
+          e.preventDefault();
+          this.showClassificationModal(cell as HTMLElement);
+        }
+      });
+    }
   }
 
   /**
@@ -631,51 +712,61 @@ export class IncrementalTableRenderer {
     const columnIndex = this.columns.findIndex(col => col.name === columnName);
     if (columnIndex === -1) return;
 
-    // Cell index is +2 for line number and text columns
-    const cellIndex = columnIndex + 2;
-    const cell = row.cells[cellIndex];
-    if (!cell) return;
+    // Calculate cell indices (each model has 2 cells: prediction and confidence)
+    // +2 for line number and text columns, then *2 for two cells per model
+    const baseCellIndex = 2 + (columnIndex * 2);
+    const predCell = row.cells[baseCellIndex];
+    const confCell = row.cells[baseCellIndex + 1];
 
-    // Update cell content based on result type
-    if (result.type === 'classification') {
-      const allClassesJson = JSON.stringify(result.allClasses || {}).replace(/"/g, '&quot;');
-      cell.innerHTML = `
-        <div class="classification-display clickable"
-             data-all-classes="${allClassesJson}"
-             data-analyzer="${columnName}"
-             data-line="${lineIndex + 1}"
-             title="Click to see all class probabilities">
-          <span class="class-label">${result.topClass || 'N/A'}</span>
-          <span class="confidence">${((result.confidence || 0) * 100).toFixed(1)}%</span>
-          <span class="expand-icon">⊕</span>
-        </div>
-      `;
-      cell.className = 'score-cell classification-cell clickable';
+    if (!predCell || !confCell) return;
 
-      // Add click handler
-      const display = cell.querySelector('.classification-display');
-      if (display) {
-        display.addEventListener('click', (e) => {
-          e.preventDefault();
-          this.showClassificationModal(display as HTMLElement);
-        });
-      }
+    // Get raw output from metadata
+    const rawOutput = result.metadata?.fullRawOutput || result.metadata?.rawPrediction || result.allClasses || null;
+    const topLabel = result.metadata?.topLabel || result.topClass || result.sentiment || 'N/A';
+    const topScore = result.metadata?.topScore !== undefined ?
+      result.metadata.topScore :
+      (result.confidence !== undefined ? result.confidence : Math.abs(result.score || 0));
+
+    // Serialize raw output for data attribute
+    const rawOutputJson = JSON.stringify(rawOutput || {}).replace(/"/g, '&quot;');
+
+    // Update prediction cell
+    predCell.setAttribute('data-raw-output', rawOutputJson);
+    predCell.setAttribute('data-analyzer', columnName);
+    predCell.setAttribute('data-line', String(lineIndex + 1));
+    predCell.setAttribute('title', 'Click to see raw model output');
+    predCell.innerHTML = `<span class="pred-value">${topLabel}</span>`;
+    predCell.className = 'pred-cell clickable';
+
+    // Update confidence/strength cell
+    confCell.setAttribute('data-raw-output', rawOutputJson);
+    confCell.setAttribute('data-analyzer', columnName);
+    confCell.setAttribute('data-line', String(lineIndex + 1));
+    confCell.setAttribute('title', 'Click to see raw model output');
+
+    // Display as percentage for ML models, raw value for rule-based
+    const isRuleBased = columnName.toLowerCase().includes('afinn') ||
+                       columnName.toLowerCase().includes('vader');
+
+    let displayValue: string;
+    if (isRuleBased) {
+      // Rule-based: show raw strength value with sign
+      displayValue = topScore >= 0 ? topScore.toFixed(3) : topScore.toFixed(3);
     } else {
-      // Sentiment result
-      const colorClass = this.getScoreColorClass(result.sentiment || 'neutral', result.score || 0);
-      const icon = this.getSentimentIcon(result.sentiment || 'neutral');
-      cell.innerHTML = `
-        <div class="score-display ${colorClass}">
-          <span class="sentiment-icon">${icon}</span>
-          <span class="score-value">${(result.score || 0).toFixed(3)}</span>
-        </div>
-      `;
-      cell.className = 'score-cell';
+      // ML models: show as percentage
+      displayValue = `${(topScore * 100).toFixed(1)}%`;
     }
 
+    confCell.innerHTML = `<span class="conf-value">${displayValue}</span>`;
+    confCell.className = 'conf-cell clickable';
+
     // Add update animation
-    cell.classList.add('cell-update');
-    setTimeout(() => cell.classList.remove('cell-update'), 300);
+    predCell.classList.add('cell-update');
+    confCell.classList.add('cell-update');
+    setTimeout(() => {
+      predCell.classList.remove('cell-update');
+      confCell.classList.remove('cell-update');
+    }, 300);
   }
 
   /**
@@ -854,19 +945,102 @@ export class IncrementalTableRenderer {
     const styles = document.createElement('style');
     styles.id = 'classification-modal-styles';
     styles.textContent = `
-      .classification-cell.clickable {
+      .clickable {
         cursor: pointer;
         transition: background-color 0.2s ease;
       }
 
-      .classification-cell.clickable:hover {
+      .clickable:hover {
         background-color: #f0f8ff;
+      }
+
+      .output-display {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px;
+      }
+
+      .output-label {
+        font-weight: 500;
+        margin-right: 8px;
+      }
+
+      .output-score {
+        font-family: monospace;
+        color: #666;
       }
 
       .expand-icon {
         margin-left: 8px;
         opacity: 0.7;
         font-size: 12px;
+        transition: transform 0.2s ease;
+      }
+
+      .clickable:hover .expand-icon {
+        transform: scale(1.2);
+      }
+
+      .raw-json-toggle {
+        padding: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        margin-bottom: 10px;
+        transition: background 0.2s ease;
+      }
+
+      .raw-json-toggle:hover {
+        background: #dee2e6;
+      }
+
+      .model-header {
+        text-align: center;
+        border-bottom: 1px solid #dee2e6;
+      }
+
+      .subheader-row {
+        background: #f8f9fa;
+      }
+
+      .pred-header, .conf-header {
+        padding: 6px 8px;
+        font-weight: normal;
+        font-size: 11px;
+        color: #6c757d;
+        font-style: italic;
+        text-align: center;
+        border-bottom: 2px solid #dee2e6;
+      }
+
+      .pred-cell, .conf-cell {
+        padding: 8px;
+        text-align: center;
+        border-right: 1px solid #e9ecef;
+      }
+
+      .conf-cell {
+        border-right: 2px solid #dee2e6;
+      }
+
+      .pred-cell.clickable, .conf-cell.clickable {
+        cursor: pointer;
+      }
+
+      .pred-cell.clickable:hover, .conf-cell.clickable:hover {
+        background-color: #f0f8ff;
+      }
+
+      .pred-value {
+        font-weight: 500;
+        color: #2c3e50;
+      }
+
+      .conf-value {
+        font-family: monospace;
+        color: #495057;
       }
 
       .classification-modal-overlay {

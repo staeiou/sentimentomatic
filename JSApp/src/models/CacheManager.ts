@@ -222,6 +222,35 @@ export class CacheManager {
   }
 
   /**
+   * Clear cache for a specific model
+   */
+  async clearModelCache(huggingFaceId: string): Promise<void> {
+    try {
+      if (!('caches' in window)) {
+        console.log('Cache API not available');
+        return;
+      }
+
+      const cache = await caches.open('transformers-cache');
+
+      // Get all cached requests
+      const requests = await cache.keys();
+
+      // Delete all entries that match this model's huggingFaceId
+      for (const request of requests) {
+        if (request.url.includes(huggingFaceId)) {
+          await cache.delete(request);
+          console.log(`🗑️ Deleted cached file: ${request.url}`);
+        }
+      }
+
+      console.log(`✅ Cleared cache for model: ${huggingFaceId}`);
+    } catch (error) {
+      console.warn(`Failed to clear cache for model ${huggingFaceId}:`, error);
+    }
+  }
+
+  /**
    * Clear all cached models from browser Cache API
    */
   async clearCache(): Promise<void> {
