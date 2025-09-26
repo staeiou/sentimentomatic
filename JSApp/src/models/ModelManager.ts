@@ -620,11 +620,80 @@ export class ModelManager {
 
   /**
    * Unload a model to free memory
+   * NOTE: Due to WebAssembly limitations, memory can only be marked as reusable, not actually freed.
+   * To truly free memory, the page must be reloaded.
    */
-  unloadModel(modelId: string): void {
+  async unloadModel(modelId: string): Promise<void> {
+    // Get the pipeline object before deleting
+    const pipeline = this.loadedModels.get(modelId);
+
+    if (pipeline) {
+      // Call the built-in dispose() method on the pipeline
+      // This marks memory as reusable (doesn't actually free it due to WASM limitations)
+      if (typeof pipeline.dispose === 'function') {
+        try {
+          await pipeline.dispose();
+          console.log(`♻️ Disposed pipeline for model: ${modelId} (memory marked as reusable)`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to dispose pipeline for ${modelId}:`, error);
+        }
+      }
+
+      // Also try to dispose the session if it exists (for ONNX runtime)
+      if (pipeline.session && typeof pipeline.session.release === 'function') {
+        try {
+          await pipeline.session.release();
+          console.log(`♻️ Released ONNX session for: ${modelId}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to release session for ${modelId}:`, error);
+        }
+      }
+
+      // Dispose model if it has a separate dispose method
+      if (pipeline.model && typeof pipeline.model.dispose === 'function') {
+        try {
+          await pipeline.model.dispose();
+          console.log(`♻️ Disposed model tensors for: ${modelId}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to dispose model tensors for ${modelId}:`, error);
+        }
+      }
+
+      // Clear tokenizer if it exists
+      if (pipeline.tokenizer && typeof pipeline.tokenizer.dispose === 'function') {
+        try {
+          await pipeline.tokenizer.dispose();
+        } catch (error) {
+          // Ignore tokenizer disposal errors
+        }
+      }
+
+      // Nullify all references to help garbage collection
+      Object.keys(pipeline).forEach(key => {
+        pipeline[key] = null;
+      });
+    }
+
+    // Remove from maps
     this.loadedModels.delete(modelId);
     this.loadingStates.delete(modelId);
-    console.log(`🗑️ Unloaded model: ${modelId}`);
+
+    // Remove from temp configs if present
+    if ((this as any).tempModelConfigs) {
+      (this as any).tempModelConfigs.delete(modelId);
+    }
+
+    // Force garbage collection hint (non-standard but helps in some browsers)
+    if (typeof (globalThis as any).gc === 'function') {
+      try {
+        (globalThis as any).gc();
+        console.log(`🧹 Triggered garbage collection after unloading ${modelId}`);
+      } catch (error) {
+        // Ignore GC errors
+      }
+    }
+
+    console.log(`🗑️ Model unloaded: ${modelId} (Note: WASM memory can only grow, page reload required to fully free memory)`);
   }
 
   /**

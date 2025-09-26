@@ -49,13 +49,18 @@ class SentimentomaticApp {
   private selectAllModelsBtn!: HTMLButtonElement;
   private clearModelsBtn!: HTMLButtonElement;
   private clearTextBtn!: HTMLButtonElement;
+  private templateGeneratorBtn!: HTMLButtonElement;
   private exportCsvBtn!: HTMLButtonElement;
   private exportExcelBtn!: HTMLButtonElement;
   private exportJsonBtn!: HTMLButtonElement;
 
   constructor() {
     this.analyzerRegistry = new AnalyzerRegistry();
-    this.multiModelAnalyzer = new MultiModelAnalyzer(this.analyzerRegistry.getModelManager());
+    // Enable worker mode for COMPLETE memory cleanup
+    this.multiModelAnalyzer = new MultiModelAnalyzer(
+      this.analyzerRegistry.getModelManager(),
+      { useWorker: true }  // This allows COMPLETE memory freeing by terminating worker
+    );
     this.cacheManager = new CacheManager();
 
     this.initializeElements();
@@ -132,6 +137,7 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     this.selectAllModelsBtn = document.getElementById('select-all-models-btn') as HTMLButtonElement;
     this.clearModelsBtn = document.getElementById('clear-models-btn') as HTMLButtonElement;
     this.clearTextBtn = document.getElementById('clear-text-btn') as HTMLButtonElement;
+    this.templateGeneratorBtn = document.getElementById('template-generator-btn') as HTMLButtonElement;
     this.exportCsvBtn = document.getElementById('export-csv') as HTMLButtonElement;
     this.exportExcelBtn = document.getElementById('export-excel') as HTMLButtonElement;
     this.exportJsonBtn = document.getElementById('export-json') as HTMLButtonElement;
@@ -191,6 +197,11 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
         }
       });
       this.resultsSection.hidden = true;
+    });
+
+    // Template generator
+    this.templateGeneratorBtn.addEventListener('click', () => {
+      this.showTemplateGeneratorModal();
     });
 
     // All models update together when any checkbox changes
@@ -752,26 +763,252 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     if (status.includes('Analyzing line')) {
       return; // Skip line analysis logs
     }
-    
+
     const progressBar = document.getElementById('progress-bar') as HTMLElement;
     const progressStatus = document.getElementById('progress-status') as HTMLElement;
-    
+
     if (progressBar) {
       progressBar.style.width = `${progress}%`;
-      progressBar.style.background = progress < 100 
-        ? 'linear-gradient(90deg, #4F46E5, #7C3AED)' 
+      progressBar.style.background = progress < 100
+        ? 'linear-gradient(90deg, #4F46E5, #7C3AED)'
         : '#28a745';
     }
-    
+
     if (progressStatus) {
       // Just show the current status with an icon
       let icon = '⏳';
       if (status.includes('Loading') || status.includes('Initializing')) icon = '📦';
       if (status.includes('complete')) icon = '✅';
       if (status.includes('Failed') || status.includes('Error')) icon = '❌';
-      
+
       progressStatus.innerHTML = `${icon} ${status}`;
     }
+  }
+
+  private showTemplateGeneratorModal(): void {
+    // Extract unique placeholders from template
+    const extractPlaceholders = (template: string): string[] => {
+      const regex = /\{\{(\w+)\}\}/g;
+      const placeholders = new Set<string>();
+      let match;
+      while ((match = regex.exec(template)) !== null) {
+        placeholders.add(match[1]);
+      }
+      return Array.from(placeholders).slice(0, 3); // Support up to 3 variables
+    };
+
+    // Generate all permutations
+    const generatePermutations = (template: string, variableValues: Map<string, string[]>): string[] => {
+      const placeholders = extractPlaceholders(template);
+      if (placeholders.length === 0) return [template];
+
+      const results: string[] = [];
+
+      // Get all value arrays
+      const valueArrays = placeholders.map(p => variableValues.get(p) || []);
+
+      // Generate cartesian product
+      const cartesianProduct = (arrays: string[][]): string[][] => {
+        if (arrays.length === 0) return [[]];
+        if (arrays.length === 1) return arrays[0].map(x => [x]);
+
+        const [first, ...rest] = arrays;
+        const restProduct = cartesianProduct(rest);
+
+        return first.flatMap(x =>
+          restProduct.map(combo => [x, ...combo])
+        );
+      };
+
+      const combinations = cartesianProduct(valueArrays);
+
+      // Apply each combination to the template
+      for (const combo of combinations) {
+        let result = template;
+        placeholders.forEach((placeholder, index) => {
+          const regex = new RegExp(`\\{\\{${placeholder}\\}\\}`, 'g');
+          result = result.replace(regex, combo[index] || '');
+        });
+        results.push(result);
+      }
+
+      return results;
+    };
+
+    const modalHtml = `
+      <div class="template-generator-overlay" onclick="event.target === this && this.remove()">
+        <div class="template-generator-modal" onclick="event.stopPropagation()">
+          <div class="modal-header">
+            <h3>🎭 Template Text Generator</h3>
+            <button class="modal-close" onclick="this.closest('.template-generator-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="template-section">
+              <label for="template-input">Template (use {{variable}} for placeholders - up to 3 variables):</label>
+              <textarea id="template-input" class="template-input" placeholder="Example: I {{feeling}} {{thing}} because {{reason}}" rows="3">I {{feeling}} {{thing}}</textarea>
+              <button id="detect-variables" class="btn btn-secondary btn-sm">Detect Variables</button>
+            </div>
+
+            <div id="variables-section" class="variables-section">
+              <!-- Variable inputs will be added here dynamically -->
+            </div>
+
+            <div class="preview-section" style="display: none;">
+              <label>Preview (first 5 combinations):</label>
+              <div id="preview-output" class="preview-output"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="this.closest('.template-generator-overlay').remove()">Cancel</button>
+            <button id="generate-text" class="btn btn-primary" disabled>Generate & Replace Text</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add modal to document
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    const modal = modalContainer.firstElementChild as HTMLElement;
+    document.body.appendChild(modal);
+
+    // Get elements
+    const templateInput = document.getElementById('template-input') as HTMLTextAreaElement;
+    const detectBtn = document.getElementById('detect-variables') as HTMLButtonElement;
+    const variablesSection = document.getElementById('variables-section') as HTMLElement;
+    const generateBtn = document.getElementById('generate-text') as HTMLButtonElement;
+    const previewSection = modal.querySelector('.preview-section') as HTMLElement;
+    const previewOutput = document.getElementById('preview-output') as HTMLElement;
+
+    // Auto-detect on template change
+    const updateVariables = () => {
+      const template = templateInput.value;
+      const placeholders = extractPlaceholders(template);
+
+      if (placeholders.length === 0) {
+        variablesSection.innerHTML = '<p class="no-variables">No variables detected. Use {{variable}} syntax to add placeholders.</p>';
+        generateBtn.disabled = true;
+        previewSection.style.display = 'none';
+        return;
+      }
+
+      // Create input fields for each variable
+      variablesSection.innerHTML = placeholders.map((placeholder, index) => `
+        <div class="variable-input-group">
+          <label for="var-${index}">Values for {{${placeholder}}} (one per line):</label>
+          <textarea id="var-${index}" class="variable-input" data-placeholder="${placeholder}"
+                    placeholder="Enter values for ${placeholder}, one per line" rows="4">${getDefaultValues(placeholder)}</textarea>
+        </div>
+      `).join('');
+
+      generateBtn.disabled = false;
+      updatePreview();
+    };
+
+    // Provide smart defaults based on variable name
+    const getDefaultValues = (placeholder: string): string => {
+      const lower = placeholder.toLowerCase();
+      if (lower.includes('feeling') || lower.includes('emotion')) {
+        return 'love\nhate\nenjoy\ndislike';
+      }
+      if (lower.includes('thing') || lower.includes('object')) {
+        return 'cats\ndogs\ncoffee\nmondays';
+      }
+      if (lower.includes('person') || lower.includes('name')) {
+        return 'Alice\nBob\nCarol\nDave';
+      }
+      if (lower.includes('reason')) {
+        return 'it makes me happy\nit\'s annoying\nit\'s relaxing\nit\'s stressful';
+      }
+      return '';
+    };
+
+    // Update preview
+    const updatePreview = () => {
+      const template = templateInput.value;
+      const variableValues = new Map<string, string[]>();
+
+      const inputs = variablesSection.querySelectorAll('.variable-input') as NodeListOf<HTMLTextAreaElement>;
+      inputs.forEach(input => {
+        const placeholder = input.getAttribute('data-placeholder');
+        if (placeholder) {
+          const values = input.value.split('\n').filter(v => v.trim());
+          variableValues.set(placeholder, values);
+        }
+      });
+
+      const permutations = generatePermutations(template, variableValues);
+
+      if (permutations.length > 0) {
+        previewSection.style.display = 'block';
+        const preview = permutations.slice(0, 5);
+        previewOutput.innerHTML = preview.map(text =>
+          `<div class="preview-line">${this.escapeHtml(text)}</div>`
+        ).join('');
+
+        if (permutations.length > 5) {
+          previewOutput.innerHTML += `<div class="preview-more">...and ${permutations.length - 5} more</div>`;
+        }
+      } else {
+        previewSection.style.display = 'none';
+      }
+    };
+
+    // Event listeners
+    templateInput.addEventListener('input', updateVariables);
+    detectBtn.addEventListener('click', updateVariables);
+
+    variablesSection.addEventListener('input', (e) => {
+      if ((e.target as HTMLElement).classList.contains('variable-input')) {
+        updatePreview();
+      }
+    });
+
+    generateBtn.addEventListener('click', () => {
+      const template = templateInput.value;
+      const variableValues = new Map<string, string[]>();
+
+      const inputs = variablesSection.querySelectorAll('.variable-input') as NodeListOf<HTMLTextAreaElement>;
+      inputs.forEach(input => {
+        const placeholder = input.getAttribute('data-placeholder');
+        if (placeholder) {
+          const values = input.value.split('\n').filter(v => v.trim());
+          variableValues.set(placeholder, values);
+        }
+      });
+
+      const permutations = generatePermutations(template, variableValues);
+
+      if (permutations.length > 0) {
+        // Update CodeMirror with generated text
+        this.editorView.dispatch({
+          changes: {
+            from: 0,
+            to: this.editorView.state.doc.length,
+            insert: permutations.join('\n')
+          }
+        });
+
+        // Close modal
+        modal.remove();
+
+        // Show success message briefly
+        const message = document.createElement('div');
+        message.className = 'template-success-message';
+        message.textContent = `✅ Generated ${permutations.length} text variations`;
+        document.body.appendChild(message);
+        setTimeout(() => message.remove(), 3000);
+      }
+    });
+
+    // Initialize with default template
+    updateVariables();
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }
 

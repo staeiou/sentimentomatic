@@ -35,6 +35,23 @@ export class StreamingAnalysisController {
     return this.collectedResults;
   }
 
+  /**
+   * Clear all loaded models to free memory (keeps results intact)
+   */
+  async clearAllModels(): Promise<void> {
+    // Clear all models from MultiModelAnalyzer
+    const modelIds = this.multiModelAnalyzer.getEnabledModelIds();
+    for (const modelId of modelIds) {
+      try {
+        await this.multiModelAnalyzer.unloadSingleModel(modelId);
+      } catch (error) {
+        console.warn(`Failed to unload model ${modelId}:`, error);
+      }
+    }
+
+    console.log('🧹 Cleared all models from memory (results preserved)');
+  }
+
   private async analyzeAllModelsWithStreaming(
     lines: string[],
     config: {
@@ -47,18 +64,21 @@ export class StreamingAnalysisController {
     const selectedAnalyzers = config.selectedRuleBasedAnalyzers || [];
     const selectedModels = config.selectedHuggingFaceModels || [];
 
-    // Define which models are classification models
-    const classificationModels = new Set([
-      'go-emotions',
-      'text-moderation',
-      'iptc-news',
-      'language-detection',
-      'personal-info-detection',
-      'intent-classification',
-      'toxic-bert',
-      'jigsaw-toxicity',
-      'industry-classification'
-    ]);
+    // Initialize worker at the start if using worker mode
+    await this.multiModelAnalyzer.initializeWorker();
+
+    // Helper function to determine if a model result is classification
+    const isClassificationResult = (metadata: any): boolean => {
+      // Check model type in metadata
+      if (metadata?.modelType) {
+        return metadata.modelType !== 'sentiment';
+      }
+      // Fallback: if there are multiple classes in fullRawOutput, it's classification
+      if (metadata?.fullRawOutput && Array.isArray(metadata.fullRawOutput)) {
+        return metadata.fullRawOutput.length > 3; // More than 3 classes = classification
+      }
+      return false;
+    };
 
     // Initialize unified results storage - use proper type
     const unifiedResults: UnifiedAnalysisResult[] = [];
@@ -71,12 +91,12 @@ export class StreamingAnalysisController {
       columns.push({ name: analyzer.toUpperCase(), type: 'sentiment' });
     }
     
-    // Add ML models with proper types
+    // Add ML models (type will be determined dynamically during analysis)
     for (const modelId of selectedModels) {
       const modelInfo = this.multiModelAnalyzer.getEnabledModels().get(modelId);
       const displayName = modelInfo ? modelInfo.displayName : modelId;
-      const modelType = classificationModels.has(modelId) ? 'classification' : 'sentiment';
-      columns.push({ name: displayName, type: modelType, modelId });
+      // Default to sentiment, will be updated based on actual results
+      columns.push({ name: displayName, type: 'sentiment', modelId });
     }
     
     // Initialize table with all text rows upfront
@@ -175,32 +195,30 @@ export class StreamingAnalysisController {
             const text = lines[lineIndex];
 
             try {
-              if (classificationModels.has(modelId)) {
-                // Handle classification models
-                const predictions = await this.multiModelAnalyzer.getAllPredictions(text, modelId);
-                if (predictions && predictions.length > 0) {
-                  const topPrediction = predictions.reduce((max, current) =>
-                    current.score > max.score ? current : max
-                  );
+              // Use analyzeWithModel for everything - it now handles all model types
+              const result = await this.multiModelAnalyzer.analyzeWithModel(text, modelId);
+              if (result) {
+                // Determine if this is a classification or sentiment model from metadata
+                const isClassification = isClassificationResult(result.metadata);
 
+                if (isClassification) {
+                  // Handle as classification model
                   const cellResult = {
-                    analyzer: modelInfo.displayName,
+                    analyzer: result.analyzer,
                     type: 'classification' as const,
-                    topClass: topPrediction.label,
-                    confidence: topPrediction.score,
-                    allClasses: predictions.reduce((acc, pred) => {
+                    topClass: result.metadata?.topLabel || result.metadata?.rawPrediction?.label || 'Unknown',
+                    confidence: result.score, // Already 0-1 from our fix
+                    allClasses: result.metadata?.fullRawOutput?.reduce((acc: any, pred: any) => {
                       acc[pred.label] = pred.score;
                       return acc;
-                    }, {} as {[key: string]: number})
+                    }, {}) || {},
+                    metadata: result.metadata
                   };
 
                   this.incrementalRenderer.updateAnalysisCell(lineIndex, modelInfo.displayName, cellResult);
                   unifiedResults[lineIndex].results.push(cellResult);
-                }
-              } else {
-                // Handle sentiment models
-                const result = await this.multiModelAnalyzer.analyzeWithModel(text, modelId);
-                if (result) {
+                } else {
+                  // Handle as sentiment model
                   const cellResult = {
                     analyzer: result.analyzer,
                     type: 'sentiment' as const,
@@ -215,14 +233,15 @@ export class StreamingAnalysisController {
               }
             } catch (error) {
               console.warn(`Model ${modelInfo.displayName} failed on line ${lineIndex + 1}:`, error);
+              // Default to sentiment type for errors
               const errorResult = {
                 analyzer: modelInfo.displayName,
-                type: classificationModels.has(modelId) ? 'classification' as const : 'sentiment' as const,
+                type: 'sentiment' as const,
                 score: 0,
-                sentiment: 'error' as const,
+                sentiment: 'neutral' as const, // Fix: use valid sentiment value
                 topClass: 'ERROR',
                 confidence: 0,
-                metadata: { error: true }
+                metadata: { error: true, errorMessage: String(error) }
               };
 
               this.incrementalRenderer.updateAnalysisCell(lineIndex, modelInfo.displayName, errorResult);
@@ -233,27 +252,28 @@ export class StreamingAnalysisController {
             await new Promise(resolve => setTimeout(resolve, 50));
           }
 
-          // DEBUG: Check cache before deciding to unload
-          console.log(`🔍 DEBUG: About to handle caching for ${modelInfo.displayName}. keepModelsCached = ${config.keepModelsCached}`);
+          // STEP 3: ALWAYS unload model to free memory after processing all rows
+          // Only keep cached if explicitly requested AND it's not the last model
+          const shouldKeepCached = config.keepModelsCached === true;
 
-          // STEP 3: Unload model and clear cache (only if user doesn't want to keep them)
-          if (config.keepModelsCached === false) {
-            progressCallback?.(`🗑️ Clearing ${modelInfo.displayName} from cache...`, 30 + ((completedAnalyzers + 0.9) / totalAnalyzers) * 70);
-            await this.multiModelAnalyzer.unloadSingleModel(modelId);
-          } else {
+          if (shouldKeepCached) {
             progressCallback?.(`✅ Keeping ${modelInfo.displayName} cached for future use`, 30 + ((completedAnalyzers + 0.9) / totalAnalyzers) * 70);
-            console.log(`🔍 DEBUG: Model ${modelInfo.displayName} should stay cached`);
+            console.log(`📦 Model ${modelInfo.displayName} kept in memory (user requested)`);
+          } else {
+            // Default behavior: ALWAYS unload to free memory
+            progressCallback?.(`🗑️ Unloading ${modelInfo.displayName} to free memory...`, 30 + ((completedAnalyzers + 0.9) / totalAnalyzers) * 70);
+            await this.multiModelAnalyzer.unloadSingleModel(modelId);
+            console.log(`✅ Model ${modelInfo.displayName} unloaded to free ${modelInfo.displayName} memory`);
           }
 
         } catch (error) {
           console.error(`❌ Failed to process model ${modelInfo.displayName}:`, error);
-          // Still try to unload the model if it was partially loaded (only if not keeping cached)
-          if (config.keepModelsCached === false) {
-            try {
-              await this.multiModelAnalyzer.unloadSingleModel(modelId);
-            } catch (unloadError) {
-              console.warn(`Failed to unload ${modelInfo.displayName}:`, unloadError);
-            }
+          // ALWAYS unload the model on error to free memory
+          try {
+            await this.multiModelAnalyzer.unloadSingleModel(modelId);
+            console.log(`🗑️ Unloaded ${modelInfo.displayName} after error to free memory`);
+          } catch (unloadError) {
+            console.warn(`⚠️ Failed to unload ${modelInfo.displayName}:`, unloadError);
           }
         }
 
@@ -275,6 +295,18 @@ export class StreamingAnalysisController {
       };
     } else {
       this.collectedResults = null;
+    }
+
+    // CRITICAL: Terminate worker to COMPLETELY FREE ALL MEMORY
+    // This is the ONLY way to truly free WASM memory
+    if (!config.keepModelsCached) {
+      console.log('💥 TERMINATING WORKER TO FREE ALL MEMORY...');
+      await this.multiModelAnalyzer.terminateWorker();
+
+      // Also unload non-worker models if any
+      await this.multiModelAnalyzer.unloadAllModels();
+
+      console.log('✅ ALL MEMORY FREED - Worker terminated and models unloaded');
     }
   }
 
