@@ -60,7 +60,9 @@ export class IncrementalTableRenderer {
                   <th class="score-col analyzer-${analyzer.toLowerCase().replace(/\s+/g, '-')}">
                     <div class="analyzer-header">
                       <span class="analyzer-icon">${icon}</span>
-                      <span class="analyzer-name">${analyzer}</span>
+                      ${this.getModelUrl(analyzer)
+                        ? `<a href="${this.getModelUrl(analyzer)}" target="_blank" rel="noopener" class="analyzer-name-link">${analyzer}</a>`
+                        : `<span class="analyzer-name">${analyzer}</span>`}
                       <span class="analyzer-range">${range}</span>
                     </div>
                   </th>
@@ -288,7 +290,9 @@ export class IncrementalTableRenderer {
                   <th class="model-header ${typeClass}" colspan="2">
                     <div class="analyzer-header">
                       <span class="analyzer-icon">${icon}</span>
-                      <span class="analyzer-name">${col.name}</span>
+                      ${this.getModelUrl(col.name)
+                        ? `<a href="${this.getModelUrl(col.name)}" target="_blank" rel="noopener" class="analyzer-name-link">${col.name}</a>`
+                        : `<span class="analyzer-name">${col.name}</span>`}
                     </div>
                   </th>
                 `;
@@ -399,6 +403,34 @@ export class IncrementalTableRenderer {
     
     // Update status
     this.updateStatus(`Analyzed ${this.currentRow} lines`);
+  }
+
+  /**
+   * Get URL for a model based on its name
+   */
+  private getModelUrl(modelName: string): string | null {
+    const name = modelName.toLowerCase();
+
+    // Rule-based models
+    if (name.includes('vader')) return 'https://github.com/vaderSentiment/vaderSentiment-js';
+    if (name.includes('afinn')) return 'https://github.com/thisandagain/sentiment';
+
+    // Neural network sentiment models
+    if (name.includes('distilbert') && name.includes('sst')) return 'https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english';
+    if (name.includes('twitter') && name.includes('roberta')) return 'https://huggingface.co/Xenova/twitter-roberta-base-sentiment-latest';
+    if (name.includes('financial') || name.includes('finbert')) return 'https://huggingface.co/Xenova/finbert';
+    if (name.includes('multilingual') && name.includes('distilbert')) return 'https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student';
+
+    // Classification models
+    if (name.includes('goemotions') || name.includes('go emotions')) return 'https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx';
+    if (name.includes('jigsaw') && name.includes('toxicity')) return 'https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx';
+    if (name.includes('koala') || name.includes('moderation')) return 'https://huggingface.co/KoalaAI/Text-Moderation';
+    if (name.includes('toxic') && name.includes('bert')) return 'https://huggingface.co/Xenova/toxic-bert';
+    if (name.includes('iptc') || name.includes('news')) return 'https://huggingface.co/onnx-community/multilingual-IPTC-news-topic-classifier-ONNX';
+    if (name.includes('language') && name.includes('detection')) return 'https://huggingface.co/protectai/xlm-roberta-base-language-detection-onnx';
+    if (name.includes('industry') && name.includes('classification')) return 'https://huggingface.co/sabatale/industry-classification-api-onnx';
+
+    return null;
   }
 
   /**
@@ -616,15 +648,21 @@ export class IncrementalTableRenderer {
 
     this.container.innerHTML = `
       <div class="incremental-table-container">
-        <table class="results-table unified-table">
+        <table class="results-table unified-table text-wrapped">
           <thead>
             <tr>
               <th class="line-number-col" rowspan="2">
                 <span class="header-icon">#</span>
               </th>
               <th class="text-col" rowspan="2">
-                <span class="header-icon">📝</span>
-                Text
+                <div class="text-header-content">
+                  <span class="header-icon">📝</span>
+                  <span class="header-text">Text</span>
+                  <button type="button" id="text-wrap-toggle" class="text-wrap-toggle active" title="Toggle text wrapping">
+                    <span class="wrap-icon">↩</span>
+                    <span class="wrap-text">Truncate</span>
+                  </button>
+                </div>
               </th>
               ${columns.map(col => {
                 const icon = this.getColumnIcon(col);
@@ -633,7 +671,9 @@ export class IncrementalTableRenderer {
                   <th class="model-header ${typeClass}" colspan="2">
                     <div class="analyzer-header">
                       <span class="analyzer-icon">${icon}</span>
-                      <span class="analyzer-name">${col.name}</span>
+                      ${this.getModelUrl(col.name)
+                        ? `<a href="${this.getModelUrl(col.name)}" target="_blank" rel="noopener" class="analyzer-name-link">${col.name}</a>`
+                        : `<span class="analyzer-name">${col.name}</span>`}
                     </div>
                   </th>
                 `;
@@ -735,7 +775,15 @@ export class IncrementalTableRenderer {
     predCell.setAttribute('data-analyzer', columnName);
     predCell.setAttribute('data-line', String(lineIndex + 1));
     predCell.setAttribute('title', 'Click to see raw model output');
-    predCell.innerHTML = `<span class="pred-value">${topLabel}</span>`;
+
+    // Check if this is a multi-label result with + indicator
+    if (topLabel.endsWith('+')) {
+      const baseLabel = topLabel.slice(0, -1);
+      predCell.innerHTML = `<span class="pred-value">${baseLabel}<span class="multi-label-indicator">+</span></span>`;
+    } else {
+      predCell.innerHTML = `<span class="pred-value">${topLabel}</span>`;
+    }
+
     predCell.className = 'pred-cell clickable';
 
     // Update confidence/strength cell

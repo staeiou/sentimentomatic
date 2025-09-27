@@ -59,6 +59,8 @@
           </div>
           <div class="text-buttons">
             <button type="button" id="template-generator-btn" class="btn btn-secondary btn-sm">🎭 Generate from Mad Libs Template</button>
+            <button type="button" id="sample-datasets-btn" class="btn btn-secondary btn-sm">📊 Load Sample Data</button>
+            <button type="button" id="import-file-btn" class="btn btn-secondary btn-sm">📤 Import from File</button>
             <button type="button" id="clear-text-btn" class="btn btn-secondary btn-sm">Clear Text</button>
           </div>
         </div>
@@ -84,13 +86,13 @@
                 <span class="size-header">Size</span>
               </div>
               <label class="model-option">
-                <input type="checkbox" id="use-afinn">
-                <a href="https://github.com/thisandagain/sentiment" target="_blank" rel="noopener">AFINN</a>
+                <input type="checkbox" id="use-vader" checked>
+                <a href="https://github.com/vaderSentiment/vaderSentiment-js" target="_blank" rel="noopener">VADER</a>
                 <span class="model-size">1MB</span>
               </label>
               <label class="model-option">
-                <input type="checkbox" id="use-vader" checked>
-                <a href="https://github.com/vaderSentiment/vaderSentiment-js" target="_blank" rel="noopener">VADER</a>
+                <input type="checkbox" id="use-afinn">
+                <a href="https://github.com/thisandagain/sentiment" target="_blank" rel="noopener">AFINN</a>
                 <span class="model-size">1MB</span>
               </label>
             </div>
@@ -134,9 +136,19 @@
               <span class="model-size">122MB</span>
             </label>
             <label class="model-option">
-              <input type="checkbox" id="use-koala-moderation" checked>
+              <input type="checkbox" id="use-jigsaw-toxicity" checked>
+              <a href="https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx" target="_blank" rel="noopener">Jigsaw Toxicity</a>
+              <span class="model-size">22MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-koala-moderation">
               <a href="https://huggingface.co/KoalaAI/Text-Moderation" target="_blank" rel="noopener">KoalaAI Content Moderation</a>
               <span class="model-size">140MB</span>
+            </label>
+            <label class="model-option">
+              <input type="checkbox" id="use-toxic-bert">
+              <a href="https://huggingface.co/Xenova/toxic-bert" target="_blank" rel="noopener">Toxic BERT</a>
+              <span class="model-size">106MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-iptc-news">
@@ -147,16 +159,6 @@
               <input type="checkbox" id="use-language-detection">
               <a href="https://huggingface.co/protectai/xlm-roberta-base-language-detection-onnx" target="_blank" rel="noopener">Language Detection</a>
               <span class="model-size">282MB</span>
-            </label>
-            <label class="model-option">
-              <input type="checkbox" id="use-toxic-bert">
-              <a href="https://huggingface.co/Xenova/toxic-bert" target="_blank" rel="noopener">Toxic BERT</a>
-              <span class="model-size">106MB</span>
-            </label>
-            <label class="model-option">
-              <input type="checkbox" id="use-jigsaw-toxicity">
-              <a href="https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx" target="_blank" rel="noopener">Jigsaw Toxicity</a>
-              <span class="model-size">22MB</span>
             </label>
             <label class="model-option">
               <input type="checkbox" id="use-industry-classification">
@@ -191,9 +193,17 @@
       <section id="results-section" class="results-section" aria-label="Analysis Results" hidden>
         <h2>📊 Analysis Results</h2>
         <div class="results-toolbar">
-          <button type="button" id="export-csv" class="btn btn-secondary">Export CSV</button>
-          <button type="button" id="export-excel" class="btn btn-secondary">Export Excel</button>
-          <button type="button" id="export-json" class="btn btn-secondary">Export JSON</button>
+          <div class="export-buttons">
+            <button type="button" id="export-csv" class="btn btn-secondary">Export CSV</button>
+            <button type="button" id="export-excel" class="btn btn-secondary">Export Excel</button>
+            <button type="button" id="export-json" class="btn btn-secondary">Export JSON</button>
+          </div>
+          <div class="export-options" id="export-options" style="display: none;">
+            <label class="export-option">
+              <input type="checkbox" id="export-multiclass-columns">
+              Export individual class columns for classification models
+            </label>
+          </div>
         </div>
         <div id="results-table" class="results-container"></div>
       </section>
@@ -220,6 +230,179 @@
       <p>by <a href="https://stuartgeiger.com">R. Stuart Geiger</a>, JS version with advanced ML models.</p>
     </footer>
   </div>
+
+  <!-- Sample Datasets Modal -->
+  <div id="sample-datasets-modal" class="template-generator-overlay" style="display: none;">
+    <div class="sample-datasets-modal">
+      <div class="modal-header">
+        <h3>📊 Sample Datasets</h3>
+        <button type="button" class="modal-close" id="sample-datasets-modal-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description">
+          Choose curated datasets to test different sentiment analysis scenarios and discover model biases.
+          Each dataset contains 25 carefully selected examples designed to reveal how different models behave.
+        </p>
+
+        <div class="load-options">
+          <h3>⚙️ Load Options</h3>
+          <div class="load-options-group">
+            <label class="load-option">
+              <input type="radio" name="load-mode" value="replace" checked>
+              <span class="option-label">Replace current text</span>
+              <span class="option-description">Clear existing text and load the selected dataset</span>
+            </label>
+            <label class="load-option">
+              <input type="radio" name="load-mode" value="append">
+              <span class="option-label">Append to current text</span>
+              <span class="option-description">Add the dataset to your existing text for comparison</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="datasets-grid" id="datasets-grid">
+          <!-- Datasets will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="sample-datasets-cancel">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="dataset-preview-modal" class="template-generator-overlay" style="display: none;">
+    <div class="dataset-preview-modal">
+      <div class="modal-header">
+        <h3 id="preview-modal-title">Dataset Preview</h3>
+        <button type="button" class="modal-close" id="preview-modal-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="preview-info" id="preview-info">
+          <!-- Dataset info will be populated by JavaScript -->
+        </div>
+        <div class="preview-content" id="preview-content">
+          <!-- Preview lines will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="preview-close">Close</button>
+        <button type="button" class="btn btn-primary" id="preview-load">Load This Dataset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Import Modal - Step 1: Upload -->
+  <div id="file-upload-modal" class="template-generator-overlay" style="display: none;">
+    <div class="file-import-modal">
+      <div class="modal-header">
+        <h3>📤 Import from File</h3>
+        <button type="button" class="modal-close" id="file-upload-modal-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description">
+          Upload a CSV, TSV, or Excel file to extract text data for sentiment analysis.
+        </p>
+
+        <div class="file-upload-zone" id="file-upload-zone">
+          <div class="upload-content">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">
+              <strong>Drop files here or click to browse</strong>
+              <br>
+              <span class="upload-hint">Supported: CSV, TSV, Excel (.xlsx)</span>
+            </div>
+          </div>
+          <input type="file" id="file-input" accept=".csv,.tsv,.xlsx,.xls" style="display: none;">
+        </div>
+
+        <div class="file-constraints">
+          <div class="constraint-item">📊 Maximum file size: 10MB</div>
+          <div class="constraint-item">📝 Maximum rows: 5,000</div>
+          <div class="constraint-item">🔧 Automatic text detection</div>
+        </div>
+
+        <div class="upload-progress" id="upload-progress" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-text" id="progress-text">Processing file...</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="file-upload-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Import Modal - Step 2: Column Selection -->
+  <div id="column-selection-modal" class="template-generator-overlay" style="display: none;">
+    <div class="column-selection-modal">
+      <div class="modal-header">
+        <h3>📝 Select Text Column</h3>
+        <button type="button" class="modal-close" id="column-selection-modal-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="file-info" id="file-info">
+          <!-- File info will be populated by JavaScript -->
+        </div>
+
+        <div class="column-selection-section">
+          <h4>Choose the column containing text to analyze:</h4>
+          <div class="columns-list" id="columns-list">
+            <!-- Columns will be populated by JavaScript -->
+          </div>
+        </div>
+
+        <div class="preview-section" id="preview-section" style="display: none;">
+          <h4>Preview (first 5 rows):</h4>
+          <div class="preview-box" id="preview-box">
+            <!-- Preview will be populated by JavaScript -->
+          </div>
+        </div>
+
+        <div class="load-options">
+          <h4>Import Options:</h4>
+          <div class="load-options-group">
+            <label class="load-option">
+              <input type="radio" name="import-mode" value="replace" checked>
+              <span class="option-label">Replace current text</span>
+              <span class="option-description">Clear existing text and import selected column</span>
+            </label>
+            <label class="load-option">
+              <input type="radio" name="import-mode" value="append">
+              <span class="option-label">Append to current text</span>
+              <span class="option-description">Add imported data to existing text</span>
+            </label>
+          </div>
+
+          <div class="text-processing-options">
+            <label class="processing-option">
+              <input type="checkbox" id="remove-newlines" checked>
+              <span class="option-label">Remove newlines from text</span>
+              <span class="option-description">Convert multi-line text into single lines (recommended for analysis)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="column-selection-back">← Back</button>
+        <button type="button" class="btn btn-primary" id="column-selection-import" disabled>Import Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- File parsing libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <script type="module" src="/src/main.ts"></script>
 </body>

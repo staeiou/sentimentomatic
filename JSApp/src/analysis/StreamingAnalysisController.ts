@@ -27,10 +27,11 @@ export class StreamingAnalysisController {
       selectedHuggingFaceModels?: string[];
       keepModelsCached?: boolean;
     },
-    progressCallback?: (status: string, progress: number) => void
+    progressCallback?: (status: string, progress: number) => void,
+    tableReadyCallback?: () => void
   ): Promise<MultiModalAnalysisResult | null> {
     // Process all selected models together
-    await this.analyzeAllModelsWithStreaming(lines, config, progressCallback);
+    await this.analyzeAllModelsWithStreaming(lines, config, progressCallback, tableReadyCallback);
     return this.collectedResults;
   }
 
@@ -62,7 +63,8 @@ export class StreamingAnalysisController {
       selectedHuggingFaceModels?: string[];
       keepModelsCached?: boolean;
     },
-    progressCallback?: (status: string, progress: number) => void
+    progressCallback?: (status: string, progress: number) => void,
+    tableReadyCallback?: () => void
   ): Promise<void> {
     const selectedAnalyzers = config.selectedRuleBasedAnalyzers || [];
     const selectedModels = config.selectedHuggingFaceModels || [];
@@ -103,6 +105,9 @@ export class StreamingAnalysisController {
     
     // Initialize table with all text rows upfront
     this.incrementalRenderer.initializeTableWithAllText(columns, lines);
+
+    // Notify that table is ready for interaction (toggle button can now be set up)
+    tableReadyCallback?.();
 
     // Initialize rule-based analyzers only (no ML models yet)
     progressCallback?.('Initializing rule-based analyzers...', 0);
@@ -206,6 +211,13 @@ export class StreamingAnalysisController {
                 const isClassification = isClassificationResult(result.metadata);
 
                 if (isClassification) {
+                  // Update column type to classification if this is the first time we've seen this model
+                  const columnToUpdate = columns.find(col => col.modelId === modelId);
+                  if (columnToUpdate && columnToUpdate.type === 'sentiment') {
+                    columnToUpdate.type = 'classification';
+                    console.log(`📊 Updated column type for ${modelInfo.displayName} to 'classification'`);
+                  }
+
                   // Handle as classification model
                   const cellResult = {
                     analyzer: result.analyzer,

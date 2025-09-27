@@ -6,6 +6,8 @@ import { IncrementalTableRenderer } from './analysis/IncrementalTableRenderer';
 import { CacheManager } from './models/CacheManager';
 import { exportToCSV, exportToJSON, exportToExcel } from './utils/exportUtils';
 import type { MultiModalAnalysisResult } from './analysis/AnalysisStrategy';
+import { sampleDatasets, type SampleDataset } from './data/sampleDatasets';
+import { FileImporter } from './utils/FileImporter';
 import { EditorView, basicSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
 
@@ -14,6 +16,7 @@ class SentimentomaticApp {
   private multiModelAnalyzer: MultiModelAnalyzer;
   private analysisController: StreamingAnalysisController;
   private cacheManager: CacheManager;
+  private fileImporter: FileImporter;
   private currentResult: MultiModalAnalysisResult | null = null;
 
   // UI Elements
@@ -50,9 +53,14 @@ class SentimentomaticApp {
   private clearModelsBtn!: HTMLButtonElement;
   private clearTextBtn!: HTMLButtonElement;
   private templateGeneratorBtn!: HTMLButtonElement;
+  private sampleDatasetsBtn!: HTMLButtonElement;
+  private importFileBtn!: HTMLButtonElement;
   private exportCsvBtn!: HTMLButtonElement;
   private exportExcelBtn!: HTMLButtonElement;
   private exportJsonBtn!: HTMLButtonElement;
+  private exportOptionsDiv!: HTMLElement;
+  private exportMulticlassCheckbox!: HTMLInputElement;
+  private textWrapToggle!: HTMLButtonElement;
 
   constructor() {
     this.analyzerRegistry = new AnalyzerRegistry();
@@ -70,8 +78,15 @@ class SentimentomaticApp {
       this.resultsTableContainer
     );
 
+    // Initialize FileImporter with callback to update editor
+    this.fileImporter = new FileImporter((data: string) => {
+      this.importTextData(data);
+    });
+
     this.setupEventListeners();
+    this.setupModalCloseHandlers();
     this.updateCacheStats();
+    this.loadKeepCachedSetting();
 
     // Initialize modal styles for classification results
     IncrementalTableRenderer.initializeModalStyles();
@@ -138,9 +153,14 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     this.clearModelsBtn = document.getElementById('clear-models-btn') as HTMLButtonElement;
     this.clearTextBtn = document.getElementById('clear-text-btn') as HTMLButtonElement;
     this.templateGeneratorBtn = document.getElementById('template-generator-btn') as HTMLButtonElement;
+    this.sampleDatasetsBtn = document.getElementById('sample-datasets-btn') as HTMLButtonElement;
+    this.importFileBtn = document.getElementById('import-file-btn') as HTMLButtonElement;
     this.exportCsvBtn = document.getElementById('export-csv') as HTMLButtonElement;
     this.exportExcelBtn = document.getElementById('export-excel') as HTMLButtonElement;
     this.exportJsonBtn = document.getElementById('export-json') as HTMLButtonElement;
+    this.exportOptionsDiv = document.getElementById('export-options') as HTMLElement;
+    this.exportMulticlassCheckbox = document.getElementById('export-multiclass-columns') as HTMLInputElement;
+    // textWrapToggle will be set up dynamically after table creation
   }
 
   private setupEventListeners(): void {
@@ -152,17 +172,17 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     // Export buttons
     this.exportCsvBtn.addEventListener('click', () => {
       if (this.currentResult) {
-        exportToCSV(this.currentResult);
+        exportToCSV(this.currentResult, this.exportMulticlassCheckbox.checked);
       }
     });
     this.exportExcelBtn.addEventListener('click', () => {
       if (this.currentResult) {
-        exportToExcel(this.currentResult);
+        exportToExcel(this.currentResult, this.exportMulticlassCheckbox.checked);
       }
     });
     this.exportJsonBtn.addEventListener('click', () => {
       if (this.currentResult) {
-        exportToJSON(this.currentResult);
+        exportToJSON(this.currentResult, this.exportMulticlassCheckbox.checked);
       }
     });
 
@@ -204,10 +224,22 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       this.showTemplateGeneratorModal();
     });
 
+    // Sample datasets
+    this.sampleDatasetsBtn.addEventListener('click', () => {
+      this.showSampleDatasetsModal();
+    });
+
+    // Import file
+    this.importFileBtn.addEventListener('click', () => {
+      this.fileImporter.showFileUploadModal();
+    });
+
+    // Text wrap toggle will be set up after table creation
+
     // All models update together when any checkbox changes
     const allCheckboxes = [
-      this.useAfinnCheckbox,
       this.useVaderCheckbox,
+      this.useAfinnCheckbox,
       this.useDistilbertCheckbox,
       this.useTwitterRobertaCheckbox,
       this.useFinancialCheckbox,
@@ -230,8 +262,60 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
       }
     });
 
+    // Keep models cached checkbox
+    this.keepModelsCachedCheckbox.addEventListener('change', () => {
+      this.saveKeepCachedSetting();
+    });
+
     // Initial download size display
     this.updateDownloadSizeDisplay().catch(console.error);
+  }
+
+  private setupModalCloseHandlers(): void {
+    // File upload modal close handlers
+    const fileUploadModal = document.getElementById('file-upload-modal');
+    const fileUploadCloseBtn = document.getElementById('file-upload-modal-close');
+    const fileUploadCancelBtn = document.getElementById('file-upload-cancel');
+
+    if (fileUploadModal && fileUploadCloseBtn) {
+      fileUploadCloseBtn.addEventListener('click', () => {
+        fileUploadModal.style.display = 'none';
+      });
+    }
+
+    if (fileUploadModal && fileUploadCancelBtn) {
+      fileUploadCancelBtn.addEventListener('click', () => {
+        fileUploadModal.style.display = 'none';
+      });
+    }
+
+    // Close on backdrop click
+    if (fileUploadModal) {
+      fileUploadModal.addEventListener('click', (e) => {
+        if (e.target === fileUploadModal) {
+          fileUploadModal.style.display = 'none';
+        }
+      });
+    }
+
+    // Column selection modal close handlers
+    const columnModal = document.getElementById('column-selection-modal');
+    const columnCloseBtn = document.getElementById('column-selection-modal-close');
+
+    if (columnModal && columnCloseBtn) {
+      columnCloseBtn.addEventListener('click', () => {
+        columnModal.style.display = 'none';
+      });
+    }
+
+    // Close on backdrop click
+    if (columnModal) {
+      columnModal.addEventListener('click', (e) => {
+        if (e.target === columnModal) {
+          columnModal.style.display = 'none';
+        }
+      });
+    }
   }
 
   // No more mode switching - removed switchToMode method
@@ -262,6 +346,66 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
         this.multiModelAnalyzer.addModel(id, hfId, name);
       }
     });
+
+    // Show/hide export options based on whether classification models are selected
+    this.updateExportOptionsVisibility();
+  }
+
+  private updateExportOptionsVisibility(): void {
+    const classificationCheckboxes = [
+      this.goEmotionsCheckbox,
+      this.koalaModerationCheckbox,
+      this.iptcNewsCheckbox,
+      this.languageDetectionCheckbox,
+      this.toxicBertCheckbox,
+      this.jigsawToxicityCheckbox,
+      this.industryClassificationCheckbox
+    ];
+
+    const hasClassificationModels = classificationCheckboxes.some(checkbox => checkbox?.checked);
+    this.exportOptionsDiv.style.display = hasClassificationModels ? 'block' : 'none';
+  }
+
+  private setupTextWrapToggle(): void {
+    // Find the dynamically created toggle button
+    const toggleButton = document.getElementById('text-wrap-toggle') as HTMLButtonElement;
+    if (!toggleButton) return;
+
+    // Remove any existing listeners to avoid duplicates
+    toggleButton.replaceWith(toggleButton.cloneNode(true));
+    const newToggleButton = document.getElementById('text-wrap-toggle') as HTMLButtonElement;
+
+    // Add event listener
+    newToggleButton.addEventListener('click', () => {
+      this.toggleTextWrapping();
+    });
+
+    // Store reference for future use
+    this.textWrapToggle = newToggleButton;
+  }
+
+  private toggleTextWrapping(): void {
+    const resultsTable = document.querySelector('.results-table') as HTMLElement;
+    if (!resultsTable) return;
+
+    const wrapIcon = this.textWrapToggle.querySelector('.wrap-icon') as HTMLElement;
+    const wrapText = this.textWrapToggle.querySelector('.wrap-text') as HTMLElement;
+
+    // Toggle the wrapped state
+    const isWrapped = resultsTable.classList.contains('text-wrapped');
+    if (isWrapped) {
+      // Switch to truncated mode
+      resultsTable.classList.remove('text-wrapped');
+      this.textWrapToggle.classList.remove('active');
+      if (wrapIcon) wrapIcon.textContent = '⋯';
+      if (wrapText) wrapText.textContent = 'Wrap';
+    } else {
+      // Switch to wrapped mode
+      resultsTable.classList.add('text-wrapped');
+      this.textWrapToggle.classList.add('active');
+      if (wrapIcon) wrapIcon.textContent = '↩';
+      if (wrapText) wrapText.textContent = 'Truncate';
+    }
   }
 
   private async analyzeText(): Promise<void> {
@@ -287,6 +431,15 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
         selectedHuggingFaceModels: this.multiModelAnalyzer.getEnabledModelIds(),
         keepModelsCached: this.keepModelsCachedCheckbox.checked
       };
+
+      // Clear localStorage setting if user unchecked during analysis
+      if (!this.keepModelsCachedCheckbox.checked) {
+        const hadSetting = localStorage.getItem('sentimentomatic_keep_models_cached');
+        if (hadSetting) {
+          localStorage.removeItem('sentimentomatic_keep_models_cached');
+          console.log('💾 Cleared keep models cached setting during analysis (was unchecked)');
+        }
+      }
 
       // Check if any models are selected and show download confirmation
       if (config.selectedHuggingFaceModels.length > 0 || config.selectedRuleBasedAnalyzers.length > 0) {
@@ -319,6 +472,10 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
           // Show progress in UI
           this.updateProgressLog(status, progress);
           console.log(`${status} - ${Math.round(progress)}%`);
+        },
+        () => {
+          // Table is ready - set up text wrap toggle now (during streaming)
+          this.setupTextWrapToggle();
         }
       );
 
@@ -343,8 +500,8 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
 
   private getSelectedRuleBasedAnalyzers(): string[] {
     const selected: string[] = [];
-    if (this.useAfinnCheckbox.checked) selected.push('afinn');
     if (this.useVaderCheckbox.checked) selected.push('vader');
+    if (this.useAfinnCheckbox.checked) selected.push('afinn');
     return selected;
   }
 
@@ -394,8 +551,8 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
   private selectAllModels(): void {
     // Check all model checkboxes
     const allCheckboxes = [
-      this.useAfinnCheckbox,
       this.useVaderCheckbox,
+      this.useAfinnCheckbox,
       this.useDistilbertCheckbox,
       this.useTwitterRobertaCheckbox,
       this.useFinancialCheckbox,
@@ -423,8 +580,8 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
   private clearAllModels(): void {
     // Uncheck all model checkboxes
     const allCheckboxes = [
-      this.useAfinnCheckbox,
       this.useVaderCheckbox,
+      this.useAfinnCheckbox,
       this.useDistilbertCheckbox,
       this.useTwitterRobertaCheckbox,
       this.useFinancialCheckbox,
@@ -1009,6 +1166,235 @@ Your items/lines can be up to 2,500 characters. Just make sure there are no newl
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  private saveKeepCachedSetting(): void {
+    if (this.keepModelsCachedCheckbox.checked) {
+      localStorage.setItem('sentimentomatic_keep_models_cached', 'true');
+      console.log('💾 Saved keep models cached setting: true');
+    } else {
+      localStorage.removeItem('sentimentomatic_keep_models_cached');
+      console.log('💾 Removed keep models cached setting');
+    }
+  }
+
+  private loadKeepCachedSetting(): void {
+    const savedSetting = localStorage.getItem('sentimentomatic_keep_models_cached');
+    if (savedSetting === 'true') {
+      this.keepModelsCachedCheckbox.checked = true;
+      console.log('💾 Loaded keep models cached setting: true');
+    } else {
+      this.keepModelsCachedCheckbox.checked = false;
+      console.log('💾 Loaded keep models cached setting: false (default)');
+    }
+  }
+
+  private showSampleDatasetsModal(): void {
+    const modal = document.getElementById('sample-datasets-modal') as HTMLElement;
+    if (!modal) return;
+
+    this.populateDatasetsGrid();
+    modal.style.display = 'flex';
+
+    // Add event listeners for modal close
+    const closeButtons = modal.querySelectorAll('.modal-close, #sample-datasets-cancel');
+    closeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+    });
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+  }
+
+  private populateDatasetsGrid(): void {
+    const grid = document.getElementById('datasets-grid') as HTMLElement;
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    sampleDatasets.forEach(dataset => {
+      const card = document.createElement('div');
+      card.className = 'dataset-card';
+      card.innerHTML = `
+        <div class="dataset-header">
+          <span class="dataset-icon">${dataset.icon}</span>
+          <h3 class="dataset-name">${dataset.name}</h3>
+        </div>
+        <p class="dataset-description">${dataset.description}</p>
+        <div class="dataset-purpose">${dataset.purpose}</div>
+        <div class="dataset-actions">
+          <button class="dataset-preview-btn" data-dataset-id="${dataset.id}">
+            👁️ Preview
+          </button>
+          <button class="dataset-load-btn" data-dataset-id="${dataset.id}">
+            📥 Load Dataset
+          </button>
+        </div>
+      `;
+
+      // Add event listeners
+      const previewBtn = card.querySelector('.dataset-preview-btn') as HTMLButtonElement;
+      const loadBtn = card.querySelector('.dataset-load-btn') as HTMLButtonElement;
+
+      previewBtn.addEventListener('click', () => {
+        this.showDatasetPreview(dataset);
+      });
+
+      loadBtn.addEventListener('click', () => {
+        this.loadDataset(dataset);
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  private showDatasetPreview(dataset: SampleDataset): void {
+    const modal = document.getElementById('dataset-preview-modal') as HTMLElement;
+    if (!modal) return;
+
+    // Update modal content
+    const title = document.getElementById('preview-modal-title') as HTMLElement;
+    const info = document.getElementById('preview-info') as HTMLElement;
+    const content = document.getElementById('preview-content') as HTMLElement;
+
+    title.textContent = `Preview: ${dataset.icon} ${dataset.name}`;
+
+    info.innerHTML = `
+      <h3>${dataset.icon} ${dataset.name}</h3>
+      <p><strong>Description:</strong> ${dataset.description}</p>
+      <p><strong>Purpose:</strong> ${dataset.purpose}</p>
+    `;
+
+    content.innerHTML = '';
+    dataset.data.slice(0, 10).forEach((line, index) => {
+      const lineDiv = document.createElement('div');
+      lineDiv.className = 'preview-line';
+      lineDiv.textContent = `${index + 1}. ${line}`;
+      content.appendChild(lineDiv);
+    });
+
+    // Add stats footer
+    const statsDiv = document.createElement('div');
+    statsDiv.className = 'preview-stats';
+    statsDiv.innerHTML = `
+      <span>Showing first 10 of ${dataset.data.length} lines</span>
+      <span>${dataset.data.length} total examples</span>
+    `;
+    content.appendChild(statsDiv);
+
+    // Show modal
+    modal.style.display = 'flex';
+
+    // Add event listeners
+    const closeButtons = modal.querySelectorAll('.modal-close, #preview-close');
+    closeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+    });
+
+    const loadBtn = document.getElementById('preview-load') as HTMLButtonElement;
+    loadBtn.onclick = () => {
+      modal.style.display = 'none';
+      this.loadDataset(dataset);
+    };
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+  }
+
+  private loadDataset(dataset: SampleDataset): void {
+    const loadModeRadios = document.querySelectorAll('input[name="load-mode"]') as NodeListOf<HTMLInputElement>;
+    let loadMode = 'replace';
+
+    loadModeRadios.forEach(radio => {
+      if (radio.checked) {
+        loadMode = radio.value;
+      }
+    });
+
+    const dataText = dataset.data.join('\n');
+
+    if (loadMode === 'replace') {
+      // Replace current text
+      this.editorView.dispatch({
+        changes: {
+          from: 0,
+          to: this.editorView.state.doc.length,
+          insert: dataText
+        }
+      });
+    } else {
+      // Append to current text
+      const currentText = this.editorView.state.doc.toString();
+      const newText = currentText ? currentText + '\n' + dataText : dataText;
+
+      this.editorView.dispatch({
+        changes: {
+          from: 0,
+          to: this.editorView.state.doc.length,
+          insert: newText
+        }
+      });
+    }
+
+    // Close the main modal
+    const mainModal = document.getElementById('sample-datasets-modal') as HTMLElement;
+    if (mainModal) {
+      mainModal.style.display = 'none';
+    }
+
+    // Show success feedback
+    console.log(`📊 Loaded ${dataset.name} dataset (${dataset.data.length} lines) in ${loadMode} mode`);
+
+    // Focus on the editor
+    this.editorView.focus();
+  }
+
+  private importTextData(data: string): void {
+    // Get import mode from the radio buttons
+    const modeRadio = document.querySelector('input[name="import-mode"]:checked') as HTMLInputElement;
+    const mode = modeRadio?.value || 'replace';
+
+    if (mode === 'replace') {
+      // Replace current text
+      this.editorView.dispatch({
+        changes: {
+          from: 0,
+          to: this.editorView.state.doc.length,
+          insert: data
+        }
+      });
+    } else {
+      // Append to current text
+      const currentText = this.editorView.state.doc.toString();
+      const newText = currentText ? currentText + '\n' + data : data;
+
+      this.editorView.dispatch({
+        changes: {
+          from: 0,
+          to: this.editorView.state.doc.length,
+          insert: newText
+        }
+      });
+    }
+
+    // Focus on the editor
+    this.editorView.focus();
+
+    // Show success message
+    const lineCount = data.split('\n').filter(line => line.trim()).length;
+    console.log(`📤 Imported ${lineCount} text entries in ${mode} mode`);
   }
 }
 
