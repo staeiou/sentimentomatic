@@ -431,6 +431,7 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
       let sentiment: 'positive' | 'negative' | 'neutral' | null = null;
       let displayScore = prediction.score; // Default to raw confidence
       let displayLabel = prediction.label;
+      let exportLabel = prediction.label; // Clean label for exports (no visual indicators)
       let rawScores: Record<string, number> = {};
 
       // Process based on detected model type
@@ -446,6 +447,7 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
             sentiment = 'neutral';
           }
           displayLabel = sentiment || prediction.label;
+          exportLabel = sentiment || prediction.label;
           displayScore = prediction.score; // Keep as confidence 0-1
           break;
         }
@@ -453,9 +455,10 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
         case 'multi-label': {
           // Multi-label models: show top prediction with indicator if others are significant
           const significant = fullRawOutput.filter(p => p.score > 0.1);
+          exportLabel = prediction.label; // Clean label for exports
           displayLabel = prediction.label;
           if (significant.length > 1) {
-            displayLabel += '+'; // Indicate multiple active labels
+            displayLabel += '+'; // Visual indicator for HTML table only
           }
           displayScore = prediction.score;
           break;
@@ -475,6 +478,7 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
             'OK': 'Safe'
           };
           displayLabel = koalaLabelMap[prediction.label] || prediction.label;
+          exportLabel = koalaLabelMap[prediction.label] || prediction.label;
           displayScore = prediction.score;
           sentiment = prediction.label === 'OK' ? 'positive' : 'negative'; // For backwards compatibility
           break;
@@ -484,6 +488,7 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
         default: {
           // Multi-class models: just show top class and confidence
           displayLabel = prediction.label;
+          exportLabel = prediction.label;
           displayScore = prediction.score;
           break;
         }
@@ -519,7 +524,8 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
           modelType: modelType,
           rawPrediction: prediction,  // Top prediction
           fullRawOutput: fullRawOutput,  // FULL raw output array
-          topLabel: displayLabel,  // Use the processed display label
+          topLabel: displayLabel,  // Use the processed display label (with + for HTML)
+          exportLabel: exportLabel,  // Clean label for exports (no + indicator)
           topScore: displayScore,  // Use the display score
           framework: 'transformers.js'
         }

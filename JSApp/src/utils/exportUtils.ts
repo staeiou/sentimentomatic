@@ -11,7 +11,7 @@ function escapeCSV(value: string): string {
   return value;
 }
 
-export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult): void {
+export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult, expandMulticlass: boolean = false): void {
   if (!result || !result.data || result.data.length === 0) {
     alert('No results to export');
     return;
@@ -25,13 +25,39 @@ export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult): 
     const unifiedData = multimodalResult.data;
     const columns = multimodalResult.columns;
 
+    // Collect all unique class names for each classification model when expanding
+    const classificationClassNames: Map<string, Set<string>> = new Map();
+    if (expandMulticlass) {
+      columns.forEach((col: any) => {
+        if (col.type === 'classification') {
+          const classNames = new Set<string>();
+          unifiedData.forEach((item) => {
+            const result = item.results.find((r: any) => r.analyzer === col.name);
+            if (result && result.allClasses) {
+              Object.keys(result.allClasses).forEach(className => classNames.add(className));
+            }
+          });
+          classificationClassNames.set(col.name, classNames);
+        }
+      });
+    }
+
     // Create header
     const header = ['Line', 'Text'];
     columns.forEach((col: any) => {
       if (col.type === 'sentiment') {
         header.push(`${col.name}_Score`, `${col.name}_Sentiment`);
       } else if (col.type === 'classification') {
-        header.push(`${col.name}_Prediction`, `${col.name}_Likelihood`);
+        if (expandMulticlass && classificationClassNames.has(col.name)) {
+          // Add individual columns for each class
+          const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
+          classNames.forEach(className => {
+            header.push(`${col.name}_Class_${className}`);
+          });
+        } else {
+          // Standard classification columns
+          header.push(`${col.name}_Prediction`, `${col.name}_Likelihood`);
+        }
       }
     });
     csvContent = header.join(',') + '\n';
@@ -48,16 +74,35 @@ export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult): 
         const result = item.results.find((r: any) => r.analyzer === col.name);
         if (result) {
           if (col.type === 'sentiment') {
-            row.push(result.score?.toFixed(3) || '0.000', escapeCSV(result.sentiment || 'neutral'));
+            row.push(result.score != null ? result.score.toFixed(3) : '0.000', escapeCSV(result.sentiment || 'neutral'));
           } else if (col.type === 'classification') {
-            row.push(escapeCSV(result.topClass || 'N/A'), result.confidence?.toFixed(3) || '0.000');
+            if (expandMulticlass && classificationClassNames.has(col.name)) {
+              // Add individual class confidence scores
+              const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
+              classNames.forEach(className => {
+                const confidence = result.allClasses && result.allClasses[className]
+                  ? result.allClasses[className].toFixed(3)
+                  : '0.000';
+                row.push(confidence);
+              });
+            } else {
+              // Standard classification columns
+              row.push(escapeCSV(result.metadata?.exportLabel || result.topClass || 'N/A'), result.confidence != null ? result.confidence.toFixed(3) : '0.000');
+            }
           }
         } else {
           // Missing result for this column
           if (col.type === 'sentiment') {
             row.push('0.000', 'neutral');
-          } else {
-            row.push('N/A', '0.000');
+          } else if (col.type === 'classification') {
+            if (expandMulticlass && classificationClassNames.has(col.name)) {
+              // Add zeros for all classes
+              const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
+              classNames.forEach(() => row.push('0.000'));
+            } else {
+              // Standard classification columns
+              row.push('N/A', '0.000');
+            }
           }
         }
       });
@@ -116,7 +161,7 @@ export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult): 
   document.body.removeChild(link);
 }
 
-export function exportToJSON(result: AnalysisResult | MultiModalAnalysisResult): void {
+export function exportToJSON(result: AnalysisResult | MultiModalAnalysisResult, expandMulticlass: boolean = false): void {
   if (!result || !result.data || result.data.length === 0) {
     alert('No results to export');
     return;
@@ -147,11 +192,18 @@ export function exportToJSON(result: AnalysisResult | MultiModalAnalysisResult):
             sentiment: res.sentiment
           };
         } else if (column?.type === 'classification') {
-          lineData.analysis[res.analyzer] = {
+          const analysisData: any = {
             type: 'classification',
-            prediction: res.topClass,
+            prediction: res.metadata?.exportLabel || res.topClass,
             likelihood: res.confidence
           };
+
+          // Add individual class scores when expanding multi-class
+          if (expandMulticlass && res.allClasses) {
+            analysisData.allClassScores = res.allClasses;
+          }
+
+          lineData.analysis[res.analyzer] = analysisData;
         }
       });
 
@@ -202,7 +254,7 @@ export function exportToJSON(result: AnalysisResult | MultiModalAnalysisResult):
   document.body.removeChild(link);
 }
 
-export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult): void {
+export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult, expandMulticlass: boolean = false): void {
   if (!result || !result.data || result.data.length === 0) {
     alert('No results to export');
     return;
@@ -218,13 +270,39 @@ export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult)
     const unifiedData = multimodalResult.data;
     const columns = multimodalResult.columns;
 
+    // Collect all unique class names for each classification model when expanding
+    const classificationClassNames: Map<string, Set<string>> = new Map();
+    if (expandMulticlass) {
+      columns.forEach((col: any) => {
+        if (col.type === 'classification') {
+          const classNames = new Set<string>();
+          unifiedData.forEach((item) => {
+            const result = item.results.find((r: any) => r.analyzer === col.name);
+            if (result && result.allClasses) {
+              Object.keys(result.allClasses).forEach(className => classNames.add(className));
+            }
+          });
+          classificationClassNames.set(col.name, classNames);
+        }
+      });
+    }
+
     // Create header row
     const header = ['Line', 'Text'];
     columns.forEach((col: any) => {
       if (col.type === 'sentiment') {
         header.push(`${col.name}_Score`, `${col.name}_Sentiment`);
       } else if (col.type === 'classification') {
-        header.push(`${col.name}_Prediction`, `${col.name}_Likelihood`);
+        if (expandMulticlass && classificationClassNames.has(col.name)) {
+          // Add individual columns for each class
+          const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
+          classNames.forEach(className => {
+            header.push(`${col.name}_Class_${className}`);
+          });
+        } else {
+          // Standard classification columns
+          header.push(`${col.name}_Prediction`, `${col.name}_Likelihood`);
+        }
       }
     });
     wsData.push(header);
@@ -242,21 +320,40 @@ export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult)
         if (result) {
           if (col.type === 'sentiment') {
             row.push(
-              parseFloat(result.score?.toFixed(3) || '0'),
+              result.score != null ? parseFloat(result.score.toFixed(3)) : 0,
               result.sentiment || 'neutral'
             );
           } else if (col.type === 'classification') {
-            row.push(
-              result.topClass || 'N/A',
-              parseFloat(result.confidence?.toFixed(3) || '0')
-            );
+            if (expandMulticlass && classificationClassNames.has(col.name)) {
+              // Add individual class confidence scores
+              const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
+              classNames.forEach(className => {
+                const confidence = result.allClasses && result.allClasses[className]
+                  ? parseFloat(result.allClasses[className].toFixed(3))
+                  : 0;
+                row.push(confidence);
+              });
+            } else {
+              // Standard classification columns
+              row.push(
+                result.metadata?.exportLabel || result.topClass || 'N/A',
+                result.confidence != null ? parseFloat(result.confidence.toFixed(3)) : 0
+              );
+            }
           }
         } else {
           // Missing result for this column
           if (col.type === 'sentiment') {
             row.push(0, 'neutral');
-          } else {
-            row.push('N/A', 0);
+          } else if (col.type === 'classification') {
+            if (expandMulticlass && classificationClassNames.has(col.name)) {
+              // Add zeros for all classes
+              const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
+              classNames.forEach(() => row.push(0));
+            } else {
+              // Standard classification columns
+              row.push('N/A', 0);
+            }
           }
         }
       });
