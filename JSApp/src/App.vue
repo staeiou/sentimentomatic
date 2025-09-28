@@ -21,6 +21,8 @@
       <ResultsSection />
     </main>
 
+    <AppFooter />
+
     <!-- Modals -->
     <FileImportModal ref="fileImportRef" />
     <SampleDatasetsModal ref="sampleDatasetsRef" />
@@ -42,6 +44,7 @@ import InputSection from './components/InputSection.vue'
 import ControlsSection from './components/ControlsSection.vue'
 import ActionSection from './components/ActionSection.vue'
 import ResultsSection from './components/ResultsTable/ResultsSection.vue'
+import AppFooter from './components/AppFooter.vue'
 import FileImportModal from './components/FileImport/FileImportModal.vue'
 import SampleDatasetsModal from './components/SampleDatasetsModal.vue'
 import TemplateGeneratorModal from './components/TemplateGeneratorModal.vue'

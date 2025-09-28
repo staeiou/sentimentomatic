@@ -46,10 +46,10 @@ export const useModelStore = defineStore('models', () => {
     { id: 'vader', huggingFaceId: 'vader', displayName: 'VADER', category: 'sentiment', type: 'rule-based' },
 
     // Sentiment neural models
-    { id: 'distilbert', huggingFaceId: 'Xenova/distilbert-base-uncased-finetuned-sst-2-english', displayName: 'DistilBERT SST-2', category: 'sentiment', type: 'neural' },
     { id: 'twitter-roberta', huggingFaceId: 'Xenova/twitter-roberta-base-sentiment-latest', displayName: 'Twitter RoBERTa', category: 'sentiment', type: 'neural' },
     { id: 'financial', huggingFaceId: 'Xenova/finbert', displayName: 'Financial DistilRoBERTa', category: 'sentiment', type: 'neural' },
     { id: 'multilingual-student', huggingFaceId: 'Xenova/distilbert-base-multilingual-cased-sentiments-student', displayName: 'Multilingual DistilBERT', category: 'sentiment', type: 'neural' },
+    { id: 'distilbert', huggingFaceId: 'Xenova/distilbert-base-uncased-finetuned-sst-2-english', displayName: 'DistilBERT SST-2', category: 'sentiment', type: 'neural' },
 
     // Classification models
     { id: 'go-emotions', huggingFaceId: 'SamLowe/roberta-base-go_emotions-onnx', displayName: 'GoEmotions', category: 'classification', type: 'neural' },
