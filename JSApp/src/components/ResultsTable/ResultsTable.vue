@@ -31,7 +31,6 @@
             colspan="2"
           >
             <div class="analyzer-header">
-              <span class="analyzer-icon">{{ getColumnIcon(column) }}</span>
               <a
                 v-if="getModelUrl(column.name)"
                 :href="getModelUrl(column.name)"
@@ -39,9 +38,13 @@
                 rel="noopener"
                 class="analyzer-name-link"
               >
+                <span class="analyzer-icon">{{ getColumnIcon(column) }}</span>
                 {{ column.name }}
               </a>
-              <span v-else class="analyzer-name">{{ column.name }}</span>
+              <span v-else class="analyzer-name">
+                <span class="analyzer-icon">{{ getColumnIcon(column) }}</span>
+                {{ column.name }}
+              </span>
             </div>
           </th>
         </tr>
@@ -943,17 +946,39 @@ function getColumnHeaders(column: Column) {
   max-height: 1.5em;
 }
 
+/* Model header styling */
+.model-header {
+  text-align: center;
+}
+
+.analyzer-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Analyzer name links in table headers */
 .analyzer-name-link {
-  font-weight: 500;
-  color: inherit;
-  text-decoration: none;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: underline;
   transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .analyzer-name-link:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-dark);
   text-decoration: underline;
+}
+
+.analyzer-name {
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Line number column styling */
@@ -973,6 +998,12 @@ function getColumnHeaders(column: Column) {
 
 .pred-cell:hover, .conf-cell:hover {
   background-color: #f8f9fa;
+}
+
+/* Style the prediction value */
+.pred-value {
+  font-weight: 600;
+  display: inline-block;
 }
 
 /* Responsive container behavior */

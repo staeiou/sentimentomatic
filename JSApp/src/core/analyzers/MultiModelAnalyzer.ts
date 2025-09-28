@@ -617,7 +617,7 @@ export class MultiModelAnalyzer implements SentimentAnalyzer {
           case 'multi-label':
             const significant = fullRawOutput.filter(p => p.score > 0.1);
             if (significant.length > 1) {
-              displayLabel = prediction.label + '+';
+              displayLabel = prediction.label + ' +';
             }
             break;
 
