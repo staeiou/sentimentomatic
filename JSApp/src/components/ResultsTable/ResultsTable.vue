@@ -47,8 +47,8 @@
         </tr>
         <tr class="subheader-row">
           <template v-for="column in props.columns" :key="`sub-${column.name}`">
-            <th class="pred-header">{{ getColumnHeaders(column).class }}</th>
-            <th class="conf-header">
+            <th class="pred-header" :data-analyzer="column.name">{{ getColumnHeaders(column).class }}</th>
+            <th class="conf-header" :data-analyzer="column.name">
               <div style="line-height: 1.2;">
                 {{ getColumnHeaders(column).score }}
               </div>
@@ -72,6 +72,7 @@
           <template v-for="column in props.columns" :key="`cell-${lineIndex}-${column.name}`">
             <td
               class="pred-cell clickable"
+              :data-analyzer="column.name"
               :title="getResult(lineIndex, column.name) ? 'Click to see raw model output' : 'Pending...'"
               @click="showModal(lineIndex, column.name)"
             >
@@ -82,6 +83,7 @@
             </td>
             <td
               class="conf-cell clickable"
+              :data-analyzer="column.name"
               :title="getResult(lineIndex, column.name) ? 'Click to see raw model output' : 'Pending...'"
               @click="showModal(lineIndex, column.name)"
             >
@@ -225,9 +227,9 @@ const tableLayout = computed(() => {
   }
 
   // Base column sizes (minimum functional widths)
-  const lineColMin = 40
+  const lineColMin = 50
   const textColMin = 300
-  const analyzerColMin = 80
+  const analyzerColMin = 90
 
   // Calculate minimum required width
   const totalMinWidth = lineColMin + textColMin + (columnCount * analyzerColMin * 2) // *2 for pred+conf columns
@@ -299,13 +301,8 @@ const tableStyles = computed((): CSSProperties => {
 
 // Dynamic column styles - CSS custom properties
 const columnStyles = computed(() => {
-  const layout = tableLayout.value
-
-  return {
-    '--line-col-width': `${layout.lineColWidth || 40}px`,
-    '--text-col-width': `${layout.textColWidth || 120}px`,
-    '--analyzer-col-width': `${layout.analyzerColWidth || 80}px`
-  } as CSSProperties
+  // DISABLE JavaScript width control - let CSS handle it
+  return {} as CSSProperties
 })
 
 // Methods
@@ -632,9 +629,8 @@ function getColumnHeaders(column: Column) {
 
 /* Reactive column widths using CSS custom properties */
 .line-number-col {
-  width: var(--line-col-width, 40px);
-  min-width: var(--line-col-width, 40px);
-  max-width: var(--line-col-width, 40px);
+  width: fit-content;
+  min-width: 50px;
 }
 
 .text-col {
@@ -642,12 +638,180 @@ function getColumnHeaders(column: Column) {
   min-width: 300px; /* Always keep minimum readable width */
 }
 
-/* Analyzer columns - each takes half of analyzer column width */
-.pred-header, .conf-header,
-.pred-cell, .conf-cell {
-  width: calc(var(--analyzer-col-width, 80px) / 2);
-  min-width: calc((var(--analyzer-col-width, 80px) / 2) + 10px);
-  max-width: calc(var(--analyzer-col-width, 80px) / 2);
+/* Override the JavaScript-set width for specific analyzers */
+.pred-cell[data-analyzer="iptc-news"],
+.pred-header[data-analyzer="iptc-news"],
+.pred-cell[data-analyzer="industry-classification"],
+.pred-header[data-analyzer="industry-classification"] {
+  width: calc(var(--analyzer-col-width, 90px) + 20px) !important;
+  min-width: 110px !important;
+}
+
+/* Base column styles - FORCE WIDTH */
+.pred-header, .pred-cell {
+  padding: 3px 8px !important;
+  text-align: center;
+  min-width: 100px !important;
+  width: auto !important;
+}
+
+.conf-header, .conf-cell {
+  padding: 3px 8px !important;
+  text-align: center;
+  min-width: 85px !important;
+  width: auto !important;
+}
+
+/* SENTIMENT MODELS - 90px for prediction, 90px for confidence */
+/* VADER */
+.pred-header[data-analyzer="vader"],
+.pred-cell[data-analyzer="vader"] {
+  min-width: 90px !important;
+  white-space: nowrap;
+}
+.conf-header[data-analyzer="vader"],
+.conf-cell[data-analyzer="vader"] {
+  min-width: 90px !important;
+}
+
+/* AFINN */
+.pred-header[data-analyzer="afinn"],
+.pred-cell[data-analyzer="afinn"] {
+  min-width: 90px;
+  white-space: nowrap;
+}
+.conf-header[data-analyzer="afinn"],
+.conf-cell[data-analyzer="afinn"] {
+  min-width: 90px;
+}
+
+/* DistilBERT */
+.pred-header[data-analyzer="distilbert"],
+.pred-cell[data-analyzer="distilbert"] {
+  min-width: 90px;
+  white-space: nowrap;
+}
+.conf-header[data-analyzer="distilbert"],
+.conf-cell[data-analyzer="distilbert"] {
+  min-width: 90px;
+}
+
+/* Twitter RoBERTa */
+.pred-header[data-analyzer="twitter-roberta"],
+.pred-cell[data-analyzer="twitter-roberta"] {
+  min-width: 90px;
+  white-space: nowrap;
+}
+.conf-header[data-analyzer="twitter-roberta"],
+.conf-cell[data-analyzer="twitter-roberta"] {
+  min-width: 90px;
+}
+
+/* Financial */
+.pred-header[data-analyzer="financial"],
+.pred-cell[data-analyzer="financial"] {
+  min-width: 90px;
+  white-space: nowrap;
+}
+.conf-header[data-analyzer="financial"],
+.conf-cell[data-analyzer="financial"] {
+  min-width: 90px;
+}
+
+/* Multilingual Student */
+.pred-header[data-analyzer="multilingual-student"],
+.pred-cell[data-analyzer="multilingual-student"] {
+  min-width: 90px;
+  white-space: nowrap;
+}
+.conf-header[data-analyzer="multilingual-student"],
+.conf-cell[data-analyzer="multilingual-student"] {
+  min-width: 90px;
+}
+
+/* CLASSIFICATION MODELS - varying widths */
+/* Go Emotions - 110px for class, 85px for confidence */
+.pred-header[data-analyzer="go-emotions"],
+.pred-cell[data-analyzer="go-emotions"] {
+  min-width: 110px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.conf-header[data-analyzer="go-emotions"],
+.conf-cell[data-analyzer="go-emotions"] {
+  min-width: 85px;
+}
+
+/* Text Moderation - 100px for class, 85px for confidence */
+.pred-header[data-analyzer="text-moderation"],
+.pred-cell[data-analyzer="text-moderation"] {
+  min-width: 100px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.conf-header[data-analyzer="text-moderation"],
+.conf-cell[data-analyzer="text-moderation"] {
+  min-width: 85px;
+}
+
+/* IPTC News - 110px for class, 85px for confidence */
+.pred-header[data-analyzer="iptc-news"],
+.pred-cell[data-analyzer="iptc-news"] {
+  min-width: 110px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.conf-header[data-analyzer="iptc-news"],
+.conf-cell[data-analyzer="iptc-news"] {
+  min-width: 85px;
+}
+
+/* Language Detection - 100px for class, 85px for confidence */
+.pred-header[data-analyzer="language-detection"],
+.pred-cell[data-analyzer="language-detection"] {
+  min-width: 100px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.conf-header[data-analyzer="language-detection"],
+.conf-cell[data-analyzer="language-detection"] {
+  min-width: 85px;
+}
+
+/* Toxic BERT - 100px for class, 85px for confidence */
+.pred-header[data-analyzer="toxic-bert"],
+.pred-cell[data-analyzer="toxic-bert"] {
+  min-width: 100px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.conf-header[data-analyzer="toxic-bert"],
+.conf-cell[data-analyzer="toxic-bert"] {
+  min-width: 85px;
+}
+
+/* Jigsaw Toxicity - 100px for class, 85px for confidence */
+.pred-header[data-analyzer="jigsaw-toxicity"],
+.pred-cell[data-analyzer="jigsaw-toxicity"] {
+  min-width: 100px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.conf-header[data-analyzer="jigsaw-toxicity"],
+.conf-cell[data-analyzer="jigsaw-toxicity"] {
+  min-width: 85px;
+}
+
+/* Industry Classification - 110px for class, 85px for confidence */
+.pred-header[data-analyzer="industry-classification"],
+.pred-cell[data-analyzer="industry-classification"] {
+  min-width: 110px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.conf-header[data-analyzer="industry-classification"],
+.conf-cell[data-analyzer="industry-classification"] {
+  min-width: 85px;
 }
 
 /* Text cell responsive behavior */
@@ -729,9 +893,9 @@ function getColumnHeaders(column: Column) {
   line-height: 1.2 !important; /* Override global line-height: 1.4 */
 }
 
-/* Ensure all cells respect the fixed layout */
+/* Ensure all cells respect the auto layout for content sizing */
 .results-table {
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 /* Table base styling - ESSENTIAL BORDERS AND STRUCTURE */
@@ -740,7 +904,7 @@ function getColumnHeaders(column: Column) {
   border-collapse: separate;
   border-spacing: 0;
   font-size: var(--font-size-sm);
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 /* Table headers and cells - BORDERS AND PADDING */
