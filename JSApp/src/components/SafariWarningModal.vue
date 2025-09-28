@@ -11,7 +11,8 @@
             <p><strong>Safari works with Sentiment-O-Matic, but has known performance issues:</strong></p>
 
             <ul class="issues-list">
-              <li>🐌 Model loading is significantly slower (20-30 seconds vs 2-3 seconds)</li>
+              <li>⌛ Model analysis is much slower (2-10x faster on Firefox/Chrome) </li>
+              <li>🐌 Model loading is much slower (20-30 seconds vs 2-3 seconds)</li>
               <li>💾 Models often need to be re-downloaded each session</li>
               <li>📦 Cache storage is limited and unreliable</li>
             </ul>
