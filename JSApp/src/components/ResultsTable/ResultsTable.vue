@@ -448,9 +448,12 @@ function getColumnHeaders(column: Column) {
       score: 'Confidence'
     }
   } else {
+    // Only VADER and AFINN show "Score", others show "Confidence"
+    const isRuleBased = column.name.toLowerCase().includes('vader') ||
+                       column.name.toLowerCase().includes('afinn')
     return {
       class: 'Sentiment',
-      score: 'Score'
+      score: isRuleBased ? 'Score' : 'Confidence'
     }
   }
 }
