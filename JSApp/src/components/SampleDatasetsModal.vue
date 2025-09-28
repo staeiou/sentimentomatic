@@ -6,6 +6,17 @@
         <button class="modal-close" @click="close">×</button>
       </div>
       <div class="modal-body">
+        <div class="import-options">
+          <label>
+            <input type="radio" name="load-mode" value="replace" v-model="loadMode" checked>
+            <span>Replace existing text</span>
+          </label>
+          <label>
+            <input type="radio" name="load-mode" value="append" v-model="loadMode">
+            <span>Append to existing text</span>
+          </label>
+        </div>
+
         <div id="datasets-grid" class="datasets-grid">
           <div v-for="dataset in sampleDatasets" :key="dataset.id" class="dataset-card">
             <div class="dataset-header">
@@ -23,17 +34,6 @@
               </button>
             </div>
           </div>
-        </div>
-
-        <div class="import-options">
-          <label>
-            <input type="radio" name="load-mode" value="replace" v-model="loadMode" checked>
-            <span>Replace existing text</span>
-          </label>
-          <label>
-            <input type="radio" name="load-mode" value="append" v-model="loadMode">
-            <span>Append to existing text</span>
-          </label>
         </div>
       </div>
       <div class="modal-footer">
@@ -214,13 +214,21 @@ defineExpose({ open })
 }
 
 .import-options {
-  padding-top: 20px;
-  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .import-options label {
-  display: block;
-  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin: 0;
   cursor: pointer;
 }
 

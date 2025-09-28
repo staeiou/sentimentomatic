@@ -23,7 +23,7 @@ export const useModelStore = defineStore('models', () => {
   const useDistilbert = ref(false)
   const useTwitterRoberta = ref(false)
   const useFinancial = ref(false)
-  const useMultilingualStudent = ref(false)
+  const useMultilingualStudent = ref(true)
 
   // Classification models
   const useGoEmotions = ref(false)
@@ -118,7 +118,7 @@ export const useModelStore = defineStore('models', () => {
     useVader.value = true
 
     // Sentiment
-    useDistilbert.value = true
+    useDistilbert.value = false
     useTwitterRoberta.value = true
     useFinancial.value = true
     useMultilingualStudent.value = true

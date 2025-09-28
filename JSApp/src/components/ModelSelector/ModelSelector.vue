@@ -24,9 +24,9 @@
           <span class="size-header">Size</span>
         </div>
         <label class="model-option">
-          <input type="checkbox" id="use-distilbert" v-model="modelStore.useDistilbert" checked>
-          <a href="https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english" target="_blank" rel="noopener">DistilBERT SST-2</a>
-          <span class="model-size">65MB</span>
+          <input type="checkbox" id="use-multilingual-student" v-model="modelStore.useMultilingualStudent" checked>
+          <a href="https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student" target="_blank" rel="noopener">Multilingual DistilBERT</a>
+          <span class="model-size">132MB</span>
         </label>
         <label class="model-option">
           <input type="checkbox" id="use-twitter-roberta" v-model="modelStore.useTwitterRoberta">
@@ -39,9 +39,9 @@
           <span class="model-size">106MB</span>
         </label>
         <label class="model-option">
-          <input type="checkbox" id="use-multilingual-student" v-model="modelStore.useMultilingualStudent">
-          <a href="https://huggingface.co/Xenova/distilbert-base-multilingual-cased-sentiments-student" target="_blank" rel="noopener">Multilingual DistilBERT</a>
-          <span class="model-size">132MB</span>
+          <input type="checkbox" id="use-distilbert" v-model="modelStore.useDistilbert">
+          <a href="https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english" target="_blank" rel="noopener">DistilBERT SST-2</a>
+          <span class="model-size">65MB</span>
         </label>
       </div>
     </fieldset>
@@ -114,7 +114,7 @@ const modelStore = useModelStore()
 // Initialize default selections (from original)
 onMounted(() => {
   modelStore.useVader = true
-  modelStore.useDistilbert = true
+  modelStore.useMultilingualStudent = true
   modelStore.useGoEmotions = true
   modelStore.useJigsawToxicity = true
 })
