@@ -152,55 +152,53 @@ export class CacheManager {
         return results
       }
 
-      console.time('Cache batch check')
-
       // Open cache ONCE for all checks
+      const startTime = Date.now()
       const cache = await caches.open('transformers-cache')
+      console.log(`Cache opened in ${Date.now() - startTime}ms`)
 
-      // Check each model IN PARALLEL - just the main ONNX weight file
-      await Promise.all(huggingFaceIds.map(async (huggingFaceId) => {
-        // CRITICAL: Check for ACTUAL files that get cached (after redirects in ModelManager)
-        let mainModelUrls: string[] = []
+      // Build ALL URLs to check upfront
+      const urlChecks: {modelId: string, url: string}[] = []
 
-        // Special cases based on ModelManager redirects
+      for (const huggingFaceId of huggingFaceIds) {
+        // Just check ONE main ONNX file per model (fastest)
         if (huggingFaceId === 'protectai/xlm-roberta-base-language-detection-onnx') {
-          // protectai stores at ROOT level (not in /onnx/)
-          mainModelUrls = [
-            `https://huggingface.co/${huggingFaceId}/resolve/main/model_quantized.onnx`,
-            `https://huggingface.co/${huggingFaceId}/resolve/main/model.onnx`
-          ]
+          urlChecks.push({
+            modelId: huggingFaceId,
+            url: `https://huggingface.co/${huggingFaceId}/resolve/main/model_quantized.onnx`
+          })
         } else if (huggingFaceId === 'minuva/MiniLMv2-toxic-jigsaw-onnx') {
-          // minuva has special filename
-          mainModelUrls = [
-            `https://huggingface.co/${huggingFaceId}/resolve/main/model_optimized_quantized.onnx`
-          ]
+          urlChecks.push({
+            modelId: huggingFaceId,
+            url: `https://huggingface.co/${huggingFaceId}/resolve/main/model_optimized_quantized.onnx`
+          })
         } else {
-          // Standard models in /onnx/ directory
-          mainModelUrls = [
-            `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/model_quantized.onnx`,
-            `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/model.onnx`
-          ]
+          urlChecks.push({
+            modelId: huggingFaceId,
+            url: `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/model_quantized.onnx`
+          })
         }
+      }
 
-        // Check for ANY of these URLs (just need one to confirm cached)
-        for (const url of mainModelUrls) {
-          try {
-            const cachedResponse = await cache.match(url)
-            if (cachedResponse) {
-              console.log(`✅ ${huggingFaceId} cached`)
-              results.set(huggingFaceId, true)
-              return
-            }
-          } catch (e) {
-            // Ignore individual match errors
-          }
+      // Check ALL URLs in PARALLEL
+      const checkStart = Date.now()
+      const checkPromises = urlChecks.map(async ({modelId, url}) => {
+        try {
+          const cachedResponse = await cache.match(url)
+          return {modelId, cached: !!cachedResponse}
+        } catch (e) {
+          return {modelId, cached: false}
         }
+      })
 
-        console.log(`❌ ${huggingFaceId} not cached`)
-        results.set(huggingFaceId, false)
-      }))
+      const checkResults = await Promise.all(checkPromises)
+      console.log(`Checked ${urlChecks.length} URLs in ${Date.now() - checkStart}ms`)
 
-      console.timeEnd('Cache batch check')
+      // Build results map
+      for (const {modelId, cached} of checkResults) {
+        results.set(modelId, cached)
+        console.log(`${cached ? '✅' : '❌'} ${modelId} ${cached ? 'cached' : 'not cached'}`)
+      }
       return results
 
     } catch (error) {
