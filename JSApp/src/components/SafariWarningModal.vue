@@ -15,24 +15,16 @@
               <li>🐌 Model loading is much slower (20-30 seconds vs 2-3 seconds)</li>
               <li>💾 Models often need to be re-downloaded each session</li>
               <li>📦 Cache storage is limited and unreliable</li>
+              <li>🗑️ <strong>Downloaded models (up to 1.7GB) cannot be deleted from within the app</strong></li>
             </ul>
 
-            <div class="browser-recommendations">
-              <p class="recommendation">
-                <strong>For the best experience, we recommend using:</strong>
-              </p>
-              <a href="https://www.mozilla.org/firefox/" target="_blank" class="browser-card firefox">
-                <span class="browser-icon">🦊</span>
-                <span class="browser-name">Firefox</span>
-                <span class="browser-status">Recommended</span>
-              </a>
-
-              <a href="https://www.google.com/chrome/" target="_blank" class="browser-card chrome">
-                <span class="browser-icon">🌐</span>
-                <span class="browser-name">Chrome</span>
-                <span class="browser-status">Recommended</span>
-              </a>
+            <div class="safari-storage-warning">
+              <strong>⚠️ To delete downloaded models:</strong> Safari → Settings → Privacy → Manage Website Data → Remove
             </div>
+
+            <p class="browser-recommendation">
+              <strong>For the best experience, use <a href="https://www.mozilla.org/firefox/" target="_blank">Firefox</a> or <a href="https://www.google.com/chrome/" target="_blank">Chrome</a></strong>
+            </p>
 
             <p class="continue-message">
               You can continue using Safari, but expect longer loading times.
@@ -115,66 +107,26 @@ defineExpose({
   padding-left: var(--spacing-sm);
 }
 
-.browser-recommendations {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin: var(--spacing-lg) 0;
-  justify-content: center;
-}
-
-.recommendation {
-  margin: 0;
+.browser-recommendation {
+  text-align: center;
   color: var(--color-primary);
-  flex-shrink: 0;
+  margin: var(--spacing-md) 0;
 }
 
-.browser-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-primary);
-  border: 2px solid var(--color-border);
+.browser-recommendation a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.safari-storage-warning {
+  background: #b71c1c;
+  border: 2px solid #8b0000;
   border-radius: var(--border-radius-md);
-  text-decoration: none;
-  color: inherit;
-  transition: all var(--transition-base);
-  max-width: 150px;
-}
-
-.browser-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  border-color: var(--color-primary);
-}
-
-.browser-card.firefox:hover {
-  border-color: #ff6611;
-}
-
-.browser-card.chrome:hover {
-  border-color: #4285f4;
-}
-
-.browser-icon {
-  font-size: 32px;
-  margin-bottom: var(--spacing-xs);
-}
-
-.browser-name {
-  font-weight: 700;
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  color: white;
   font-size: var(--font-size-base);
-  margin-bottom: var(--spacing-xs);
-}
-
-.browser-status {
-  font-size: var(--font-size-xs);
-  color: var(--color-success);
-  background: rgba(76, 175, 80, 0.1);
-  padding: 2px 6px;
-  border-radius: var(--border-radius-sm);
+  line-height: 1.4;
 }
 
 .continue-message {
@@ -209,21 +161,6 @@ defineExpose({
 @media (max-width: 600px) {
   .safari-warning-modal {
     margin: var(--spacing-md);
-  }
-
-  .browser-recommendations {
-    flex-direction: column;
-  }
-
-  .browser-card {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: var(--spacing-md);
-  }
-
-  .browser-icon {
-    font-size: 32px;
-    margin-bottom: 0;
   }
 }
 </style>
