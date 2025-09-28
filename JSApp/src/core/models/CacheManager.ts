@@ -344,25 +344,127 @@ export class CacheManager {
    */
   async clearCache(): Promise<void> {
     try {
+      // Clear OPFS (Origin Private File System) - THIS IS WHERE TRANSFORMERS.JS STORES MODELS
+      if ('navigator' in window && 'storage' in navigator) {
+        try {
+          // Get the OPFS root
+          const root = await (navigator.storage as any).getDirectory?.();
+          if (root) {
+            console.log('Found OPFS root, listing contents...');
+
+            // Recursively clear all contents
+            async function clearDirectory(dir: any, path = '') {
+              const entries = [];
+              for await (const entry of dir.values()) {
+                entries.push(entry);
+              }
+
+              if (entries.length === 0 && path === '') {
+                console.log('  OPFS is empty - nothing to clear');
+                return;
+              }
+
+              for (const entry of entries) {
+                const fullPath = path ? `${path}/${entry.name}` : entry.name;
+                console.log(`  Found: ${fullPath} (${entry.kind})`);
+
+                try {
+                  if (entry.kind === 'directory') {
+                    // First clear subdirectory contents
+                    const subDir = await dir.getDirectoryHandle(entry.name);
+                    await clearDirectory(subDir, fullPath);
+                    // Then remove the empty directory
+                    await dir.removeEntry(entry.name, { recursive: true });
+                    console.log(`  🗑️ Removed directory: ${fullPath}`);
+                  } else {
+                    await dir.removeEntry(entry.name);
+                    console.log(`  🗑️ Removed file: ${fullPath}`);
+                  }
+                } catch (removeError) {
+                  console.error(`  Failed to remove ${fullPath}:`, removeError);
+                }
+              }
+            }
+
+            await clearDirectory(root);
+            console.log('✅ OPFS clear complete');
+          } else {
+            console.log('OPFS root not available');
+          }
+        } catch (opfsError) {
+          console.log('OPFS clearing error:', opfsError);
+        }
+      } else {
+        console.log('OPFS not supported in this browser');
+      }
+
+      // Clear Service Worker caches
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          console.log(`Found ${registrations.length} service worker(s)`);
+          for (const registration of registrations) {
+            await registration.unregister();
+            console.log(`🗑️ Unregistered service worker: ${registration.scope}`);
+          }
+        } catch (swError) {
+          console.log('Service Worker clearing error:', swError);
+        }
+      }
+
+      // Clear ALL caches (not just specific names)
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         console.log('Available caches:', cacheNames);
 
-        // Clear transformers-related caches
+        // Clear ALL caches for this origin
         for (const cacheName of cacheNames) {
-          if (cacheName.includes('transformers') ||
-              cacheName.includes('huggingface') ||
-              cacheName.includes('onnx')) {
-            await caches.delete(cacheName);
-            console.log(`🗑️ Cleared cache: ${cacheName}`);
+          await caches.delete(cacheName);
+          console.log(`🗑️ Cleared cache: ${cacheName}`);
+        }
+      }
+
+      // Clear IndexedDB if it exists
+      if ('indexedDB' in window) {
+        const databases = await indexedDB.databases?.() || [];
+        for (const db of databases) {
+          if (db.name) {
+            indexedDB.deleteDatabase(db.name);
+            console.log(`🗑️ Cleared IndexedDB: ${db.name}`);
           }
         }
       }
+
+      // Clear localStorage for model-related data
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('model') || key.includes('cache') || key.includes('transformers'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        console.log(`🗑️ Cleared localStorage: ${key}`);
+      });
+
+      // Clear sessionStorage for model-related data
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.includes('model') || key.includes('cache') || key.includes('transformers'))) {
+          sessionKeysToRemove.push(key);
+        }
+      }
+      sessionKeysToRemove.forEach(key => {
+        sessionStorage.removeItem(key);
+        console.log(`🗑️ Cleared sessionStorage: ${key}`);
+      });
     } catch (error) {
-      console.warn('Failed to clear browser cache:', error);
+      console.warn('Failed to clear browser storage:', error);
     }
 
-    console.log('✅ Browser cache cleared');
+    console.log('✅ All browser storage cleared');
   }
 
   /**
