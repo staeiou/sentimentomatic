@@ -3,7 +3,7 @@ import { VaderAnalyzer } from './VaderAnalyzer';
 import { TransformersAnalyzer } from './TransformersAnalyzer';
 import { ModelManager } from '../models/ModelManager';
 import { PresetManager } from '../models/PresetManager';
-import type { SentimentAnalyzer } from '../types';
+import type { SentimentAnalyzer } from '../../types/types';
 
 export class AnalyzerRegistry {
   private analyzers: Map<string, SentimentAnalyzer> = new Map();

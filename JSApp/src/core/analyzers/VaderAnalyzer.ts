@@ -1,4 +1,4 @@
-import type { SentimentAnalyzer, SentimentResult } from '../types';
+import type { SentimentAnalyzer, SentimentResult } from '../../types/types';
 
 export class VaderAnalyzer implements SentimentAnalyzer {
   readonly name = 'VADER';

@@ -36,29 +36,48 @@ export class CacheManager {
       let totalSize = 0;
       const modelUrls = new Set<string>(); // Track unique models
 
-      for (const request of requests) {
-        try {
-          const response = await cache.match(request);
-          if (response) {
-            // Try to get size from Content-Length header
-            const contentLength = response.headers.get('content-length');
-            if (contentLength) {
-              totalSize += parseInt(contentLength);
-            } else {
-              // If no Content-Length, read the blob to get actual size
-              const blob = await response.blob();
-              totalSize += blob.size;
-            }
+      // Safari optimization: Skip size calculation if too many files
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      const skipSizeCalc = isSafari && requests.length > 50;
 
-            // Extract model name from URL for counting unique models
-            const url = request.url;
-            const modelMatch = url.match(/huggingface\.co\/([^\/]+\/[^\/]+)/);
-            if (modelMatch) {
-              modelUrls.add(modelMatch[1]);
-            }
+      if (skipSizeCalc) {
+        console.log('📊 Safari optimization: Estimating cache size instead of calculating');
+        // Just count models, estimate size
+        for (const request of requests) {
+          const url = request.url;
+          const modelMatch = url.match(/huggingface\.co\/([^\/]+\/[^\/]+)/);
+          if (modelMatch) {
+            modelUrls.add(modelMatch[1]);
           }
-        } catch (error) {
-          console.warn(`Failed to get size for ${request.url}:`, error);
+        }
+        // Estimate 150MB per model (rough average)
+        totalSize = modelUrls.size * 150 * 1024 * 1024;
+      } else {
+        // Full size calculation for non-Safari or small caches
+        for (const request of requests) {
+          try {
+            const response = await cache.match(request);
+            if (response) {
+              // Try to get size from Content-Length header
+              const contentLength = response.headers.get('content-length');
+              if (contentLength) {
+                totalSize += parseInt(contentLength);
+              } else if (!isSafari) {
+                // Only read blob on non-Safari browsers
+                const blob = await response.blob();
+                totalSize += blob.size;
+              }
+
+              // Extract model name from URL for counting unique models
+              const url = request.url;
+              const modelMatch = url.match(/huggingface\.co\/([^\/]+\/[^\/]+)/);
+              if (modelMatch) {
+                modelUrls.add(modelMatch[1]);
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to get size for ${request.url}:`, error);
+          }
         }
       }
 
@@ -116,6 +135,78 @@ export class CacheManager {
     } else {
       // Default estimate for unknown models
       return 100;
+    }
+  }
+
+  /**
+   * Batch check multiple models for cache status - FAST for Safari
+   * Opens cache once and checks all models IN PARALLEL
+   */
+  async batchCheckModelsInCache(huggingFaceIds: string[]): Promise<Map<string, boolean>> {
+    const results = new Map<string, boolean>()
+
+    try {
+      // Check if Cache API is available
+      if (!('caches' in window)) {
+        huggingFaceIds.forEach(id => results.set(id, false))
+        return results
+      }
+
+      console.time('Cache batch check')
+
+      // Open cache ONCE for all checks
+      const cache = await caches.open('transformers-cache')
+
+      // Check each model IN PARALLEL - just the main ONNX weight file
+      await Promise.all(huggingFaceIds.map(async (huggingFaceId) => {
+        // CRITICAL: Check for ACTUAL files that get cached (after redirects in ModelManager)
+        let mainModelUrls: string[] = []
+
+        // Special cases based on ModelManager redirects
+        if (huggingFaceId === 'protectai/xlm-roberta-base-language-detection-onnx') {
+          // protectai stores at ROOT level (not in /onnx/)
+          mainModelUrls = [
+            `https://huggingface.co/${huggingFaceId}/resolve/main/model_quantized.onnx`,
+            `https://huggingface.co/${huggingFaceId}/resolve/main/model.onnx`
+          ]
+        } else if (huggingFaceId === 'minuva/MiniLMv2-toxic-jigsaw-onnx') {
+          // minuva has special filename
+          mainModelUrls = [
+            `https://huggingface.co/${huggingFaceId}/resolve/main/model_optimized_quantized.onnx`
+          ]
+        } else {
+          // Standard models in /onnx/ directory
+          mainModelUrls = [
+            `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/model_quantized.onnx`,
+            `https://huggingface.co/${huggingFaceId}/resolve/main/onnx/model.onnx`
+          ]
+        }
+
+        // Check for ANY of these URLs (just need one to confirm cached)
+        for (const url of mainModelUrls) {
+          try {
+            const cachedResponse = await cache.match(url)
+            if (cachedResponse) {
+              console.log(`✅ ${huggingFaceId} cached`)
+              results.set(huggingFaceId, true)
+              return
+            }
+          } catch (e) {
+            // Ignore individual match errors
+          }
+        }
+
+        console.log(`❌ ${huggingFaceId} not cached`)
+        results.set(huggingFaceId, false)
+      }))
+
+      console.timeEnd('Cache batch check')
+      return results
+
+    } catch (error) {
+      console.warn('Failed batch cache check:', error)
+      huggingFaceIds.forEach(id => results.set(id, false))
+      return results
     }
   }
 

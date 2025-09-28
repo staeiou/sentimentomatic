@@ -1,4 +1,4 @@
-import type { SentimentAnalyzer, SentimentResult } from '../types';
+import type { SentimentAnalyzer, SentimentResult } from '../../types/types';
 
 export class AfinnAnalyzer implements SentimentAnalyzer {
   readonly name = 'AFINN';

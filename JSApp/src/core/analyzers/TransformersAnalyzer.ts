@@ -1,4 +1,4 @@
-import type { SentimentAnalyzer, SentimentResult } from '../types';
+import type { SentimentAnalyzer, SentimentResult } from '../../types/types';
 import type { ModelConfig } from '../models/types';
 import { ModelManager } from '../models/ModelManager';
 import { getModelConfig } from '../models/registry';

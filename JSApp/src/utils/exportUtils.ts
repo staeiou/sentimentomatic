@@ -1,4 +1,4 @@
-import type { AnalysisResult, SentimentResult, MultiModalAnalysisResult } from '../analysis/AnalysisStrategy';
+import type { AnalysisResult, SentimentResult, MultiModalAnalysisResult } from '../core/analysis/AnalysisStrategy';
 import * as XLSX from 'xlsx';
 
 // Helper function to properly escape CSV values

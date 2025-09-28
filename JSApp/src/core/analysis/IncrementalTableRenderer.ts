@@ -737,6 +737,9 @@ export class IncrementalTableRenderer {
         }
       });
     }
+
+    // Set up text wrap toggle
+    this.setupTextWrapToggle();
   }
 
   /**
@@ -1431,5 +1434,36 @@ export class IncrementalTableRenderer {
       }
     `;
     document.head.appendChild(styles);
+  }
+
+  /**
+   * Set up text wrap toggle functionality
+   */
+  private setupTextWrapToggle(): void {
+    const toggle = document.getElementById('text-wrap-toggle') as HTMLButtonElement;
+    if (!toggle) return;
+
+    toggle.addEventListener('click', () => {
+      const table = this.container.querySelector('.results-table') as HTMLElement;
+      if (!table) return;
+
+      const isWrapped = table.classList.contains('text-wrapped');
+      const wrapIcon = toggle.querySelector('.wrap-icon') as HTMLElement;
+      const wrapText = toggle.querySelector('.wrap-text') as HTMLElement;
+
+      if (isWrapped) {
+        // Switch to truncated
+        table.classList.remove('text-wrapped');
+        toggle.classList.remove('active');
+        if (wrapIcon) wrapIcon.textContent = '⋯';
+        if (wrapText) wrapText.textContent = 'Wrap';
+      } else {
+        // Switch to wrapped
+        table.classList.add('text-wrapped');
+        toggle.classList.add('active');
+        if (wrapIcon) wrapIcon.textContent = '↩';
+        if (wrapText) wrapText.textContent = 'Truncate';
+      }
+    });
   }
 }

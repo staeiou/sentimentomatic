@@ -1,4 +1,4 @@
-import type { SentimentAnalyzer, SentimentResult } from '../types';
+import type { SentimentAnalyzer, SentimentResult } from '../../types/types';
 import { ModelManager } from '../models/ModelManager';
 import { CacheManager } from '../models/CacheManager';
 import { WorkerModelManager, getWorkerModelManager } from '../models/WorkerModelManager';
