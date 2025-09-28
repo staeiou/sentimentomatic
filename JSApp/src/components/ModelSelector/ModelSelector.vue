@@ -117,6 +117,11 @@ onMounted(() => {
   modelStore.useMultilingualStudent = true
   modelStore.useGoEmotions = true
   modelStore.useJigsawToxicity = true
+
+  // Update cache stats periodically
+  setInterval(() => {
+    modelStore.updateCacheStats()
+  }, 5000)
 })
 
 function formatSize(bytes: number): string {
@@ -135,11 +140,104 @@ function saveKeepCachedSetting() {
 }
 
 async function clearCache() {
+  const sizeBefore = modelStore.cacheSize
   await modelStore.clearCache()
+
+  // Force refresh storage estimate
+  await new Promise(resolve => setTimeout(resolve, 500))
+  await modelStore.updateCacheStats()
+
+  const sizeAfter = modelStore.cacheSize
+  const cleared = sizeBefore - sizeAfter
+
+  if (cleared > 0) {
+    console.log(`✅ Cleared ${formatSize(cleared)} from cache`)
+  } else {
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+    if (isSafari && sizeAfter > 0) {
+      console.log(`⚠️ SAFARI BUG: ${formatSize(sizeAfter)} stuck in IndexedDB WAL files`)
+      console.log('This is WebKit bug #202137 - WAL file doesn\'t get garbage collected')
+      console.log('To manually clear: Safari → Settings → Privacy → Manage Website Data → Remove')
+      alert(`Safari bug: ${formatSize(sizeAfter)} stuck in WAL files.\n\nTo clear manually:\nSafari → Settings → Privacy → Manage Website Data → Remove`)
+    } else {
+      console.log(`⚠️ Cache cleared but storage unchanged (still ${formatSize(sizeAfter)})`)
+    }
+  }
 }
 
-function showCacheDebug() {
-  console.log('Cache debug - to be implemented')
+async function showCacheDebug() {
+  console.log('=== CACHE DEBUG ===')
+
+  // Check storage estimate
+  if ('storage' in navigator && 'estimate' in navigator.storage) {
+    const estimate = await navigator.storage.estimate()
+    console.log('Storage estimate:', {
+      usage: `${Math.round((estimate.usage || 0) / (1024 * 1024))} MB`,
+      quota: `${Math.round((estimate.quota || 0) / (1024 * 1024))} MB`
+    })
+  }
+
+  // Check cache names
+  if ('caches' in window) {
+    const cacheNames = await caches.keys()
+    console.log('Cache names:', cacheNames)
+
+    for (const name of cacheNames) {
+      const cache = await caches.open(name)
+      const keys = await cache.keys()
+      console.log(`Cache "${name}" has ${keys.length} entries`)
+    }
+  }
+
+  // Check IndexedDB
+  if ('indexedDB' in window && indexedDB.databases) {
+    const databases = await indexedDB.databases()
+    console.log('IndexedDB databases:', databases)
+  }
+
+  // Check localStorage size
+  let localStorageSize = 0
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      localStorageSize += localStorage[key].length + key.length
+    }
+  }
+  console.log('localStorage size:', `${Math.round(localStorageSize / 1024)} KB`)
+
+  // Check Service Workers
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations()
+    console.log(`Service Workers: ${registrations.length} registered`)
+    for (const reg of registrations) {
+      console.log(`  - ${reg.scope} (${reg.active ? 'active' : 'inactive'})`)
+    }
+  }
+
+  // Check OPFS (Origin Private File System)
+  try {
+    const root = await (navigator.storage as any).getDirectory?.()
+    if (root) {
+      console.log('OPFS root found, scanning contents:')
+
+      async function listDirectory(dir: any, prefix = '') {
+        for await (const entry of dir.values()) {
+          console.log(`${prefix}- ${entry.name} (${entry.kind})`)
+          if (entry.kind === 'directory') {
+            const subDir = await dir.getDirectoryHandle(entry.name)
+            await listDirectory(subDir, prefix + '  ')
+          }
+        }
+      }
+
+      await listDirectory(root)
+    } else {
+      console.log('OPFS not available')
+    }
+  } catch (e) {
+    console.log('OPFS check error:', e)
+  }
+
+  console.log('=== END DEBUG ===')
 }
 </script>
 

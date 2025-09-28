@@ -156,9 +156,18 @@ export const useModelStore = defineStore('models', () => {
 
   async function updateCacheStats() {
     try {
-      const stats = await cacheManager.getCacheStats()
-      cacheSize.value = stats.totalSize
-      cacheModelCount.value = stats.modelCount
+      // Use fast storage.estimate() for all browsers
+      if ('storage' in navigator && 'estimate' in navigator.storage) {
+        const { usage } = await navigator.storage.estimate()
+        cacheSize.value = usage || 0
+        // We can't get exact model count from storage.estimate, so skip it
+        cacheModelCount.value = 0
+      } else {
+        // Fallback to manual calculation if storage.estimate not available
+        const stats = await cacheManager.getCacheStats()
+        cacheSize.value = stats.totalSize
+        cacheModelCount.value = stats.modelCount
+      }
     } catch (error) {
       console.warn('Failed to update cache stats:', error)
     }
@@ -213,14 +222,8 @@ export const useModelStore = defineStore('models', () => {
     return models
   }
 
-  // Initialize cache stats - delay on Safari to avoid blocking
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-  if (isSafari) {
-    // Delay cache stats on Safari to avoid initial blocking
-    setTimeout(() => updateCacheStats(), 1000)
-  } else {
-    updateCacheStats()
-  }
+  // Initialize cache stats - now fast for all browsers
+  updateCacheStats()
 
   // Load saved settings
   const savedKeepCached = localStorage.getItem('sentimentomatic_keep_models_cached')
