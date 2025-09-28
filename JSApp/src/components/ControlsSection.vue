@@ -11,14 +11,68 @@
     <p class="section-description">Each model analyzes sentiment differently - select the ones you want to compare</p>
 
     <ModelSelector />
+
+    <div class="download-size-display" v-if="downloadInfo.totalModels > 0">
+      <div class="size-info">
+        <span class="size-label">{{ downloadInfo.allCached ? 'All Cached:' : 'Download Needed:' }}</span>
+        <span class="size-value" :class="{ cached: downloadInfo.allCached }">{{ formatSize(downloadInfo.downloadSize) }}</span>
+        <span class="model-counts" v-if="!downloadInfo.allCached">
+          ({{ downloadInfo.cachedCount }}/{{ downloadInfo.totalModels }} models cached)
+        </span>
+        <span class="model-counts" v-else>
+          ✅ No download needed
+        </span>
+      </div>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { useModelStore } from '../stores/modelStore'
 import ModelSelector from './ModelSelector/ModelSelector.vue'
 
 const modelStore = useModelStore()
+
+// Reactive state for download info
+const downloadInfo = ref({
+  totalModels: 0,
+  downloadSize: 0,
+  allCached: false,
+  cachedCount: 0
+})
+
+// Update download info when model selection changes
+async function updateDownloadInfo() {
+  const modelDownloadInfo = await modelStore.getModelDownloadInfo()
+  const modelsToDownload = modelDownloadInfo.filter(m => !m.cached)
+  const downloadSize = modelsToDownload.reduce((sum, model) => sum + model.size, 0)
+
+  downloadInfo.value = {
+    totalModels: modelStore.totalSelectedModels,
+    downloadSize,
+    allCached: modelsToDownload.length === 0,
+    cachedCount: modelDownloadInfo.filter(m => m.cached).length
+  }
+}
+
+// Watch for model selection changes
+watch(
+  () => [
+    modelStore.selectedRuleBasedAnalyzers,
+    modelStore.selectedNeuralModels
+  ],
+  updateDownloadInfo,
+  { immediate: true, deep: true }
+)
+
+// Methods
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+  }
+  return `${Math.round(bytes / (1024 * 1024))} MB`
+}
 </script>
 
 <style scoped>
@@ -90,5 +144,50 @@ const modelStore = useModelStore()
   .model-buttons .btn-sm {
     width: 100%;
   }
+
+  .download-size-display {
+    margin-left: 30px;
+  }
+}
+
+.download-size-display {
+  background: var(--color-download-bg);
+  border: 2px solid var(--color-download-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: var(--spacing-lg) 50px var(--spacing-sm) 50px;
+  text-align: center;
+}
+
+.download-size-display .size-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.download-size-display .size-label {
+  font-weight: 600;
+  color: var(--color-download-text);
+}
+
+.download-size-display .size-value {
+  background: var(--color-download-border);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-weight: 700;
+  font-size: var(--font-size-base);
+}
+
+.download-size-display .size-value.cached {
+  background: #28a745;
+}
+
+.download-size-display .model-counts {
+  color: var(--color-download-text);
+  font-size: var(--font-size-sm);
+  opacity: 0.8;
 }
 </style>

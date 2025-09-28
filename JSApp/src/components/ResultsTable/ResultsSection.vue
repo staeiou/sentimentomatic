@@ -1,6 +1,24 @@
 <template>
-  <section id="results-section" class="results-section" aria-label="Analysis Results" :hidden="!showResults">
-    <div class="results-toolbar">
+  <section id="results-section" class="results-section" aria-label="Analysis Results">
+    <div class="carnival-step step-3">STEP 3</div>
+
+    <div class="action-bar">
+      <div class="analyze-button-container">
+        <button type="button" id="analyze-btn" class="btn btn-primary" @click="$emit('analyze')" :disabled="isAnalyzing">
+          {{ isAnalyzing ? 'Analyzing...' : 'Analyze' }}
+        </button>
+
+        <!-- Inline progress bar - always visible -->
+        <div class="progress-bar-inline">
+          <div class="progress-fill" :style="{ width: analysisStore.progress + '%' }"></div>
+          <div class="progress-text">
+            {{ analysisStore.progressStatus || 'Ready to analyze' }} ({{ Math.round(analysisStore.progress) }}%)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="results-toolbar" v-if="showResults">
       <h2>📊 Analysis Results</h2>
 
       <div class="export-buttons">
@@ -17,7 +35,7 @@
     </div>
 
     <!-- Vue reactive table with smart horizontal scrolling -->
-    <div class="table-wrapper">
+    <div class="table-wrapper" v-if="showResults">
       <ResultsTable
         v-if="analysisData.lines.length > 0"
         :lines="analysisData.lines"
@@ -41,7 +59,13 @@ const analysisStore = useAnalysisStore()
 const modelStore = useModelStore()
 const exportMulticlass = ref(false)
 
+// Events
+defineEmits<{
+  analyze: []
+}>()
+
 // Computed properties
+const isAnalyzing = computed(() => analysisStore.isAnalyzing)
 const showResults = computed(() => analysisStore.currentResult !== null || analysisStore.isAnalyzing)
 const currentResult = computed(() => analysisStore.currentResult)
 
@@ -126,13 +150,100 @@ function exportJSON() {
   border: 4px solid var(--color-pink);
   border-radius: 20px;
   padding: var(--spacing-lg);
+  margin-bottom: calc(var(--spacing-xl) + 5px);
   box-shadow:
     5px 5px 0 var(--color-primary),
     5px 5px 20px rgba(0,0,0,0.1);
 }
 
-.results-section[hidden] {
-  display: none;
+.action-bar {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  margin-bottom: var(--spacing-xl);
+}
+
+.analyze-button-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-left: 50px; /* Align with content like other sections */
+  flex: 1;
+}
+
+/* Special analyze button styling */
+:deep(#analyze-btn) {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-lg);
+  letter-spacing: 2px;
+  background: var(--color-pink);
+  box-shadow:
+    0 4px 0 var(--color-danger-dark),
+    0 8px 15px rgba(255, 22, 84, 0.3);
+  font-weight: 900;
+  text-transform: uppercase;
+  border-radius: 30px;
+  position: relative;
+  animation: pulse 2s infinite;
+  margin-top: -5px;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+:deep(#analyze-btn:hover:not(:disabled)) {
+  letter-spacing: 3px;
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 0 var(--color-danger-dark),
+    0 12px 20px rgba(255, 22, 84, 0.4);
+}
+
+:deep(#analyze-btn:active:not(:disabled)) {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 var(--color-danger-dark),
+    0 4px 10px rgba(255, 22, 84, 0.3);
+}
+
+.progress-bar-inline {
+  position: relative;
+  flex: 1;
+  height: 57px;
+  background: #333;
+  border: 2px solid var(--color-border);
+  border-radius: 30px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #4A148C, #6A1B9A, #8E24AA);
+  transition: width var(--transition-base);
+  border-radius: 30px;
+  box-shadow: 0 0 10px rgba(74, 20, 140, 0.5);
+}
+
+.progress-text {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  text-align: center;
+  font-size: var(--font-size-lg);
+  color: white;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .results-header {
@@ -193,6 +304,28 @@ function exportJSON() {
 
 /* Mobile responsive */
 @media (max-width: 768px) {
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+
+  .analyze-button-container {
+    margin-left: 20px;
+    margin-bottom: var(--spacing-md);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+
+  :deep(#analyze-btn) {
+    width: 100%;
+  }
+
+  .progress-bar-inline {
+    width: 100%;
+  }
+
   .results-toolbar {
     flex-direction: column;
     align-items: stretch;
