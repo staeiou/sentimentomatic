@@ -1,12 +1,31 @@
 <template>
   <div v-if="show" class="modal-overlay" style="display: flex !important;" @click.self="close">
-    <div class="modal-dialog" :class="{ 'compact': allCached }">
-      <div class="modal-header" :class="{ 'cached': allCached }">
-        <h3>{{ allCached ? '✅ All Models Cached' : '📥 Download Required' }} - {{ formatSize(downloadSize) }}</h3>
-        <button class="modal-close" @click="close">×</button>
+    <div class="modal-dialog" :class="{ 'compact': allCached && !isLoading }">
+      <!-- Loading state -->
+      <div v-if="isLoading" class="loading-state">
+        <div class="modal-header">
+          <h3>🔍 Checking Model Cache...</h3>
+          <button class="modal-close" @click="close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Checking which models need to be downloaded...</p>
+            <p v-if="isSafari" class="safari-warning">
+              This can take 1-3 minutes on Safari, Firefox & Chrome are recommended
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div class="modal-body">
+      <!-- Content state -->
+      <template v-else>
+        <div class="modal-header" :class="{ 'cached': allCached }">
+          <h3>{{ allCached ? '✅ All Models Cached' : '📥 Download Required' }} - {{ formatSize(downloadSize) }}</h3>
+          <button class="modal-close" @click="close">×</button>
+        </div>
+
+        <div class="modal-body">
         <div class="models-table">
           <div v-if="cachedModels.length > 0" class="model-group">
             <div class="model-group-header">✅ Cached Models</div>
@@ -40,20 +59,22 @@
             }}
           </span>
         </div>
-      </div>
+        </div>
 
-      <div class="modal-footer">
-        <button v-if="!allCached" class="btn btn-secondary" @click="cancel">Cancel</button>
-        <button class="btn btn-primary" @click="confirm">
-          {{ allCached ? '🚀 Start Analysis' : '📥 Download & Analyze' }}
-        </button>
-      </div>
+        <div class="modal-footer">
+          <button v-if="!allCached" class="btn btn-secondary" @click="cancel">Cancel</button>
+          <button class="btn btn-primary" @click="confirm">
+            {{ allCached ? '🚀 Start Analysis' : '📥 Download & Analyze' }}
+          </button>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useModelStore } from '../stores/modelStore'
 
 interface ModelInfo {
   name: string
@@ -62,15 +83,18 @@ interface ModelInfo {
   cached: boolean
 }
 
-const props = defineProps<{
-  models: ModelInfo[]
-}>()
+const modelStore = useModelStore()
 
 const show = ref(false)
+const isLoading = ref(false)
 const resolvePromise = ref<((value: boolean) => void) | null>(null)
+const models = ref<ModelInfo[]>([])
 
-const cachedModels = computed(() => props.models.filter(m => m.cached))
-const modelsToDownload = computed(() => props.models.filter(m => !m.cached))
+// Detect Safari browser
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
+const cachedModels = computed(() => models.value.filter(m => m.cached))
+const modelsToDownload = computed(() => models.value.filter(m => !m.cached))
 const downloadSize = computed(() => modelsToDownload.value.reduce((sum, model) => sum + model.size, 0))
 const allCached = computed(() => modelsToDownload.value.length === 0)
 
@@ -81,10 +105,24 @@ function formatSize(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`
 }
 
-function showConfirmation(): Promise<boolean> {
+async function showConfirmationWithLoading(): Promise<boolean> {
   return new Promise((resolve) => {
     resolvePromise.value = resolve
     show.value = true
+    isLoading.value = true
+    models.value = []
+
+    // Load model info asynchronously after modal is shown
+    modelStore.getModelDownloadInfo().then((downloadInfo) => {
+      models.value = downloadInfo
+      isLoading.value = false
+    }).catch((error) => {
+      console.error('Failed to get model download info:', error)
+      // On error, just close modal
+      isLoading.value = false
+      resolvePromise.value?.(false)
+      close()
+    })
   })
 }
 
@@ -100,10 +138,12 @@ function cancel() {
 
 function close() {
   show.value = false
+  isLoading.value = false
   resolvePromise.value = null
+  models.value = []
 }
 
-defineExpose({ showConfirmation })
+defineExpose({ showConfirmationWithLoading })
 </script>
 
 <style>
@@ -302,5 +342,43 @@ defineExpose({ showConfirmation })
 @keyframes slideIn {
   from { transform: translateY(-20px) scale(0.95); opacity: 0; }
   to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Loading state styles */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  min-height: 200px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--color-bg-secondary);
+  border-top: 4px solid var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  margin: 0;
+}
+
+.safari-warning {
+  color: var(--color-warning, #ff9800);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  margin-top: var(--spacing-sm) !important;
 }
 </style>

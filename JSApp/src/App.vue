@@ -25,12 +25,13 @@
     <FileImportModal ref="fileImportRef" />
     <SampleDatasetsModal ref="sampleDatasetsRef" />
     <TemplateGeneratorModal ref="templateGeneratorRef" />
-    <DownloadConfirmationModal ref="downloadConfirmationRef" :models="modelsToDownload" />
+    <DownloadConfirmationModal ref="downloadConfirmationRef" />
+    <SafariWarningModal ref="safariWarningRef" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAnalysisStore } from './stores/analysisStore'
 import { useModelStore } from './stores/modelStore'
 // Components
@@ -45,12 +46,10 @@ import FileImportModal from './components/FileImport/FileImportModal.vue'
 import SampleDatasetsModal from './components/SampleDatasetsModal.vue'
 import TemplateGeneratorModal from './components/TemplateGeneratorModal.vue'
 import DownloadConfirmationModal from './components/DownloadConfirmationModal.vue'
+import SafariWarningModal from './components/SafariWarningModal.vue'
 
 const analysisStore = useAnalysisStore()
 const modelStore = useModelStore()
-
-// Reactive state for modals
-const modelsToDownload = ref<any[]>([])
 
 // Component refs
 const inputSectionRef = ref<InstanceType<typeof InputSection>>()
@@ -58,6 +57,7 @@ const fileImportRef = ref<InstanceType<typeof FileImportModal>>()
 const sampleDatasetsRef = ref<InstanceType<typeof SampleDatasetsModal>>()
 const templateGeneratorRef = ref<InstanceType<typeof TemplateGeneratorModal>>()
 const downloadConfirmationRef = ref<InstanceType<typeof DownloadConfirmationModal>>()
+const safariWarningRef = ref<InstanceType<typeof SafariWarningModal>>()
 
 // Analysis logic
 async function analyze() {
@@ -75,16 +75,10 @@ async function analyze() {
     return
   }
 
-  // Show download confirmation if needed
-  const downloadInfo = await modelStore.getModelDownloadInfo()
-  const needsDownload = downloadInfo.filter(m => !m.cached)
-
-  if (needsDownload.length > 0 || downloadInfo.length > 0) {
-    modelsToDownload.value = downloadInfo
-    const confirmed = await downloadConfirmationRef.value?.showConfirmation()
-    if (!confirmed) {
-      return
-    }
+  // Show modal immediately with loading state
+  const confirmed = await downloadConfirmationRef.value?.showConfirmationWithLoading()
+  if (!confirmed) {
+    return
   }
 
   try {
@@ -117,6 +111,20 @@ async function analyze() {
     alert(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
+
+// Check for Safari on mount
+onMounted(() => {
+  // Check if Safari and if warning hasn't been dismissed
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  const warningDismissed = localStorage.getItem('sentimentomatic_safari_warning_dismissed') === 'true'
+
+  if (isSafari && !warningDismissed) {
+    // Delay slightly to ensure everything is rendered
+    setTimeout(() => {
+      safariWarningRef.value?.open()
+    }, 500)
+  }
+})
 </script>
 
 <style>

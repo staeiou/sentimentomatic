@@ -646,7 +646,7 @@ function getColumnHeaders(column: Column) {
 .pred-header, .conf-header,
 .pred-cell, .conf-cell {
   width: calc(var(--analyzer-col-width, 80px) / 2);
-  min-width: calc(var(--analyzer-col-width, 80px) / 2);
+  min-width: calc((var(--analyzer-col-width, 80px) / 2) + 10px);
   max-width: calc(var(--analyzer-col-width, 80px) / 2);
 }
 
