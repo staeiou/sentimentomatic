@@ -118,7 +118,7 @@ export const useModelStore = defineStore('models', () => {
     useVader.value = true
 
     // Sentiment
-    useDistilbert.value = false
+    useDistilbert.value = true
     useTwitterRoberta.value = true
     useFinancial.value = true
     useMultilingualStudent.value = true
