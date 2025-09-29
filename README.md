@@ -5,7 +5,8 @@ A comprehensive sentiment analysis platform with **two independent applications*
 ## 📱 Two Applications
 
 ### 🆕 **JSApp** - Modern Client-Side Application (Recommended)
-**Local-first browser analysis using Transformers.js**
+### Hosted at [https://sentimentomatic.org](https://sentimentomatic.org)
+**Local-first browser analysis using Transformers.js** 
 
 - **🔒 Privacy-First**: All processing happens in your browser - no data sent to servers
 - **🌐 Works Offline**: No internet required after initial model download
@@ -16,6 +17,7 @@ A comprehensive sentiment analysis platform with **two independent applications*
 - **🎨 Modern UI**: AG-Grid tables, responsive design
 
 ### 🔧 **FlaskApp** - Legacy Python Server (For Older Models)
+### Hosted at [https://sentimentomatic.stuartgeiger.com](https://sentimentomatic.stuartgeiger.com)
 **Traditional server-based processing with Google Perspective API**
 
 - **🐍 Python/Flask**: Server-side processing
