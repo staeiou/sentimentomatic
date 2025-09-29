@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="modal-overlay" style="display: flex !important;" @click.self="close">
+  <div v-if="show" class="modal-overlay" style="display: flex !important;" @click.self="close" data-testid="download-confirmation-modal">
     <div class="modal-dialog" :class="{ 'compact': allCached && !isLoading }">
       <!-- Loading state -->
       <div v-if="isLoading" class="loading-state">
@@ -62,8 +62,8 @@
         </div>
 
         <div class="modal-footer">
-          <button v-if="!allCached" class="btn btn-secondary" @click="cancel">Cancel</button>
-          <button class="btn btn-primary" @click="confirm">
+          <button v-if="!allCached" class="btn btn-secondary" @click="cancel" data-testid="modal-cancel-button">Cancel</button>
+          <button class="btn btn-primary" @click="confirm" data-testid="modal-confirm-button" aria-label="Confirm and start analysis">
             {{ allCached ? '🚀 Start Analysis' : '📥 Download & Analyze' }}
           </button>
         </div>

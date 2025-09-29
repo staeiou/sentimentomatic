@@ -4,7 +4,7 @@
 
     <div class="action-bar">
       <div class="analyze-button-container">
-        <button type="button" id="analyze-btn" class="btn btn-primary" @click="$emit('analyze')" :disabled="isAnalyzing">
+        <button type="button" id="analyze-btn" class="btn btn-primary" @click="$emit('analyze')" :disabled="isAnalyzing" aria-label="Start sentiment analysis" data-testid="main-analyze-button">
           {{ isAnalyzing ? 'Analyzing...' : 'Analyze' }}
         </button>
 
@@ -22,12 +22,12 @@
       <h2>📊 Analysis Results</h2>
 
       <div class="export-buttons">
-        <button type="button" id="export-csv" class="btn btn-secondary" @click="exportCSV">Export CSV</button>
-        <button type="button" id="export-excel" class="btn btn-secondary" @click="exportExcel">Export Excel</button>
-        <button type="button" id="export-json" class="btn btn-secondary" @click="exportJSON">Export JSON</button>
-        <div class="export-options" id="export-options" :style="{ display: modelStore.hasClassificationModels ? 'flex' : 'none' }">
+        <button type="button" id="export-csv" class="btn btn-secondary" @click="exportCSV" aria-label="Export results as CSV" data-testid="export-csv-button">Export CSV</button>
+        <button type="button" id="export-excel" class="btn btn-secondary" @click="exportExcel" aria-label="Export results as Excel" data-testid="export-excel-button">Export Excel</button>
+        <button type="button" id="export-json" class="btn btn-secondary" @click="exportJSON" aria-label="Export results as JSON" data-testid="export-json-button">Export JSON</button>
+        <div class="export-options" id="export-options" :style="{ display: modelStore.hasClassificationModels ? 'flex' : 'none' }" data-testid="export-options">
           <label class="export-option">
-            <input type="checkbox" id="export-multiclass-columns" v-model="exportMulticlass">
+            <input type="checkbox" id="export-multiclass-columns" v-model="exportMulticlass" aria-label="Export individual class columns for classification models" data-testid="export-multiclass-checkbox">
             Export individual class columns for classification models
           </label>
         </div>

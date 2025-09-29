@@ -66,3 +66,6 @@ temp/
 .ipynb_checkpont*
 .ipynb*
 *.ipynb*
+
+# Investigation repos
+repos/

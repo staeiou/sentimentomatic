@@ -68,7 +68,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'npm run dev',
-    port: 3000,
+    port: 3000, // Let Vite pick the port
     reuseExistingServer: !process.env.CI,
     timeout: 120000, // 2 minutes to start dev server
   },
