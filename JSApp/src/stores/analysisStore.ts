@@ -62,11 +62,27 @@ export const useAnalysisStore = defineStore('analysis', () => {
       columns.push({ name: analyzer.toUpperCase(), type: 'sentiment' })
     }
 
-    // Add ML models to columns (start as sentiment, may change to classification)
+    // Add ML models to columns (with proper type based on model)
+    const CLASSIFICATION_MODELS = [
+      'GoEmotions',
+      'Jigsaw Toxicity',
+      'KoalaAI Moderation',
+      'IPTC News',
+      'Language Detection',
+      'Toxic BERT',
+      'Industry Classification'
+    ]
+
     for (const modelId of selectedHuggingFaceModels) {
       const modelInfo = multiModelAnalyzer.getEnabledModels().get(modelId)
       if (modelInfo) {
-        columns.push({ name: modelInfo.displayName, type: 'sentiment', modelId })
+        // Determine if this is a classification or sentiment model
+        const isClassification = CLASSIFICATION_MODELS.includes(modelInfo.displayName)
+        columns.push({
+          name: modelInfo.displayName,
+          type: isClassification ? 'classification' : 'sentiment',
+          modelId
+        })
       }
     }
 

@@ -53,7 +53,7 @@ import { ref, computed } from 'vue'
 import { useAnalysisStore } from '../../stores/analysisStore'
 import { useModelStore } from '../../stores/modelStore'
 import { exportToCSV, exportToJSON, exportToExcel } from '../../utils/exportUtils'
-import ResultsTable from './ResultsTable.vue'
+import ResultsTable from './AGGridResultsTable.vue'
 
 const analysisStore = useAnalysisStore()
 const modelStore = useModelStore()
@@ -90,10 +90,14 @@ const analysisData = computed(() => {
   result.data.forEach((row: any, lineIndex: number) => {
     if (row.results) {
       row.results.forEach((r: any) => {
+        // Find the column type from the columns array (DON'T GUESS!)
+        const column = columns.find((col: any) => col.name === r.analyzer)
+        const columnType = column?.type || r.type || 'sentiment'
+
         results.push({
           lineIndex,
           analyzer: r.analyzer,
-          type: r.type || (r.sentiment !== undefined ? 'sentiment' : 'classification'),
+          type: columnType,
           score: r.score,
           sentiment: r.sentiment,
           topClass: r.topClass || r.prediction,
@@ -299,7 +303,8 @@ function exportJSON() {
 
 
 .table-wrapper {
-  overflow-x: auto;
+  /* AG-Grid handles its own scrolling */
+  overflow: visible;
 }
 
 /* Mobile responsive */

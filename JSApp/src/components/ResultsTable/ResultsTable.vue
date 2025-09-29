@@ -637,11 +637,20 @@ function getColumnHeaders(column: Column) {
 .line-number-col {
   width: fit-content;
   min-width: 50px;
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background: var(--color-bg-secondary);
 }
 
 .text-col {
   width: var(--text-col-width, 300px);
   min-width: 300px; /* Always keep minimum readable width */
+  position: sticky;
+  left: 50px; /* Position after line number column */
+  z-index: 11;
+  background: var(--color-bg-secondary);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1); /* Shadow on right edge when scrolling */
 }
 
 /* Override the JavaScript-set width for specific analyzers */
@@ -820,23 +829,34 @@ function getColumnHeaders(column: Column) {
   min-width: 85px;
 }
 
-/* Text cell responsive behavior */
+
+/* Text cell responsive behavior - STICKY */
 .text-cell {
+  position: sticky;
+  left: 50px; /* Position after line number column */
+  z-index: 9;
+  background: white;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 3px 12px; /* Match table cell padding */
   line-height: 1.2; /* Match table line-height */
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05); /* Subtle shadow when scrolling */
 }
 
 /* When wrapping: each cell grows only as needed */
 .results-table.text-wrapped .text-cell {
+  position: sticky; /* Maintain sticky positioning */
+  left: 50px;
+  z-index: 9;
+  background: white;
   white-space: normal;
   word-wrap: break-word;
   text-overflow: initial;
   overflow: visible;
   max-height: none;
   height: auto; /* Natural height for this cell's content */
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Text header with toggle button - CRITICAL MISSING STYLES */
@@ -938,6 +958,15 @@ function getColumnHeaders(column: Column) {
   background-color: rgba(52, 152, 219, 0.05);
 }
 
+/* Ensure sticky cells maintain hover background */
+.results-table tbody tr:hover .line-number-cell {
+  background-color: rgba(52, 152, 219, 0.08);
+}
+
+.results-table tbody tr:hover .text-cell {
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
 /* Force each ROW to be only as tall as its own content */
 .results-table tr {
   height: auto; /* Each row determines its own height */
@@ -984,8 +1013,11 @@ function getColumnHeaders(column: Column) {
   gap: 4px;
 }
 
-/* Line number column styling */
+
 .line-number-cell {
+  position: sticky;
+  left: 0;
+  z-index: 9;
   text-align: center;
   font-weight: 600;
   background: #f8f9fa;

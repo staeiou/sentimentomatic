@@ -23,7 +23,16 @@ u can def analyze slang w/ vader, its gr8! text analysis ftw!
 Although a double negative in English implies a positive meaning, there is no language in which a double positive implies a negative.
 Yeah, right.
 Sentiment analysis is the perfect and foolproof method for every research project ever --- NOT!
-Your items/lines can be up to 2,500 characters. Just make sure there are no newlines in your units of texts. Note that long texts (more than 250 words) can break VADER, and textblob handles longer texts better.`
+Your items/lines can be up to 2,500 characters. Just make sure there are no newlines in your units of texts. Note that long texts (more than 250 words) can break VADER, and textblob handles longer texts better.
+¡Esta aplicación es ABSOLUTAMENTE INCREÍBLE! ¡La mejor que he visto en mi vida! ¡Espectacular!
+Odio este análisis basura, no funciona para nada y es una pérdida total de tiempo
+El que nace para maceta del corredor no pasa
+Aplikasi ini sangat bagus sekali! Luar biasa! Keren banget! Saya suka sekali!
+Jelek sekali programnya, busuk, tidak berguna sama sekali, saya benci ini
+Air beriak tanda tak dalam
+这是我见过最棒最完美的应用！太牛了！强烈推荐给所有人！必须五星好评！
+垃圾软件！烂透了！浪费我时间！谁做的这个破玩意儿？差评差评差评！
+塞翁失马，焉知非福`
 
 onMounted(() => {
   const container = document.getElementById('text-input')
