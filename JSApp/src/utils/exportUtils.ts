@@ -49,7 +49,9 @@ export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult, e
         header.push(`${col.name}_Score`, `${col.name}_Sentiment`);
       } else if (col.type === 'classification') {
         if (expandMulticlass && classificationClassNames.has(col.name)) {
-          // Add individual columns for each class
+          // Add majority class columns first
+          header.push(`${col.name}_Majority_Prediction`, `${col.name}_Majority_Likelihood`);
+          // Then add individual columns for each class
           const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
           classNames.forEach(className => {
             header.push(`${col.name}_Class_${className}`);
@@ -77,7 +79,9 @@ export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult, e
             row.push(result.score != null ? result.score.toFixed(3) : '0.000', escapeCSV(result.sentiment || 'neutral'));
           } else if (col.type === 'classification') {
             if (expandMulticlass && classificationClassNames.has(col.name)) {
-              // Add individual class confidence scores
+              // Add majority class columns first
+              row.push(escapeCSV(result.metadata?.exportLabel || result.topClass || 'N/A'), result.confidence != null ? result.confidence.toFixed(3) : '0.000');
+              // Then add individual class confidence scores
               const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
               classNames.forEach(className => {
                 const confidence = result.allClasses && result.allClasses[className]
@@ -96,7 +100,9 @@ export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult, e
             row.push('0.000', 'neutral');
           } else if (col.type === 'classification') {
             if (expandMulticlass && classificationClassNames.has(col.name)) {
-              // Add zeros for all classes
+              // Add majority class columns first
+              row.push('N/A', '0.000');
+              // Then add zeros for all classes
               const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
               classNames.forEach(() => row.push('0.000'));
             } else {
@@ -294,7 +300,9 @@ export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult,
         header.push(`${col.name}_Score`, `${col.name}_Sentiment`);
       } else if (col.type === 'classification') {
         if (expandMulticlass && classificationClassNames.has(col.name)) {
-          // Add individual columns for each class
+          // Add majority class columns first
+          header.push(`${col.name}_Majority_Prediction`, `${col.name}_Majority_Likelihood`);
+          // Then add individual columns for each class
           const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
           classNames.forEach(className => {
             header.push(`${col.name}_Class_${className}`);
@@ -325,7 +333,12 @@ export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult,
             );
           } else if (col.type === 'classification') {
             if (expandMulticlass && classificationClassNames.has(col.name)) {
-              // Add individual class confidence scores
+              // Add majority class columns first
+              row.push(
+                result.metadata?.exportLabel || result.topClass || 'N/A',
+                result.confidence != null ? parseFloat(result.confidence.toFixed(3)) : 0
+              );
+              // Then add individual class confidence scores
               const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
               classNames.forEach(className => {
                 const confidence = result.allClasses && result.allClasses[className]
@@ -347,7 +360,9 @@ export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult,
             row.push(0, 'neutral');
           } else if (col.type === 'classification') {
             if (expandMulticlass && classificationClassNames.has(col.name)) {
-              // Add zeros for all classes
+              // Add majority class columns first
+              row.push('N/A', 0);
+              // Then add zeros for all classes
               const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
               classNames.forEach(() => row.push(0));
             } else {
