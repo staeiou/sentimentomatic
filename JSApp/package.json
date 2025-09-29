@@ -9,7 +9,6 @@
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "test:model-sizes": "playwright test tests/model-sizes.spec.ts",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui"
   },

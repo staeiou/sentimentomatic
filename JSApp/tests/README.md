@@ -1,6 +1,6 @@
-# E2E Model Size Testing
+# E2E Tests
 
-This directory contains Playwright end-to-end tests for systematically testing all sentiment analysis models and logging their actual download sizes.
+This directory contains Playwright end-to-end tests for the JSApp sentiment analysis application.
 
 ## Setup
 
@@ -17,13 +17,6 @@ npm run dev
 
 ## Running Tests
 
-### Test All Models and Log Sizes
-This is the main test that systematically tests each model and logs detailed size information:
-
-```bash
-npm run test:model-sizes
-```
-
 ### All E2E Tests
 ```bash
 npm run test:e2e
@@ -39,52 +32,63 @@ npm run test:debug
 npm run test:ui
 ```
 
-## What the Test Does
-
-The `model-sizes.spec.ts` test:
-
-1. **Tests Each Model Individually**: Clears cache, selects one model, runs analysis
-2. **Monitors Downloads**: Tracks network requests and file sizes during download
-3. **Inspects Browser Cache**: Checks the actual `transformers-cache` contents after download
-4. **Logs Detailed Results**: Shows file-by-file breakdown of what gets cached
-5. **Generates Summary Report**: Creates comprehensive size analysis
-
-## Expected Output
-
-The test will generate detailed console output like:
-
-```
-🚀 STARTING COMPREHENSIVE MODEL SIZE TESTING
-================================================================================
-
-🧪 Testing DistilBERT SST-2 (Xenova/distilbert-base-uncased-finetuned-sst-2-english)
-   📥 Downloaded: config.json (1.2 KB)
-   📥 Downloaded: tokenizer.json (466.6 KB)
-   📥 Downloaded: model_quantized.onnx (255.8 MB)
-   ✅ Analysis completed
-   📊 Cache contains 3 files:
-      📁 config.json - 1.2 KB
-      📁 tokenizer.json - 466.6 KB
-      📁 model_quantized.onnx - 255.8 MB
-   🎯 Total size: 256.3 MB
-
-📋 COMPREHENSIVE MODEL SIZE REPORT
-================================================================================
-
-📊 SUMMARY TABLE:
-Model Name                    HuggingFace ID                          Size           Files
------------------------------------------------------------------------------------------------
-DistilBERT SST-2             Xenova/distilbert-base-uncased...      256.3 MB       3
-Twitter RoBERTa              Xenova/twitter-roberta-base-sent...     501.2 MB       3
-...
-
-TOTAL (12 models):                                                  3.2 GB         45 files
+### Run Specific Test
+```bash
+npx playwright test export-functionality.spec.ts
 ```
 
-## Benefits
+## Available Tests
 
-- **Real Size Data**: Get actual download sizes instead of estimates
-- **Cache Validation**: Verify cache system is working correctly
-- **Performance Baseline**: Understand bandwidth requirements
-- **Model Comparison**: Compare sizes across different model types
-- **Regression Testing**: Catch cache system regressions
+### `export-functionality.spec.ts` ✅ **Working**
+Tests the core export functionality of the application:
+
+1. **Full Analysis Pipeline**: Uses default text and models, waits for complete analysis
+2. **CSV Export Testing**: Tests both standard and multiclass export modes
+3. **Multiclass Column Expansion**: Verifies that classification models export both:
+   - `ModelName_Majority_Prediction` + `ModelName_Majority_Likelihood` (summary)
+   - `ModelName_Class_[emotion1]`, `ModelName_Class_[emotion2]`, etc. (detailed breakdown)
+4. **Real Model Testing**: Tests with actual models (VADER, DistilBERT, GoEmotions, Jigsaw Toxicity)
+5. **Proper Timing**: Waits for analysis completion before testing exports
+
+**Expected Output**:
+- Tests pass with real model analysis (takes ~45 seconds)
+- Console shows analysis progress: VADER → DistilBERT → GoEmotions → Jigsaw Toxicity
+- Validates CSV structure with actual sentiment and classification results
+
+### `types.ts`
+TypeScript type definitions for test utilities and data structures.
+
+## Test Features
+
+- **Real Analysis**: Tests run actual ML models (not mocked)
+- **Accessibility Selectors**: Uses `data-testid` attributes for reliable element selection
+- **Modal Handling**: Properly handles download confirmation dialogs
+- **Progress Monitoring**: Watches analysis progress to ensure completion
+- **File Validation**: Downloads and validates actual CSV export files
+- **Headless Mode**: Runs efficiently without visible browser windows
+
+## Adding New Tests
+
+When adding new tests:
+
+1. **Use proper selectors**: Prefer `data-testid` attributes over CSS classes
+2. **Handle async operations**: Wait for analysis completion before assertions
+3. **Test real functionality**: Don't mock the core analysis pipeline
+4. **Include cleanup**: Remove any test files created during testing
+5. **Set appropriate timeouts**: ML models can take 30-60 seconds to load and run
+
+## Troubleshooting
+
+**Tests timing out**:
+- Increase test timeout: `test.setTimeout(120000)`
+- Check that dev server is running on correct port
+- Ensure models can download (check network connection)
+
+**Modal not appearing**:
+- Verify download confirmation modal selectors
+- Check that models are properly detected as needing download
+
+**Export files not generated**:
+- Ensure analysis completes before testing exports
+- Check browser download permissions in test environment
+- Verify export button selectors are correct
