@@ -1,308 +1,344 @@
 # Sentimentomatic
 
-A comprehensive sentiment analysis web application built with TypeScript and modern web technologies. Analyzes text using multiple sentiment analysis approaches from rule-based algorithms to state-of-the-art transformer models.
+A comprehensive sentiment analysis platform with **two independent applications**: a legacy Python Flask server and a modern client-side web application. Choose the approach that best fits your needs!
 
-## 🚀 Features
+## 📱 Two Applications
 
-- **Multiple Analysis Methods**: VADER, AFINN, and transformer-based models (DistilBERT, RoBERTa, etc.)
-- **Real-time Processing**: Streaming analysis with live results display
-- **Classification Models**: Emotion detection (GoEmotions), content moderation, topic classification
-- **Export Functionality**: CSV and JSON export with proper formatting
-- **Client-side Processing**: All analysis runs in the browser using WebAssembly
-- **Model Caching**: Intelligent caching system for ML models
-- **Responsive UI**: Clean, modern interface optimized for data analysis
+### 🆕 **JSApp** - Modern Client-Side Application (Recommended)
+**Local-first browser analysis using Transformers.js**
+
+- **🔒 Privacy-First**: All processing happens in your browser - no data sent to servers
+- **🌐 Works Offline**: No internet required after initial model download
+- **🚀 Modern Stack**: Vue 3 + TypeScript + Vite
+- **🤖 Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity, and more
+- **📊 Rich Export**: CSV/JSON/Excel with multiclass analysis support
+- **⚡ Real-time**: Streaming analysis with live results
+- **🎨 Modern UI**: AG-Grid tables, responsive design
+
+### 🔧 **FlaskApp** - Legacy Python Server (For Older Models)
+**Traditional server-based processing with Google Perspective API**
+
+- **🐍 Python/Flask**: Server-side processing
+- **🔍 Google Perspective**: Toxicity detection via API (requires key)
+- **📚 Classic Models**: VADER, TextBlob sentiment analysis
+- **🛡️ ReCaptcha**: Built-in spam protection
+- **📋 Simple Interface**: HTML forms with DataTables
+- **⚠️ Limitations**: 50 lines max, requires internet connection
+
+## 🎯 Which Should I Use?
+
+| Use Case | Recommended App | Why |
+|----------|----------------|-----|
+| **Privacy-sensitive analysis** | JSApp | No data leaves your browser |
+| **Offline analysis** | JSApp | Works without internet |
+| **Modern transformer models** | JSApp | DistilBERT, RoBERTa, GoEmotions |
+| **Advanced export features** | JSApp | Multiclass analysis, multiple formats |
+| **Legacy Python integration** | FlaskApp | Existing Python workflows |
+| **Google Perspective API** | FlaskApp | Requires their toxicity API |
 
 ## 🏗️ Architecture
 
-### Core Components
+### 🆕 JSApp Architecture (Modern Client-Side)
 
 ```
 JSApp/
 ├── src/
-│   ├── analyzers/           # Sentiment analysis implementations
-│   │   ├── AfinnAnalyzer.ts
-│   │   ├── VaderAnalyzer.ts
-│   │   └── TransformersAnalyzer.ts
-│   ├── analysis/            # Analysis orchestration
-│   │   ├── StreamingAnalysisController.ts
-│   │   └── IncrementalTableRenderer.ts
-│   ├── models/              # Model management and caching
-│   │   ├── ModelManager.ts
-│   │   ├── CacheManager.ts
-│   │   └── registry.ts
-│   └── utils/               # Utilities and helpers
-│       ├── exportUtils.ts
-│       └── textProcessor.ts
-├── index.html               # Main application page
+│   ├── core/
+│   │   ├── analyzers/           # Analysis implementations
+│   │   ├── analysis/            # Analysis orchestration
+│   │   └── models/              # Model management and caching
+│   ├── components/              # Vue 3 components
+│   │   ├── InputSection.vue
+│   │   ├── ResultsTable/        # AG-Grid table components
+│   │   └── ModelSelector/
+│   ├── stores/                  # Pinia state management
+│   └── utils/                   # Export utilities
+├── tests/                       # Playwright E2E tests
 └── package.json
 ```
 
-### Data Flow
+**JSApp Data Flow**:
+1. **Browser-Based**: Everything runs locally using WebAssembly
+2. **Model Loading**: Transformers.js downloads and caches models in IndexedDB
+3. **Streaming Analysis**: Real-time processing with progress updates
+4. **Rich Export**: CSV/JSON/Excel with multiclass column expansion
 
-1. **Text Input**: User enters text, line numbering syncs automatically
-2. **Model Selection**: Choose from rule-based and ML models
-3. **Streaming Analysis**: Each line analyzed progressively
-4. **Live Results**: Results appear in real-time table
-5. **Export**: Generate CSV/JSON with proper formatting
+**JSApp Analysis Types**:
+- **Sentiment**: VADER, AFINN, DistilBERT, RoBERTa, Multilingual models
+- **Emotion Classification**: GoEmotions (28 emotions)
+- **Content Moderation**: Jigsaw Toxicity, various safety models
+- **Topic Classification**: News categorization, industry classification
 
-### Analysis Types
+### 🔧 FlaskApp Architecture (Legacy Server-Side)
 
-**Sentiment Analysis**:
-- **VADER**: Rule-based, optimized for social media (-1 to +1)
-- **AFINN**: Word list approach (-5 to +5)
-- **DistilBERT**: Transformer model trained on Stanford Sentiment Treebank
-- **RoBERTa**: Twitter-optimized transformer model
+```
+FlaskApp/
+├── flaskapp.py              # Main Flask application
+├── requirements.txt         # Python dependencies
+├── templates/
+│   ├── form.html           # Main UI form
+│   └── upload.html         # File upload interface
+└── static/                 # CSS/JS assets
+```
 
-**Classification**:
-- **GoEmotions**: 28 emotion categories (joy, anger, fear, etc.)
-- **Content Moderation**: Toxicity and inappropriate content detection
-- **Topic Classification**: IPTC news categories, COVID misinformation detection
+**FlaskApp Data Flow**:
+1. **Server Processing**: Text sent to Python Flask server
+2. **API Calls**: Google Perspective API for toxicity detection
+3. **Library Analysis**: VADER and TextBlob on server
+4. **HTML Response**: Results rendered in DataTables
+
+**FlaskApp Analysis Types**:
+- **Sentiment**: VADER compound scores, TextBlob polarity/subjectivity
+- **Toxicity**: Google Perspective API (requires API key)
+- **Limitations**: 50 lines max, 125k characters, requires internet
 
 ## 🛠️ Development Setup
 
-### Prerequisites
+### 🆕 JSApp Setup (Recommended)
 
-- Node.js 18+
-- npm or yarn
-
-### Installation
+**Prerequisites**: Node.js 20+, npm
 
 ```bash
+# Navigate to modern app
 cd JSApp
+
+# Install dependencies
 npm install
-```
 
-### Development Server
-
-```bash
+# Start development server
 npm run dev
+# Opens on http://localhost:3000
+
+# Build for production
+npm run build
+# Outputs to dist/ directory
+
+# Run tests
+npm run test:e2e
 ```
 
-Opens development server on `http://localhost:3000`
+### 🔧 FlaskApp Setup (Legacy)
 
-### Building
+**Prerequisites**: Python 3.7+, pip
 
 ```bash
-npm run build
+# Navigate to Flask app
+cd FlaskApp
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Set up Google Perspective API key (optional)
+# Edit flaskapp.py and add your API key to G_API_KEY
+
+# Set up ReCaptcha keys (optional)
+# Edit flaskapp.py and add your keys to RECAPTCHA_SITE_KEY and RECAPTCHA_SECRET_KEY
+
+# Run Flask development server
+python flaskapp.py
+# Opens on http://127.0.0.1:5002
 ```
 
-Outputs optimized build to `dist/` directory.
+**Note**: FlaskApp requires API keys for full functionality. Without them, only VADER and TextBlob analysis will work.
 
-## 🔧 Configuration
+## 🔧 Configuration (JSApp)
 
-### Adding New Models
+### Adding New Transformer Models
 
-1. **Register Model** in `src/models/registry.ts`:
+JSApp supports any ONNX model from HuggingFace. To add a new model:
+
+1. **Register in Model Store** (`src/stores/modelStore.ts`):
 
 ```typescript
-export const modelConfigs: Record<string, ModelConfig> = {
-  'my-new-model': {
-    id: 'my-new-model',
-    name: 'My Custom Model',
-    type: 'sentiment',
-    huggingFaceId: 'username/model-name',
-    size: 250,
-    description: 'Custom sentiment model'
-  }
-};
-```
-
-2. **Update UI** in `index.html`:
-
-```html
-<label><input type="checkbox" id="use-my-new-model"> My Custom Model (250MB)</label>
-```
-
-3. **Wire up checkbox** in `src/main.ts`:
-
-```typescript
-this.myNewModelCheckbox = document.getElementById('use-my-new-model') as HTMLInputElement;
-```
-
-### Model Configuration Options
-
-```typescript
-interface ModelConfig {
-  id: string;                    // Unique identifier
-  name: string;                  // Display name
-  type: 'sentiment' | 'classification';
-  huggingFaceId: string;         // HuggingFace model ID
-  size: number;                  // Model size in MB
-  description?: string;          // Optional description
-  preprocessing?: PreprocessConfig;
-  postprocessing?: PostprocessConfig;
+// Add to NEURAL_MODELS array
+{
+  id: 'my-custom-model',
+  name: 'My Custom Model',
+  huggingFaceId: 'username/my-model-onnx',
+  type: 'sentiment', // or 'classification'
+  size: 250, // MB
+  description: 'Custom transformer model'
 }
 ```
 
+2. **Add UI Checkbox** (`src/components/ModelSelector/ModelSelector.vue`):
+
+```html
+<label class="model-checkbox">
+  <input type="checkbox" id="use-my-custom-model" v-model="selectedModels['my-custom-model']">
+  My Custom Model (250MB)
+</label>
+```
+
+3. **Model Requirements**:
+- Must be ONNX format for browser compatibility
+- Should include `tokenizer.json` and `config.json`
+- Size recommendations: <500MB for good UX
+
+### Export Configuration
+
+**Multiclass Export**: When enabled, classification models export both:
+- `ModelName_Majority_Prediction` + `ModelName_Majority_Likelihood` (summary)
+- `ModelName_Class_[class1]`, `ModelName_Class_[class2]`, etc. (all classes)
+
 ## 📦 Dependencies
 
-### Core Dependencies
+### 🆕 JSApp Dependencies
 
+**Core**:
 - **@xenova/transformers**: WebAssembly-based transformer models
-- **sentiment**: AFINN sentiment analysis
-- **vader-sentiment**: VADER sentiment analysis
-- **os-browserify**, **path-browserify**: Node.js compatibility shims
+- **Vue 3**: Modern reactive framework
+- **ag-grid-vue3**: Advanced data grid for results display
+- **pinia**: State management
+- **sentiment**, **vader-sentiment**: Rule-based analysis
 
-### Development Dependencies
-
-- **TypeScript**: Type safety and modern JS features
+**Development**:
+- **TypeScript**: Type safety
 - **Vite**: Fast build tool and dev server
+- **Playwright**: E2E testing framework
 
-### Removed Dependencies
+### 🔧 FlaskApp Dependencies
 
-- **@huggingface/transformers**: Replaced with @xenova/transformers (smaller, faster)
-- **puppeteer**: Removed testing framework (116 packages saved)
+**Core**:
+- **Flask**: Python web framework
+- **vaderSentiment**: VADER sentiment analysis
+- **textblob**: TextBlob sentiment analysis
+- **pandas**: Data manipulation
+- **google-api-python-client**: Perspective API access
 
-## 🎨 Styling
-
-The application uses a custom CSS framework with:
-
-- **Color Scheme**: Modern flat design with high contrast
-- **Typography**: Monospace fonts for data, Arial for UI
-- **Responsive Layout**: Flexbox and CSS Grid
-- **Fixed Footer**: Full-width footer anchored to viewport bottom
-
-### Key CSS Classes
-
-- `.results-table`: Main data display table
-- `.text-cell`: Text content with overflow handling
-- `.progress-bar`: Analysis progress visualization
-- `.line-numbers`: Synchronized line numbering
+**UI**:
+- **DataTables**: Interactive HTML tables
+- **ReCaptcha**: Spam protection
 
 ## 🚀 Deployment
 
-### GitHub Pages
+### 🆕 JSApp Deployment (Static)
 
-The project is configured for automatic GitHub Pages deployment:
-
-1. **GitHub Actions**: `.github/workflows/deploy.yml`
-2. **Build Process**: TypeScript compilation + Vite bundling
-3. **Deployment**: Automatic on push to main branch
-
-### Manual Deployment
-
+**GitHub Pages** (Automatic):
 ```bash
-npm run build
-# Deploy contents of dist/ directory to web server
+# Configured in .github/workflows/deploy.yml
+# Deploys automatically on push to main branch
 ```
 
-### Environment Variables
+**Manual Deployment**:
+```bash
+cd JSApp
+npm run build
+# Deploy contents of dist/ directory to any static host
+```
 
-- `NODE_ENV=production`: Enables production optimizations
-- Base path automatically set to `/sentimentomatic/` for GitHub Pages
+**Hosting Options**: GitHub Pages, Netlify, Vercel, AWS S3, any static file host
+
+### 🔧 FlaskApp Deployment (Server Required)
+
+**Development**:
+```bash
+cd FlaskApp
+python flaskapp.py
+```
+
+**Production**: Use WSGI server (Gunicorn, uWSGI) with reverse proxy (Nginx)
+
+**Requirements**: Python server environment, API key configuration
 
 ## ⚡ Performance
 
-### Bundle Analysis
+### 🆕 JSApp Performance
+- **Initial Load**: ~515KB gzipped (JS) + ~40KB (CSS)
+- **Model Loading**: On-demand download (100MB-500MB per model)
+- **Caching**: IndexedDB persistence, models cached permanently
+- **Processing**: Real-time streaming analysis with progress updates
+- **Memory**: Efficient WebAssembly execution, model cleanup
 
-- **Main JS**: ~53KB (gzipped: 14KB)
-- **Sentiment Core**: ~177KB (gzipped: 61KB) - VADER, AFINN
-- **CSS**: ~5KB (gzipped: 1.4KB)
-- **Total Initial Load**: ~235KB
-
-### Model Loading
-
-- **Lazy Loading**: Models download only when selected
-- **Caching**: IndexedDB storage for model persistence
-- **Progress Tracking**: Real-time download progress
-- **Error Handling**: Graceful fallbacks for network issues
-
-### Memory Management
-
-- **Streaming Processing**: Lines processed individually
-- **Model Cleanup**: Unused models garbage collected
-- **Cache Limits**: Configurable cache size limits
+### 🔧 FlaskApp Performance
+- **Server-side**: Processing limited by Python/Flask performance
+- **API Limits**: Google Perspective API rate limits apply
+- **Concurrent Users**: Limited by server resources
+- **Response Time**: Network latency + server processing time
 
 ## 🧪 Testing
 
-### Manual Testing
+### 🆕 JSApp Testing
 
 ```bash
-npm run dev
-# Test in browser at localhost:3000
+cd JSApp
+
+# Run E2E tests
+npm run test:e2e
+
+# Run specific test
+npx playwright test export-functionality.spec.ts
+
+# Debug mode (visible browser)
+npx playwright test --headed
 ```
 
-### Test Cases
+**Test Coverage**: Export functionality, model loading, analysis pipeline
 
-1. **Text Input**: Various text lengths, special characters, emojis
-2. **Model Selection**: Different combinations of analyzers
-3. **Export Functionality**: CSV and JSON format validation
-4. **Performance**: Large text files, multiple models
-5. **Error Handling**: Network failures, invalid inputs
+### 🔧 FlaskApp Testing
+- **Manual testing**: Use web interface
+- **API testing**: Test with various text inputs and API configurations
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### 🆕 JSApp Issues
 
 **Models not loading**:
 - Check browser console for network errors
-- Verify HuggingFace model IDs in registry
-- Clear browser cache and IndexedDB
+- Clear IndexedDB cache: DevTools → Application → Storage
+- Verify model IDs in `src/stores/modelStore.ts`
 
 **Memory issues**:
-- Reduce number of concurrent models
-- Clear model cache
-- Use smaller models for testing
+- Disable large models (>300MB)
+- Reload page to clear model memory
+- Use Chrome Task Manager to monitor memory
 
-**Build failures**:
-- Check TypeScript errors: `npx tsc --noEmit`
-- Verify all imports are resolved
-- Update dependencies: `npm update`
+**Export issues**:
+- Wait for analysis to complete (button shows "Analyze" again)
+- Check browser download permissions
+- Try different export format (CSV/JSON/Excel)
 
-**Export not working**:
-- Ensure analysis completed successfully
-- Check browser's download permissions
-- Verify CSV/JSON formatting in export utils
+### 🔧 FlaskApp Issues
 
-### Debug Mode
+**API errors**:
+- Verify Google Perspective API key in `flaskapp.py`
+- Check ReCaptcha configuration
+- Ensure Python dependencies installed
 
-Enable debug logging:
-
-```typescript
-// In browser console
-localStorage.setItem('debug', 'sentiment:*');
-```
+**Server issues**:
+- Check Flask logs for errors
+- Verify port 5002 is available
+- Test with smaller text inputs
 
 ## 🤝 Contributing
 
-### Code Style
-
-- **TypeScript**: Strict mode enabled
-- **Formatting**: Consistent indentation, semicolons
-- **Naming**: camelCase for variables, PascalCase for classes
-- **Comments**: JSDoc for public APIs
-
-### Pull Request Process
+Contributions welcome! Please focus on the **JSApp** for new features as it's the actively maintained codebase.
 
 1. Fork the repository
 2. Create feature branch: `git checkout -b feature-name`
-3. Make changes with proper TypeScript types
-4. Test functionality manually
-5. Build successfully: `npm run build`
-6. Submit pull request with clear description
-
-### Architecture Guidelines
-
-- **Separation of Concerns**: Keep analyzers, UI, and data management separate
-- **Type Safety**: Use TypeScript interfaces for all data structures
-- **Error Handling**: Graceful degradation for all failure modes
-- **Performance**: Consider memory usage and bundle size impact
+3. Test with: `cd JSApp && npm run test:e2e`
+4. Build successfully: `npm run build`
+5. Submit pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see the LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
+### JSApp (Modern)
+- **Transformers.js**: Xenova for WebAssembly ML
+- **Vue 3**: Evan You and the Vue team
+- **AG-Grid**: Advanced data grid components
+- **HuggingFace**: Model hosting and ecosystem
+
+### FlaskApp (Legacy)
+- **Original Implementation**: R. Stuart Geiger
 - **VADER Sentiment**: C.J. Hutto & Eric Gilbert
-- **AFINN**: Finn Årup Nielsen
-- **Transformers.js**: Xenova for WebAssembly implementation
-- **HuggingFace**: Model hosting and transformer implementations
-- **Original Flask App**: R. Stuart Geiger
+- **Google Perspective API**: Jigsaw team
+- **TextBlob**: Steven Loria
 
 ## 📚 References
 
-- [VADER Sentiment Analysis](https://github.com/cjhutto/vaderSentiment)
-- [Transformers.js Documentation](https://huggingface.co/docs/transformers.js)
-- [Vite Build Tool](https://vitejs.dev/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- 🆕 **JSApp**: [Transformers.js](https://huggingface.co/docs/transformers.js) | [Vue 3](https://vuejs.org) | [Vite](https://vitejs.dev)
+- 🔧 **FlaskApp**: [VADER](https://github.com/cjhutto/vaderSentiment) | [Perspective API](https://perspectiveapi.com) | [Flask](https://flask.palletsprojects.com)
