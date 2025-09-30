@@ -225,7 +225,6 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
           headerName: 'Sentiment',
           width: 100,
           minWidth: 100,
-          maxWidth: 150,
           sortable: true,
           filter: false,
           cellRenderer: (params: any) => {
@@ -243,7 +242,6 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
           headerName: isRuleBased(column.name) ? 'Score' : 'Confidence',
           width: 100,
           minWidth: 100,
-          maxWidth: 150,
           sortable: true,
           filter: false,
           cellRenderer: (params: any) => {
@@ -267,7 +265,6 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
           headerName: 'Class',
           width: 120,
           minWidth: 120,
-          maxWidth: 150,
           sortable: true,
           filter: false,
           cellRenderer: (params: any) => {
@@ -282,7 +279,6 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
           headerName: 'Confidence',
           width: 100,
           minWidth: 100,
-          maxWidth: 150,
           sortable: true,
           filter: false,
           cellRenderer: (params: any) => {
