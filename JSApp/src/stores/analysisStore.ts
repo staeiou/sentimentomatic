@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import type { MultiModalAnalysisResult } from '../core/analysis/AnalysisStrategy'
 import { AnalyzerRegistry } from '../core/analyzers'
 import { MultiModelAnalyzer } from '../core/analyzers/MultiModelAnalyzer'
@@ -13,12 +13,123 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const progressStatus = ref('')
   const currentResult = ref<MultiModalAnalysisResult | null>(null)
 
+  // Timing state for tqdm-style progress
+  const overallStartTime = ref<number>(0)
+  const currentModelStartTime = ref<number>(0)
+  const currentModelName = ref<string>('')
+  const totalModels = ref<number>(0)
+  const completedModels = ref<number>(0)
+  const totalUnits = ref<number>(0)
+  const completedUnits = ref<number>(0)
+  const currentModelTotalLines = ref<number>(0)
+  const currentModelProcessedLines = ref<number>(0)
+  const now = ref<number>(Date.now()) // Reactive timestamp for computed properties
+
+  // Better tracking: total work = lines * models
+  const totalWorkItems = ref<number>(0) // Total lines to process across all models
+  const completedWorkItems = ref<number>(0) // Lines actually processed
+
+  // Rate smoothing with exponential moving average (EMA)
+  const currentModelRate = ref<number>(0) // lines per ms, smoothed
+  const overallRate = ref<number>(0) // work items per ms, smoothed
+  const EMA_ALPHA = 0.3 // Smoothing factor (0.3 means 30% new, 70% old)
+
+  let rafId: number | null = null
+  let lastUpdateTime = 0
+  const UPDATE_INTERVAL = 300 // Update every 300ms even with RAF
+
   // Core analysis components (initialized once)
   const analyzerRegistry = new AnalyzerRegistry()
   const multiModelAnalyzer = new MultiModelAnalyzer(
     analyzerRegistry.getModelManager()
   )
   // Remove DOM-based controller - using Vue reactive state instead
+
+  // Helper: Format milliseconds to MM:SS or HH:MM:SS
+  function formatTime(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000)
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  // Computed: Current model elapsed and remaining times
+  const currentModelElapsed = computed(() => {
+    if (!isAnalyzing.value || currentModelStartTime.value === 0) return '0:00'
+    return formatTime(now.value - currentModelStartTime.value)
+  })
+
+  const currentModelRemaining = computed(() => {
+    if (!isAnalyzing.value || currentModelRate.value === 0) return '?:??'
+    const remaining = currentModelTotalLines.value - currentModelProcessedLines.value
+    if (remaining <= 0) return '0:00'
+    return formatTime(remaining / currentModelRate.value) // Use smoothed rate
+  })
+
+  // Computed: Overall elapsed and remaining times
+  const overallElapsed = computed(() => {
+    if (!isAnalyzing.value || overallStartTime.value === 0) return '0:00'
+    return formatTime(now.value - overallStartTime.value)
+  })
+
+  const overallRemaining = computed(() => {
+    if (!isAnalyzing.value || overallRate.value === 0) return '?:??'
+    const remaining = totalWorkItems.value - completedWorkItems.value
+    if (remaining <= 0) return '0:00'
+    return formatTime(remaining / overallRate.value) // Use smoothed rate
+  })
+
+  // Update timing with RAF for smooth animation
+  function updateTimingLoop() {
+    const currentTime = Date.now()
+
+    // Throttle updates to UPDATE_INTERVAL
+    if (currentTime - lastUpdateTime >= UPDATE_INTERVAL) {
+      now.value = currentTime
+
+      // Update smoothed rates using EMA
+      if (currentModelProcessedLines.value > 0 && currentModelStartTime.value > 0) {
+        const elapsed = currentTime - currentModelStartTime.value
+        const instantRate = currentModelProcessedLines.value / elapsed
+        // EMA: smoothedRate = alpha * instantRate + (1 - alpha) * previousRate
+        currentModelRate.value = currentModelRate.value === 0
+          ? instantRate
+          : EMA_ALPHA * instantRate + (1 - EMA_ALPHA) * currentModelRate.value
+      }
+
+      if (completedWorkItems.value > 0 && overallStartTime.value > 0) {
+        const elapsed = currentTime - overallStartTime.value
+        const instantRate = completedWorkItems.value / elapsed
+        overallRate.value = overallRate.value === 0
+          ? instantRate
+          : EMA_ALPHA * instantRate + (1 - EMA_ALPHA) * overallRate.value
+      }
+
+      lastUpdateTime = currentTime
+    }
+
+    // Continue loop if analyzing
+    if (isAnalyzing.value) {
+      rafId = requestAnimationFrame(updateTimingLoop)
+    }
+  }
+
+  function startTimingLoop() {
+    lastUpdateTime = Date.now()
+    rafId = requestAnimationFrame(updateTimingLoop)
+  }
+
+  function stopTimingLoop() {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
+  }
 
   // Actions
   function updateText(newText: string) {
@@ -43,6 +154,25 @@ export const useAnalysisStore = defineStore('analysis', () => {
     isAnalyzing.value = true
     progress.value = 0
     progressStatus.value = 'Initializing...'
+
+    // Initialize timing
+    overallStartTime.value = Date.now()
+    now.value = Date.now()
+    totalModels.value = selectedRuleBasedAnalyzers.length + selectedHuggingFaceModels.length
+    completedModels.value = 0
+    totalUnits.value = totalModels.value * 3 // Each model has 3 units
+    completedUnits.value = 0
+    totalWorkItems.value = lines.value.length * totalModels.value // Total lines to process across all models
+    completedWorkItems.value = 0
+    currentModelStartTime.value = 0
+    currentModelName.value = ''
+    currentModelTotalLines.value = lines.value.length
+    currentModelProcessedLines.value = 0
+    currentModelRate.value = 0
+    overallRate.value = 0
+
+    // Start RAF timing loop
+    startTimingLoop()
 
     // Initialize table structure with all lines upfront (like original)
     const unifiedResults: any[] = []
@@ -100,7 +230,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       // Simple progress: 3 units per model (download, load, process)
       const totalModels = selectedRuleBasedAnalyzers.length + selectedHuggingFaceModels.length
       const totalUnits = totalModels * 3
-      let completedUnits = 0
+      let localCompletedUnits = 0
 
       // CRITICAL: Model type detection logic (EXACTLY like original)
       const isClassificationResult = (metadata: any): boolean => {
@@ -127,14 +257,21 @@ export const useAnalysisStore = defineStore('analysis', () => {
         const analyzerInstance = analyzerRegistry.getAnalyzer(analyzerName)
         if (!analyzerInstance?.isReady()) continue
 
+        // Start timing for this model
+        currentModelName.value = analyzerName.toUpperCase()
+        currentModelStartTime.value = Date.now()
+        currentModelProcessedLines.value = 0
+
         // Unit 1: Model "downloaded" (rule-based are instant)
-        completedUnits++
-        progress.value = (completedUnits / totalUnits) * 100
+        localCompletedUnits++
+        completedUnits.value++
+        progress.value = (localCompletedUnits / totalUnits) * 100
         progressStatus.value = `Ready ${analyzerName.toUpperCase()}...`
 
         // Unit 2: Model "loaded" (rule-based are instant)
-        completedUnits++
-        progress.value = (completedUnits / totalUnits) * 100
+        localCompletedUnits++
+        completedUnits.value++
+        progress.value = (localCompletedUnits / totalUnits) * 100
         progressStatus.value = `Loaded ${analyzerName.toUpperCase()}...`
 
         // Unit 3: Process all lines
@@ -180,11 +317,17 @@ export const useAnalysisStore = defineStore('analysis', () => {
             unifiedResults[lineIndex].results.push(errorResult)
             currentResult.value = { ...currentResult.value }
           }
+
+          // Update line counter for timing
+          currentModelProcessedLines.value++
+          completedWorkItems.value++ // Increment overall work items
         }
 
-        // Unit 3 complete
-        completedUnits++
-        progress.value = (completedUnits / totalUnits) * 100
+        // Unit 3 complete - model finished
+        localCompletedUnits++
+        completedUnits.value++
+        completedModels.value++
+        progress.value = (localCompletedUnits / totalUnits) * 100
       }
 
       // Process ML models - ONE MODEL AT A TIME FOR ALL LINES
@@ -193,17 +336,24 @@ export const useAnalysisStore = defineStore('analysis', () => {
         if (!modelInfo) continue
 
         try {
+          // Start timing for this model
+          currentModelName.value = modelInfo.displayName
+          currentModelStartTime.value = Date.now()
+          currentModelProcessedLines.value = 0
+
           // Unit 1: Download/Create worker
           progressStatus.value = `🚀 Creating worker for ${modelInfo.displayName}...`
           await multiModelAnalyzer.initializeWorker()
-          completedUnits++
-          progress.value = (completedUnits / totalUnits) * 100
+          localCompletedUnits++
+          completedUnits.value++
+          progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Unit 2: Load model
           progressStatus.value = `📥 Loading ${modelInfo.displayName}...`
           await multiModelAnalyzer.initializeSingleModel(modelId)
-          completedUnits++
-          progress.value = (completedUnits / totalUnits) * 100
+          localCompletedUnits++
+          completedUnits.value++
+          progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Unit 3: Process all lines
           progressStatus.value = `🔍 Running ${modelInfo.displayName} on all lines...`
@@ -278,11 +428,17 @@ export const useAnalysisStore = defineStore('analysis', () => {
               unifiedResults[lineIndex].results.push(errorResult)
               currentResult.value = { ...currentResult.value }
             }
+
+            // Update line counter for timing
+            currentModelProcessedLines.value++
+            completedWorkItems.value++ // Increment overall work items
           }
 
           // Unit 3 complete
-          completedUnits++
-          progress.value = (completedUnits / totalUnits) * 100
+          localCompletedUnits++
+          completedUnits.value++
+          completedModels.value++
+          progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Cleanup: TERMINATE WORKER to completely free ALL memory for this model
           progressStatus.value = `💥 Terminating worker to free memory for ${modelInfo.displayName}...`
@@ -306,14 +462,18 @@ export const useAnalysisStore = defineStore('analysis', () => {
           }
 
           // Still increment progress for failed model
-          completedUnits++
-          progress.value = (completedUnits / totalUnits) * 100
+          localCompletedUnits++
+          completedUnits.value++
+          progress.value = (localCompletedUnits / totalUnits) * 100
         }
       }
 
       // Return the final result (columns already set upfront)
       return currentResult.value
     } finally {
+      // Stop the RAF timing loop
+      stopTimingLoop()
+
       isAnalyzing.value = false
       progress.value = 100
       progressStatus.value = `Analysis complete - ${lines.value.length} lines processed`
@@ -328,6 +488,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return multiModelAnalyzer
   }
 
+  // Cleanup RAF on unmount to prevent memory leaks
+  onUnmounted(() => {
+    stopTimingLoop()
+  })
+
   return {
     // State
     text,
@@ -336,6 +501,18 @@ export const useAnalysisStore = defineStore('analysis', () => {
     progress,
     progressStatus,
     currentResult,
+
+    // Timing state
+    currentModelName,
+    currentModelProcessedLines,
+    totalModels,
+    completedModels,
+
+    // Computed timing
+    currentModelElapsed,
+    currentModelRemaining,
+    overallElapsed,
+    overallRemaining,
 
     // Actions
     updateText,
