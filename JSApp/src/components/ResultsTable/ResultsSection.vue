@@ -31,15 +31,16 @@
     <div class="results-toolbar" v-if="showResults">
       <h2>📊 Analysis Results</h2>
 
+      <button
+        type="button"
+        class="auto-scroll-toggle"
+        @click="autoScrollEnabled = !autoScrollEnabled"
+        :title="autoScrollEnabled ? 'Disable auto-scroll' : 'Enable auto-scroll'"
+      >
+        {{ autoScrollEnabled ? '📜 auto-scroll: ON' : '⏸️ auto-scroll: OFF' }}
+      </button>
+
       <div class="export-buttons">
-        <button
-          type="button"
-          class="btn btn-secondary auto-scroll-toggle"
-          @click="autoScrollEnabled = !autoScrollEnabled"
-          :title="autoScrollEnabled ? 'Disable auto-scroll' : 'Enable auto-scroll'"
-        >
-          {{ autoScrollEnabled ? '📜 auto-scroll: ON' : '⏸️ auto-scroll: OFF' }}
-        </button>
         <button type="button" id="export-csv" class="btn btn-secondary" @click="exportCSV" aria-label="Export results as CSV" data-testid="export-csv-button">Export CSV</button>
         <button type="button" id="export-excel" class="btn btn-secondary" @click="exportExcel" aria-label="Export results as Excel" data-testid="export-excel-button">Export Excel</button>
         <button type="button" id="export-json" class="btn btn-secondary" @click="exportJSON" aria-label="Export results as JSON" data-testid="export-json-button">Export JSON</button>
@@ -319,6 +320,30 @@ function exportJSON() {
   font-size: var(--font-size-2xl);
   margin: 0;
   flex-shrink: 0;
+}
+
+.auto-scroll-toggle {
+  background: var(--color-accent);
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-accent);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: var(--spacing-md);
+}
+
+.auto-scroll-toggle:hover {
+  background: #e65a00;
+  border-color: #e65a00;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.auto-scroll-toggle:active {
+  transform: translateY(0);
 }
 
 .export-buttons {
