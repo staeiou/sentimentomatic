@@ -11,10 +11,13 @@ import { useAnalysisStore } from '../../stores/analysisStore'
 const analysisStore = useAnalysisStore()
 let editorView: EditorView | null = null
 
-const defaultText = `Each line will be analyzed independently and given scores by various models.
+const defaultText = `Each line will be analyzed independently and given a score by various models.
 THIS IS SO SUPER COOL AND THE BEST EVER! YES!
-This means that lines are the units of analysis, no matter how many sentences. AWESOME! 😍
+This means that lines are the units of analysis. WOW! No matter how many sentences are in a line, it will score them all together. 
+If you are analyzing a text with newlines, you have to remove them, or else your analysis will be wrong and you will be sad.
 Ugh, I hate hate HATE trying to write examples, it's not fun! I'm not happy!
+If you have more sad, negative, terrible, ugly, no good, very bad words in a sentence, sentiment models will output a more negative score.
+If you mix sad, happy, and neutral words, what happens? What if you have "This is awesome" and "This is awful" in the same input?
 😢😠😢
 Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.
 There are three kinds of lies: lies, damned lies, and statistics.
@@ -23,7 +26,6 @@ u can def analyze slang w/ vader, its gr8! text analysis ftw!
 Although a double negative in English implies a positive meaning, there is no language in which a double positive implies a negative.
 Yeah, right.
 Sentiment analysis is the perfect and foolproof method for every research project ever --- NOT!
-Your items/lines can be up to 2,500 characters. Just make sure there are no newlines in your units of texts. Note that long texts (more than 250 words) can break VADER, and textblob handles longer texts better.
 ¡Esta aplicación es ABSOLUTAMENTE INCREÍBLE! ¡La mejor que he visto en mi vida! ¡Espectacular!
 Odio este análisis basura, no funciona para nada y es una pérdida total de tiempo
 El que nace para maceta del corredor no pasa
