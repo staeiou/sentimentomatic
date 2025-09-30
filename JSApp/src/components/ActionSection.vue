@@ -11,7 +11,17 @@
         <div class="progress-bar-inline">
           <div class="progress-fill" :style="{ width: analysisStore.progress + '%' }"></div>
           <div class="progress-text">
-            {{ analysisStore.progressStatus || 'Ready to analyze' }} ({{ Math.round(analysisStore.progress) }}%)
+            <span v-if="!isAnalyzing">Ready to analyze</span>
+            <span v-else class="tqdm-progress">
+              {{ analysisStore.progressStatus }}
+              <span v-if="analysisStore.currentModelName" class="timing-info">
+                [{{ analysisStore.currentModelElapsed }}&lt;{{ analysisStore.currentModelRemaining }}]
+              </span>
+              <span class="timing-separator">|</span>
+              <span class="timing-overall">
+                All [{{ analysisStore.overallElapsed }}&lt;{{ analysisStore.overallRemaining }}]
+              </span>
+            </span>
           </div>
         </div>
       </div>
@@ -135,6 +145,32 @@ const isAnalyzing = computed(() => analysisStore.isAnalyzing)
   color: white;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.tqdm-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timing-info {
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-md);
+  color: #00ff00;
+  font-weight: 600;
+}
+
+.timing-separator {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+  margin: 0 4px;
+}
+
+.timing-overall {
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-md);
+  color: #00d4ff;
+  font-weight: 600;
 }
 
 /* Step-3 badge positioning is handled by global carnival-step styles */
