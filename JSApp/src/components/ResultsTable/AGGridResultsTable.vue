@@ -6,6 +6,7 @@
       :columnDefs="columnDefs"
       :rowData="rowData"
       :defaultColDef="defaultColDef"
+      :components="components"
       :enableCellTextSelection="true"
       :animateRows="false"
       :suppressRowHoverHighlight="false"
@@ -59,7 +60,8 @@ import { ref, computed, watch } from 'vue'
 import { AgGridVue } from 'ag-grid-vue3'
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-balham.css'
-import type { ColDef, ColGroupDef, GridReadyEvent, CellClickedEvent, GridApi } from 'ag-grid-community'
+import type { ColDef, ColGroupDef, GridReadyEvent, CellClickedEvent, GridApi, IHeaderParams } from 'ag-grid-community'
+import { useAnalysisStore } from '../../stores/analysisStore'
 
 interface Column {
   name: string
@@ -86,10 +88,56 @@ const props = defineProps<{
   results: AnalysisResult[]
   isComplete: boolean
   statusText: string
+  autoScrollEnabled: boolean
 }>()
 
 // Grid API reference
 const gridApi = ref<GridApi | null>(null)
+const analysisStore = useAnalysisStore()
+
+// Text wrapping toggle state
+const textWrapEnabled = ref(true)
+
+// Custom header component for Text column with toggle button
+class TextColumnHeader {
+  private eGui!: HTMLDivElement
+  private params!: IHeaderParams & { textWrapEnabled: boolean; onToggle: () => void }
+
+  init(params: IHeaderParams & { textWrapEnabled: boolean; onToggle: () => void }) {
+    this.params = params
+    this.eGui = document.createElement('div')
+    this.eGui.className = 'text-column-header'
+    this.eGui.innerHTML = `
+      <span class="header-label">Text</span>
+      <button class="wrap-toggle-btn" title="${params.textWrapEnabled ? 'Click to clip lines' : 'Click to wrap lines'}">
+        ${params.textWrapEnabled ? 'wrap lines' : 'clip lines'}
+      </button>
+    `
+
+    const button = this.eGui.querySelector('.wrap-toggle-btn')
+    if (button) {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation()
+        this.params.onToggle()
+      })
+    }
+  }
+
+  getGui() {
+    return this.eGui
+  }
+
+  refresh() {
+    return false
+  }
+
+  destroy() {
+    const button = this.eGui.querySelector('.wrap-toggle-btn')
+    if (button) {
+      button.removeEventListener('click', this.params.onToggle)
+    }
+  }
+}
 
 // Modal state (reuse existing modal logic)
 const modalData = ref<{
@@ -133,10 +181,22 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
       headerName: 'Text',
       width: 300,
       pinned: 'left',
-      wrapText: true,
-      autoHeight: true,
+      wrapText: textWrapEnabled.value,
+      autoHeight: textWrapEnabled.value,
       sortable: false,
-      filter: false // NO FILTER for text
+      filter: false, // NO FILTER for text
+      cellStyle: textWrapEnabled.value ? {} : {
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden'
+      },
+      headerComponent: 'TextColumnHeader',
+      headerComponentParams: {
+        textWrapEnabled: textWrapEnabled.value,
+        onToggle: () => {
+          textWrapEnabled.value = !textWrapEnabled.value
+        }
+      }
     }
   ]
 
@@ -269,6 +329,11 @@ function getResultForCell(lineIndex: number, columnName: string): AnalysisResult
 function isRuleBased(columnName: string): boolean {
   return columnName.toLowerCase().includes('afinn') ||
          columnName.toLowerCase().includes('vader')
+}
+
+// Register custom header component
+const components = {
+  TextColumnHeader
 }
 
 // Grid event handlers
@@ -406,6 +471,31 @@ watch(() => props.results.length, () => {
     setTimeout(addHeaderLinks, 250)
   }
 }, { flush: 'post' })
+
+// AUTOSCROLL: Watch analysisStore currentModelProcessedLines directly (NOT results array!)
+watch(() => analysisStore.currentModelProcessedLines, (processedLines) => {
+  if (!props.autoScrollEnabled || !gridApi.value) return
+
+  const lineIndex = processedLines - 1 // Convert to 0-indexed
+  if (lineIndex >= 0 && lineIndex < props.lines.length) {
+    console.log(`🚀AUTOSCROLL🚀 Model: ${analysisStore.currentModelName}, Line: ${lineIndex + 1}/${props.lines.length}`)
+    setTimeout(() => {
+      if (gridApi.value) {
+        gridApi.value.ensureIndexVisible(lineIndex, 'middle')
+      }
+    }, 100)
+  }
+})
+
+// Watch for text wrap toggle and update column definitions
+watch(textWrapEnabled, () => {
+  if (gridApi.value) {
+    // Force grid to update column definitions
+    gridApi.value.setGridOption('columnDefs', columnDefs.value)
+    // Reset row heights
+    gridApi.value.resetRowHeights()
+  }
+})
 </script>
 
 <style scoped>
@@ -672,5 +762,44 @@ watch(() => props.results.length, () => {
 @keyframes slideIn {
   from { transform: translateY(-20px) scale(0.95); opacity: 0; }
   to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Custom Text column header with toggle button */
+:deep(.text-column-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px;
+}
+
+:deep(.text-column-header .header-label) {
+  font-weight: 500;
+  flex-grow: 1;
+}
+
+:deep(.text-column-header .wrap-toggle-btn) {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.text-column-header .wrap-toggle-btn:hover) {
+  background: var(--color-primary-dark);
+  transform: scale(1.1);
+}
+
+:deep(.text-column-header .wrap-toggle-btn:active) {
+  transform: scale(0.95);
 }
 </style>
