@@ -95,8 +95,8 @@ const props = defineProps<{
 const gridApi = ref<GridApi | null>(null)
 const analysisStore = useAnalysisStore()
 
-// Text wrapping toggle state
-const textWrapEnabled = ref(true)
+// Text wrapping toggle state (default to clip/single-line)
+const textWrapEnabled = ref(false)
 
 // Custom header component for Text column with toggle button
 class TextColumnHeader {
