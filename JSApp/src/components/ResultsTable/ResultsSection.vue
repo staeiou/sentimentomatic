@@ -95,16 +95,19 @@ const currentResult = computed(() => analysisStore.currentResult)
 
 // Analysis data for Vue table
 const analysisData = computed(() => {
-  const lines = analysisStore.lines
   const result = currentResult.value
 
-  if (!result || !result.data || lines.length === 0) {
+  if (!result || !result.data) {
     return {
       lines: [],
       columns: [],
       results: []
     }
   }
+
+  // Use snapshotted text from results (frozen at analysis time)
+  // This prevents results from changing if user edits text box after analysis
+  const lines = result.data.map((row: any) => row.text)
 
   // Use columns from the store (all columns created upfront) instead of deriving from results
   const columns = result.columns || []
