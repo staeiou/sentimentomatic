@@ -12,7 +12,17 @@
         <div class="progress-bar-inline">
           <div class="progress-fill" :style="{ width: analysisStore.progress + '%' }"></div>
           <div class="progress-text">
-            {{ analysisStore.progressStatus || 'Ready to analyze' }} ({{ Math.round(analysisStore.progress) }}%)
+            <span v-if="!isAnalyzing">Ready to analyze</span>
+            <span v-else class="tqdm-progress">
+              {{ analysisStore.progressStatus }}
+              <span v-if="analysisStore.currentModelName" class="timing-info">
+                [{{ analysisStore.currentModelElapsed }}&lt;{{ analysisStore.currentModelRemaining }}]
+              </span>
+              <span class="timing-separator">|</span>
+              <span class="timing-overall">
+                All [{{ analysisStore.overallElapsed }}&lt;{{ analysisStore.overallRemaining }}]
+              </span>
+            </span>
           </div>
         </div>
       </div>
@@ -22,6 +32,14 @@
       <h2>📊 Analysis Results</h2>
 
       <div class="export-buttons">
+        <button
+          type="button"
+          class="btn btn-secondary auto-scroll-toggle"
+          @click="autoScrollEnabled = !autoScrollEnabled"
+          :title="autoScrollEnabled ? 'Disable auto-scroll' : 'Enable auto-scroll'"
+        >
+          {{ autoScrollEnabled ? '📜 auto-scroll: ON' : '⏸️ auto-scroll: OFF' }}
+        </button>
         <button type="button" id="export-csv" class="btn btn-secondary" @click="exportCSV" aria-label="Export results as CSV" data-testid="export-csv-button">Export CSV</button>
         <button type="button" id="export-excel" class="btn btn-secondary" @click="exportExcel" aria-label="Export results as Excel" data-testid="export-excel-button">Export Excel</button>
         <button type="button" id="export-json" class="btn btn-secondary" @click="exportJSON" aria-label="Export results as JSON" data-testid="export-json-button">Export JSON</button>
@@ -43,6 +61,7 @@
         :results="analysisData.results"
         :is-complete="!analysisStore.isAnalyzing"
         :status-text="getStatusText()"
+        :auto-scroll-enabled="autoScrollEnabled"
       />
     </div>
   </section>
@@ -58,6 +77,10 @@ import ResultsTable from './AGGridResultsTable.vue'
 const analysisStore = useAnalysisStore()
 const modelStore = useModelStore()
 const exportMulticlass = ref(false)
+
+// Auto-scroll state (enabled by default if >50 lines)
+const autoScrollEnabled = ref(true) // Always start enabled for testing
+console.log(`🚀AUTOSCROLL_INIT🚀 Lines: ${analysisStore.lines.length}, Enabled: ${autoScrollEnabled.value}`)
 
 // Events
 defineEmits<{
@@ -248,6 +271,32 @@ function exportJSON() {
   color: white;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.tqdm-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timing-info {
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-md);
+  color: #00ff00;
+  font-weight: 600;
+}
+
+.timing-separator {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+  margin: 0 4px;
+}
+
+.timing-overall {
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-md);
+  color: #00d4ff;
+  font-weight: 600;
 }
 
 .results-header {
