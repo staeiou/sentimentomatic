@@ -109,8 +109,8 @@ class TextColumnHeader {
     this.eGui.className = 'text-column-header'
     this.eGui.innerHTML = `
       <span class="header-label">Text</span>
-      <button class="wrap-toggle-btn" title="${params.textWrapEnabled ? 'Click to clip lines' : 'Click to wrap lines'}">
-        ${params.textWrapEnabled ? 'wrap lines' : 'clip lines'}
+      <button class="wrap-toggle-btn" title="${params.textWrapEnabled ? 'Switch to compact single-line view' : 'Switch to full multi-line view'}">
+        ${params.textWrapEnabled ? 'Fit text to one line' : 'Show full text'}
       </button>
     `
 
@@ -185,7 +185,10 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
       autoHeight: textWrapEnabled.value,
       sortable: false,
       filter: false, // NO FILTER for text
-      cellStyle: textWrapEnabled.value ? {} : {
+      cellStyle: textWrapEnabled.value ? {
+        lineHeight: '1.4',
+        padding: '8px'
+      } : {
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
         overflow: 'hidden'
@@ -571,6 +574,7 @@ watch(textWrapEnabled, () => {
 /* Center align result cells */
 :deep(.ag-cell) {
   text-align: center;
+  cursor: pointer;
 }
 
 /* Add vertical borders between model groups */
@@ -781,25 +785,29 @@ watch(textWrapEnabled, () => {
 :deep(.text-column-header .wrap-toggle-btn) {
   background: var(--color-primary);
   color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 14px;
+  border: 2px solid var(--color-primary-dark);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   margin-left: 8px;
-  line-height: 1;
+  line-height: 1.2;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 :deep(.text-column-header .wrap-toggle-btn:hover) {
   background: var(--color-primary-dark);
-  transform: scale(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
 }
 
 :deep(.text-column-header .wrap-toggle-btn:active) {
-  transform: scale(0.95);
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 </style>
