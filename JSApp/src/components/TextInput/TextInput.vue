@@ -81,10 +81,11 @@ watch(() => analysisStore.text, (newText) => {
         insert: newText
       }
     })
-    // Reset flag after a short delay to ensure the update is processed
+    // Reset flag after a longer delay to ensure the update is fully processed
+    // This prevents race conditions with rapid updates
     setTimeout(() => {
       isUpdatingFromStore = false
-    }, 0)
+    }, 100)
   }
 })
 
@@ -109,9 +110,10 @@ defineExpose({
         }
       })
       analysisStore.clearText()
+      // Consistent delay with watcher to prevent race conditions
       setTimeout(() => {
         isUpdatingFromStore = false
-      }, 0)
+      }, 100)
     }
   },
   setText(text: string) {
@@ -125,9 +127,10 @@ defineExpose({
         }
       })
       analysisStore.updateText(text)
+      // Consistent delay with watcher to prevent race conditions
       setTimeout(() => {
         isUpdatingFromStore = false
-      }, 0)
+      }, 100)
     }
   },
   focus() {

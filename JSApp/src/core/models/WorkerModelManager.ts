@@ -47,6 +47,8 @@ export class WorkerModelManager {
         reject(error);
       }
       this.pendingRequests.clear();
+      // Also clear all message handlers to prevent memory leaks
+      this.messageHandlers.clear();
     };
 
     console.log('✅ Worker initialized');
@@ -85,17 +87,19 @@ export class WorkerModelManager {
     }
 
     return new Promise((resolve, reject) => {
-      const requestId = `load-${this.requestIdCounter++}`;
+      const requestId = `load-${modelId}-${this.requestIdCounter++}`;
 
       // Set up response handler
       this.pendingRequests.set(requestId, { resolve, reject });
 
-      // Add message handler for this specific model load
-      this.messageHandlers.set('MODEL_LOADED', (payload) => {
+      // Add message handler for this specific model load with unique key
+      const handlerKey = `MODEL_LOADED_${requestId}`;
+      this.messageHandlers.set(handlerKey, (payload) => {
         if (payload.modelId === modelId) {
           const pending = this.pendingRequests.get(requestId);
           if (pending) {
             this.pendingRequests.delete(requestId);
+            this.messageHandlers.delete(handlerKey); // Clean up handler after use
             pending.resolve();
           }
         }
@@ -106,6 +110,15 @@ export class WorkerModelManager {
         type: 'LOAD_MODEL',
         payload: { modelId, huggingFaceId, task }
       });
+
+      // Add timeout to prevent hanging
+      setTimeout(() => {
+        if (this.pendingRequests.has(requestId)) {
+          this.pendingRequests.delete(requestId);
+          this.messageHandlers.delete(handlerKey);
+          reject(new Error(`Model load timeout for ${modelId}`));
+        }
+      }, 180000); // 180 second timeout for model loading
     });
   }
 
@@ -118,30 +131,40 @@ export class WorkerModelManager {
     }
 
     return new Promise((resolve, reject) => {
-      const requestId = `inference-${this.requestIdCounter++}`;
+      const requestId = `inference-${modelId}-${this.requestIdCounter++}`;
 
       // Set up response handler
       this.pendingRequests.set(requestId, { resolve, reject });
 
-      // Add one-time message handler for this inference
+      // Add one-time message handler for this inference with unique key
+      const handlerKey = `INFERENCE_RESULT_${requestId}`;
       const handler = (payload: any) => {
         if (payload.modelId === modelId) {
           const pending = this.pendingRequests.get(requestId);
           if (pending) {
             this.pendingRequests.delete(requestId);
-            this.messageHandlers.delete('INFERENCE_RESULT');
+            this.messageHandlers.delete(handlerKey); // Clean up handler after use
             pending.resolve(payload.result);
           }
         }
       };
 
-      this.messageHandlers.set('INFERENCE_RESULT', handler);
+      this.messageHandlers.set(handlerKey, handler);
 
       // Send message to worker
       this.worker!.postMessage({
         type: 'RUN_INFERENCE',
         payload: { modelId, text }
       });
+
+      // Add timeout to prevent hanging
+      setTimeout(() => {
+        if (this.pendingRequests.has(requestId)) {
+          this.pendingRequests.delete(requestId);
+          this.messageHandlers.delete(handlerKey);
+          reject(new Error(`Inference timeout for ${modelId}`));
+        }
+      }, 120000); // 120 second timeout for inference
     });
   }
 
@@ -218,17 +241,24 @@ export class WorkerModelManager {
     // Handle errors
     if (message.type === 'ERROR') {
       console.error('❌ Worker error:', message.error);
-      // Reject first pending request
-      const firstEntry = this.pendingRequests.entries().next().value;
-      if (firstEntry) {
-        const [requestId, pending] = firstEntry;
+      // Reject all pending requests and clean up handlers
+      for (const [requestId, pending] of this.pendingRequests) {
         this.pendingRequests.delete(requestId);
         pending.reject(new Error(message.error || 'Unknown error'));
       }
+      // Clear all message handlers on error
+      this.messageHandlers.clear();
       return;
     }
 
-    // Handle specific message types
+    // Handle specific message types - check all handlers that match the pattern
+    for (const [key, handler] of this.messageHandlers) {
+      if (key.startsWith(message.type)) {
+        handler(message.payload);
+      }
+    }
+
+    // Also check for exact match (for backward compatibility)
     const handler = this.messageHandlers.get(message.type);
     if (handler) {
       handler(message.payload);

@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { AgGridVue } from 'ag-grid-vue3'
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-balham.css'
@@ -102,6 +102,9 @@ const analysisStore = useAnalysisStore()
 
 // Text wrapping toggle state (default to clip/single-line)
 const textWrapEnabled = ref(false)
+
+// Track timeouts for cleanup
+const timeouts = new Set<number>()
 
 // Custom header component for Text column with toggle button
 class TextColumnHeader {
@@ -278,7 +281,6 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
           filter: false,
           cellRenderer: (params: any) => {
             const result = getResultForCell(params.data.lineIndex, column.name)
-            console.log('Classification result for', column.name, ':', result) // DEBUG
             if (!result) return '⋯'
             const label = result.topClass || result.metadata?.topLabel || 'Unknown'
             // Check if this is a multi-label result with +
@@ -443,10 +445,10 @@ function onGridReady(params: GridReadyEvent) {
   }
 
   // Try immediately, then retry a few times
-  setTimeout(addLinks, 0)
-  setTimeout(addLinks, 100)
-  setTimeout(addLinks, 250)
-  setTimeout(addLinks, 500)
+  timeouts.add(setTimeout(addLinks, 0) as unknown as number)
+  timeouts.add(setTimeout(addLinks, 100) as unknown as number)
+  timeouts.add(setTimeout(addLinks, 250) as unknown as number)
+  timeouts.add(setTimeout(addLinks, 500) as unknown as number)
 }
 
 function onCellClicked(event: CellClickedEvent) {
@@ -569,34 +571,31 @@ const addHeaderLinks = () => {
 
 // Watch for column changes
 watch(() => props.columns, () => {
-  setTimeout(addHeaderLinks, 100)
-  setTimeout(addHeaderLinks, 250)
+  timeouts.add(setTimeout(addHeaderLinks, 100) as unknown as number)
+  timeouts.add(setTimeout(addHeaderLinks, 250) as unknown as number)
 }, { deep: true })
 
-// Watch for new results and update grid efficiently
+// Watch for new results and update grid immediately - THIS IS THE CORE FEATURE!
+// Each result must appear as it arrives for real-time visual feedback
 watch(() => props.results.length, () => {
   if (gridApi.value) {
-    // Only refresh cells, not the entire grid
+    // Just refresh the cells - simple and it works!
     gridApi.value.refreshCells({ force: true })
-
-    // Re-add links after refresh
-    setTimeout(addHeaderLinks, 100)
-    setTimeout(addHeaderLinks, 250)
   }
 }, { flush: 'post' })
 
-// AUTOSCROLL: Watch analysisStore currentModelProcessedLines directly (NOT results array!)
+// AUTOSCROLL: Follow processing in real-time
 watch(() => analysisStore.currentModelProcessedLines, (processedLines) => {
   if (!props.autoScrollEnabled || !gridApi.value) return
 
   const lineIndex = processedLines - 1 // Convert to 0-indexed
   if (lineIndex >= 0 && lineIndex < props.lines.length) {
-    console.log(`🚀AUTOSCROLL🚀 Model: ${analysisStore.currentModelName}, Line: ${lineIndex + 1}/${props.lines.length}`)
-    setTimeout(() => {
+    // Use requestAnimationFrame for smooth scrolling
+    requestAnimationFrame(() => {
       if (gridApi.value) {
         gridApi.value.ensureIndexVisible(lineIndex, 'middle')
       }
-    }, 100)
+    })
   }
 })
 
@@ -607,6 +606,17 @@ watch(textWrapEnabled, () => {
     gridApi.value.setGridOption('columnDefs', columnDefs.value)
     // Reset row heights
     gridApi.value.resetRowHeights()
+  }
+})
+
+// Clean up on unmount to prevent memory leaks
+onBeforeUnmount(() => {
+  timeouts.forEach(timeout => clearTimeout(timeout))
+  timeouts.clear()
+
+  // Also clear grid API reference
+  if (gridApi.value) {
+    gridApi.value = null
   }
 })
 </script>

@@ -171,6 +171,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
     currentModelRate.value = 0
     overallRate.value = 0
 
+    // Stop any existing timing loop before starting a new one
+    stopTimingLoop()
     // Start RAF timing loop
     startTimingLoop()
 
@@ -300,8 +302,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
             // Trigger reactivity for incremental update (cell appears immediately)
             currentResult.value = { ...currentResult.value }
 
-            // Small delay for visual effect (like original)
-            await new Promise(resolve => setTimeout(resolve, 50))
+            // Small delay for visual effect of results streaming in
+            await new Promise(resolve => setTimeout(resolve, 15))
 
           } catch (error) {
             console.warn(`Failed to analyze with ${analyzerName} on line ${lineIndex + 1}:`, error)
@@ -409,8 +411,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
                 // Trigger reactivity for incremental update (cell appears immediately)
                 currentResult.value = { ...currentResult.value }
 
-                // Small delay for visual effect (like original)
-                await new Promise(resolve => setTimeout(resolve, 50))
+                // Small delay for visual effect of results streaming in
+                await new Promise(resolve => setTimeout(resolve, 15))
               }
             } catch (error) {
               console.warn(`Model ${modelInfo.displayName} failed on line ${lineIndex + 1}:`, error)
@@ -470,6 +472,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       // Return the final result (columns already set upfront)
       return currentResult.value
+    } catch (error) {
+      // Stop the RAF timing loop on error
+      stopTimingLoop()
+      throw error
     } finally {
       // Stop the RAF timing loop
       stopTimingLoop()
