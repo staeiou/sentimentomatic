@@ -3,13 +3,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, watch, onBeforeUnmount } from 'vue'
 import { EditorView, basicSetup } from 'codemirror'
 import { EditorState } from '@codemirror/state'
 import { useAnalysisStore } from '../../stores/analysisStore'
 
 const analysisStore = useAnalysisStore()
 let editorView: EditorView | null = null
+let isUpdatingFromStore = false // Flag to prevent feedback loops
 
 const defaultText = `Each line will be analyzed independently and given a score by various models.
 THIS IS SO SUPER COOL AND THE BEST EVER! YES!
@@ -46,11 +47,19 @@ onMounted(() => {
     '.cm-scroller': { overflow: 'auto' }
   })
 
-  // Initialize CodeMirror editor
+  // Create update listener to properly handle all CodeMirror changes
+  const updateListener = EditorView.updateListener.of((update) => {
+    if (update.docChanged && !isUpdatingFromStore) {
+      const text = update.state.doc.toString()
+      analysisStore.updateText(text)
+    }
+  })
+
+  // Initialize CodeMirror editor with proper change detection
   editorView = new EditorView({
     state: EditorState.create({
       doc: defaultText,
-      extensions: [basicSetup, fixedHeightTheme]
+      extensions: [basicSetup, fixedHeightTheme, updateListener]
     }),
     parent: container
   })
@@ -58,20 +67,13 @@ onMounted(() => {
   // Update store with initial text
   analysisStore.updateText(defaultText)
 
-  // Watch for text changes
-  editorView.dom.addEventListener('input', () => {
-    if (editorView) {
-      const text = editorView.state.doc.toString()
-      analysisStore.updateText(text)
-    }
-  })
-
   // Analysis controller initialization removed - using Vue reactive components now
 })
 
 // Watch for external text changes (e.g., from file import)
 watch(() => analysisStore.text, (newText) => {
   if (editorView && editorView.state.doc.toString() !== newText) {
+    isUpdatingFromStore = true
     editorView.dispatch({
       changes: {
         from: 0,
@@ -79,6 +81,18 @@ watch(() => analysisStore.text, (newText) => {
         insert: newText
       }
     })
+    // Reset flag after a short delay to ensure the update is processed
+    setTimeout(() => {
+      isUpdatingFromStore = false
+    }, 0)
+  }
+})
+
+// Clean up on component unmount
+onBeforeUnmount(() => {
+  if (editorView) {
+    editorView.destroy()
+    editorView = null
   }
 })
 
@@ -86,6 +100,7 @@ watch(() => analysisStore.text, (newText) => {
 defineExpose({
   clearText() {
     if (editorView) {
+      isUpdatingFromStore = true
       editorView.dispatch({
         changes: {
           from: 0,
@@ -94,10 +109,14 @@ defineExpose({
         }
       })
       analysisStore.clearText()
+      setTimeout(() => {
+        isUpdatingFromStore = false
+      }, 0)
     }
   },
   setText(text: string) {
     if (editorView) {
+      isUpdatingFromStore = true
       editorView.dispatch({
         changes: {
           from: 0,
@@ -106,6 +125,9 @@ defineExpose({
         }
       })
       analysisStore.updateText(text)
+      setTimeout(() => {
+        isUpdatingFromStore = false
+      }, 0)
     }
   },
   focus() {

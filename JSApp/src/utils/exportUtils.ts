@@ -1,6 +1,32 @@
 import type { AnalysisResult, SentimentResult, MultiModalAnalysisResult } from '../core/analysis/AnalysisStrategy';
 import * as XLSX from 'xlsx';
 
+// KoalaAI label mapping for moderation model
+const koalaLabelMap: Record<string, string> = {
+  'S': 'Sexual',
+  'H': 'Hate',
+  'V': 'Violence',
+  'HR': 'Harassment',
+  'SH': 'Self-harm',
+  'S3': 'Sexual/minors',
+  'H2': 'Hate/threatening',
+  'V2': 'Violence/graphic',
+  'OK': 'Safe'
+};
+
+// Helper function to check if a model is KoalaAI
+function isKoalaAI(modelName: string): boolean {
+  return modelName.includes('KoalaAI') || modelName.includes('Moderation');
+}
+
+// Helper function to map KoalaAI labels
+function mapKoalaLabel(modelName: string, label: string): string {
+  if (isKoalaAI(modelName)) {
+    return koalaLabelMap[label] || label;
+  }
+  return label;
+}
+
 // Helper function to properly escape CSV values
 function escapeCSV(value: string): string {
   if (typeof value !== 'string') return String(value);
@@ -27,17 +53,24 @@ export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult, e
 
     // Collect all unique class names for each classification model when expanding
     const classificationClassNames: Map<string, Set<string>> = new Map();
+    const classificationMappedNames: Map<string, Map<string, string>> = new Map();
     if (expandMulticlass) {
       columns.forEach((col: any) => {
         if (col.type === 'classification') {
           const classNames = new Set<string>();
+          const mappedNames = new Map<string, string>();
           unifiedData.forEach((item) => {
             const result = item.results.find((r: any) => r.analyzer === col.name);
             if (result && result.allClasses) {
-              Object.keys(result.allClasses).forEach(className => classNames.add(className));
+              Object.keys(result.allClasses).forEach(className => {
+                classNames.add(className);
+                // Store both raw and mapped names
+                mappedNames.set(className, mapKoalaLabel(col.name, className));
+              });
             }
           });
           classificationClassNames.set(col.name, classNames);
+          classificationMappedNames.set(col.name, mappedNames);
         }
       });
     }
@@ -51,10 +84,12 @@ export function exportToCSV(result: AnalysisResult | MultiModalAnalysisResult, e
         if (expandMulticlass && classificationClassNames.has(col.name)) {
           // Add majority class columns first
           header.push(`${col.name}_Majority_Prediction`, `${col.name}_Majority_Likelihood`);
-          // Then add individual columns for each class
+          // Then add individual columns for each class with mapped names
           const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
+          const mappedNames = classificationMappedNames.get(col.name)!;
           classNames.forEach(className => {
-            header.push(`${col.name}_Class_${className}`);
+            const mappedName = mappedNames.get(className) || className;
+            header.push(`${col.name}_Class_${mappedName}`);
           });
         } else {
           // Standard classification columns
@@ -278,17 +313,24 @@ export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult,
 
     // Collect all unique class names for each classification model when expanding
     const classificationClassNames: Map<string, Set<string>> = new Map();
+    const classificationMappedNames: Map<string, Map<string, string>> = new Map();
     if (expandMulticlass) {
       columns.forEach((col: any) => {
         if (col.type === 'classification') {
           const classNames = new Set<string>();
+          const mappedNames = new Map<string, string>();
           unifiedData.forEach((item) => {
             const result = item.results.find((r: any) => r.analyzer === col.name);
             if (result && result.allClasses) {
-              Object.keys(result.allClasses).forEach(className => classNames.add(className));
+              Object.keys(result.allClasses).forEach(className => {
+                classNames.add(className);
+                // Store both raw and mapped names
+                mappedNames.set(className, mapKoalaLabel(col.name, className));
+              });
             }
           });
           classificationClassNames.set(col.name, classNames);
+          classificationMappedNames.set(col.name, mappedNames);
         }
       });
     }
@@ -302,10 +344,12 @@ export function exportToExcel(result: AnalysisResult | MultiModalAnalysisResult,
         if (expandMulticlass && classificationClassNames.has(col.name)) {
           // Add majority class columns first
           header.push(`${col.name}_Majority_Prediction`, `${col.name}_Majority_Likelihood`);
-          // Then add individual columns for each class
+          // Then add individual columns for each class with mapped names
           const classNames = Array.from(classificationClassNames.get(col.name)!).sort();
+          const mappedNames = classificationMappedNames.get(col.name)!;
           classNames.forEach(className => {
-            header.push(`${col.name}_Class_${className}`);
+            const mappedName = mappedNames.get(className) || className;
+            header.push(`${col.name}_Class_${mappedName}`);
           });
         } else {
           // Standard classification columns

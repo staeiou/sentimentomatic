@@ -16,6 +16,11 @@
       @cell-clicked="onCellClicked"
     />
 
+    <!-- Helper text below table -->
+    <div class="table-helper-text">
+      Click any cell to see detailed results. The <span class="multi-label-indicator">+</span> means that model has multiple predictions with &gt;10% confidence.
+    </div>
+
     <!-- Keep existing modal for detail view -->
     <div
       v-if="modalData"
@@ -259,6 +264,10 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
       ]
     } else {
       // Classification columns
+      const isKoalaAI = column.name.includes('KoalaAI') || column.name.includes('Moderation')
+      const isGoEmotions = column.name.includes('GoEmotions') || column.name.includes('Emotion')
+      const isToxicity = column.name.toLowerCase().includes('toxic')
+
       modelGroup.children = [
         {
           field: `${column.name}_class`,
@@ -271,7 +280,58 @@ const columnDefs = computed((): (ColDef | ColGroupDef)[] => {
             const result = getResultForCell(params.data.lineIndex, column.name)
             console.log('Classification result for', column.name, ':', result) // DEBUG
             if (!result) return '⋯'
-            return result.topClass || result.metadata?.topLabel || 'Unknown'
+            const label = result.topClass || result.metadata?.topLabel || 'Unknown'
+            // Check if this is a multi-label result with +
+            if (label.endsWith('+')) {
+              const baseLabel = label.slice(0, -1)
+              return `${baseLabel}<span class="multi-label-indicator">+</span>`
+            }
+            return label
+          },
+          cellClass: (params: any) => {
+            const result = getResultForCell(params.data.lineIndex, column.name)
+            if (!result) return ''
+            const topLabel = result.topClass || result.metadata?.topLabel || ''
+            const cleanLabel = topLabel.replace(/\+$/, '').toLowerCase()
+
+            // KoalaAI moderation: Safe is green, anything else is red
+            if (isKoalaAI) {
+              if (topLabel === 'Safe' || topLabel === 'OK') {
+                return 'moderation-safe'
+              } else if (topLabel && topLabel !== 'Unknown' && topLabel !== '⋯') {
+                return 'moderation-unsafe'
+              }
+            }
+
+            // Toxicity models (Toxic BERT, Jigsaw): Special logic
+            if (isToxicity) {
+              if (!topLabel || topLabel === 'Unknown' || topLabel === '⋯') return ''
+              const confidence = result.confidence || 0
+              // If "toxic" with confidence > 50%, show red
+              if (cleanLabel === 'toxic' && confidence > 0.5) {
+                return 'toxicity-toxic'
+              }
+              // If "toxic" with confidence <= 50%, keep default (neutral)
+              if (cleanLabel === 'toxic' && confidence <= 0.5) {
+                return ''
+              }
+              // Anything else (severe_toxic, obscene, threat, insult, etc.) is red
+              if (cleanLabel !== 'toxic') {
+                return 'toxicity-toxic'
+              }
+              return ''
+            }
+
+            // GoEmotions: Color by emotion valence
+            if (isGoEmotions) {
+              if (!topLabel || topLabel === 'Unknown' || topLabel === '⋯') return ''
+              const valence = categorizeEmotion(cleanLabel)
+              if (valence === 'positive') return 'emotion-positive'
+              if (valence === 'negative') return 'emotion-negative'
+              if (valence === 'neutral') return 'emotion-neutral'
+            }
+
+            return ''
           }
         },
         {
@@ -330,6 +390,33 @@ function isRuleBased(columnName: string): boolean {
          columnName.toLowerCase().includes('vader')
 }
 
+// GoEmotions emotion categorization
+function categorizeEmotion(emotion: string): 'positive' | 'negative' | 'neutral' {
+  const emotionLower = emotion.toLowerCase()
+
+  // Positive emotions
+  const positiveEmotions = [
+    'admiration', 'amusement', 'approval', 'caring', 'curiosity', 'desire',
+    'excitement', 'gratitude', 'joy', 'love', 'optimism', 'pride',
+    'realization', 'relief'
+  ]
+
+  // Negative emotions
+  const negativeEmotions = [
+    'anger', 'annoyance', 'confusion', 'disappointment', 'disapproval',
+    'disgust', 'embarrassment', 'fear', 'grief', 'nervousness', 'remorse', 'sadness'
+  ]
+
+  // Neutral emotions
+  const neutralEmotions = ['neutral', 'surprise']
+
+  if (positiveEmotions.includes(emotionLower)) return 'positive'
+  if (negativeEmotions.includes(emotionLower)) return 'negative'
+  if (neutralEmotions.includes(emotionLower)) return 'neutral'
+
+  return 'neutral' // Default for unknown emotions
+}
+
 // Register custom header component
 const components = {
   TextColumnHeader
@@ -379,20 +466,47 @@ function onCellClicked(event: CellClickedEvent) {
 function showModal(lineIndex: number, columnName: string, result: AnalysisResult) {
   let parsedData: any[] = []
 
+  // KoalaAI label mapping for moderation model
+  const koalaLabelMap: Record<string, string> = {
+    'S': 'Sexual',
+    'H': 'Hate',
+    'V': 'Violence',
+    'HR': 'Harassment',
+    'SH': 'Self-harm',
+    'S3': 'Sexual/minors',
+    'H2': 'Hate/threatening',
+    'V2': 'Violence/graphic',
+    'OK': 'Safe'
+  }
+
+  // Check if this is a KoalaAI model
+  const isKoalaAI = columnName.includes('KoalaAI') || columnName.includes('Moderation')
+
   try {
     if (result.type === 'classification' && result.allClasses) {
       if (Array.isArray(result.allClasses)) {
         parsedData = [...result.allClasses]
           .filter(item => item && typeof item === 'object')
+          .map(item => ({
+            ...item,
+            label: isKoalaAI && koalaLabelMap[item.label] ? koalaLabelMap[item.label] : item.label
+          }))
           .sort((a, b) => (b.score || 0) - (a.score || 0))
       } else if (typeof result.allClasses === 'object') {
         parsedData = Object.entries(result.allClasses)
-          .map(([label, score]) => ({ label, score: Number(score) }))
+          .map(([label, score]) => ({
+            label: isKoalaAI && koalaLabelMap[label] ? koalaLabelMap[label] : label,
+            score: Number(score)
+          }))
           .sort((a, b) => b.score - a.score)
       }
     } else if (result.rawOutput && Array.isArray(result.rawOutput.fullRawOutput)) {
       parsedData = [...result.rawOutput.fullRawOutput]
         .filter(item => item && typeof item === 'object')
+        .map(item => ({
+          ...item,
+          label: isKoalaAI && koalaLabelMap[item.label] ? koalaLabelMap[item.label] : item.label
+        }))
         .sort((a, b) => (b.score || 0) - (a.score || 0))
     } else {
       parsedData = [{
@@ -607,7 +721,70 @@ watch(textWrapEnabled, () => {
 }
 
 :deep(.sentiment-neutral) {
-  color: #7f8c8d;
+  color: #000000;
+}
+
+/* KoalaAI moderation colors */
+:deep(.moderation-safe) {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+:deep(.moderation-unsafe) {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+/* GoEmotions emotion colors */
+:deep(.emotion-positive) {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+:deep(.emotion-negative) {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+:deep(.emotion-neutral) {
+  color: #000000;
+}
+
+/* Toxicity model colors */
+:deep(.toxicity-toxic) {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+/* Multi-label indicator styling */
+:deep(.multi-label-indicator) {
+  display: inline-block;
+  background: #ff6b35;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(255, 107, 53, 0.3);
+}
+
+/* Helper text below table */
+.table-helper-text {
+  font-size: 12px;
+  color: #6c757d;
+  padding: 8px 12px;
+  text-align: center;
+  background: #f8f9fa;
+  border-top: 1px solid var(--color-border-light);
+  border-radius: 0 0 8px 8px;
+}
+
+.table-helper-text .multi-label-indicator {
+  margin: 0 2px;
+  cursor: default;
 }
 
 /* Keep existing modal styles */

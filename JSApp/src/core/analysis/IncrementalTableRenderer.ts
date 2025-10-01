@@ -558,6 +558,35 @@ export class IncrementalTableRenderer {
   }
 
   /**
+   * Categorize GoEmotions emotions by valence
+   */
+  private categorizeEmotion(emotion: string): 'positive' | 'negative' | 'neutral' {
+    const emotionLower = emotion.toLowerCase();
+
+    // Positive emotions
+    const positiveEmotions = [
+      'admiration', 'amusement', 'approval', 'caring', 'curiosity', 'desire',
+      'excitement', 'gratitude', 'joy', 'love', 'optimism', 'pride',
+      'realization', 'relief'
+    ];
+
+    // Negative emotions
+    const negativeEmotions = [
+      'anger', 'annoyance', 'confusion', 'disappointment', 'disapproval',
+      'disgust', 'embarrassment', 'fear', 'grief', 'nervousness', 'remorse', 'sadness'
+    ];
+
+    // Neutral emotions
+    const neutralEmotions = ['neutral', 'surprise'];
+
+    if (positiveEmotions.includes(emotionLower)) return 'positive';
+    if (negativeEmotions.includes(emotionLower)) return 'negative';
+    if (neutralEmotions.includes(emotionLower)) return 'neutral';
+
+    return 'neutral'; // Default for unknown emotions
+  }
+
+  /**
    * Show modal with all class probabilities
    */
   private showClassificationModal(cell: HTMLElement): void {
@@ -568,6 +597,22 @@ export class IncrementalTableRenderer {
     const line = cell.getAttribute('data-line');
 
     if (!analyzer) return;
+
+    // KoalaAI label mapping for moderation model
+    const koalaLabelMap: Record<string, string> = {
+      'S': 'Sexual',
+      'H': 'Hate',
+      'V': 'Violence',
+      'HR': 'Harassment',
+      'SH': 'Self-harm',
+      'S3': 'Sexual/minors',
+      'H2': 'Hate/threatening',
+      'V2': 'Violence/graphic',
+      'OK': 'Safe'
+    };
+
+    // Check if this is a KoalaAI model
+    const isKoalaAI = analyzer.includes('KoalaAI') || analyzer.includes('Moderation');
 
     try {
       let outputArray: any[] = [];
@@ -582,6 +627,14 @@ export class IncrementalTableRenderer {
         outputArray = Object.entries(allClasses).map(([label, score]) => ({ label, score }));
       } else {
         return;
+      }
+
+      // Apply KoalaAI label mapping if needed
+      if (isKoalaAI) {
+        outputArray = outputArray.map(item => ({
+          ...item,
+          label: koalaLabelMap[item.label] || item.label
+        }));
       }
 
       // Sort outputs by score (descending)
@@ -716,6 +769,9 @@ export class IncrementalTableRenderer {
             }).join('')}
           </tbody>
         </table>
+        <div class="table-helper-text">
+          Click any cell to see detailed results. The <span class="multi-label-indicator">+</span> means that model has multiple predictions with &gt;10% confidence.
+        </div>
         <div class="table-status">
           <span class="status-text">Ready to analyze ${texts.length} lines...</span>
           <div class="pulse-indicator"></div>
@@ -787,7 +843,63 @@ export class IncrementalTableRenderer {
       predCell.innerHTML = `<span class="pred-value">${topLabel}</span>`;
     }
 
-    predCell.className = 'pred-cell clickable';
+    // Apply styling based on model type
+    const isKoalaAI = columnName.includes('KoalaAI') || columnName.includes('Moderation');
+    const isGoEmotions = columnName.includes('GoEmotions') || columnName.includes('Emotion');
+    const isToxicity = columnName.toLowerCase().includes('toxic');
+
+    if (isKoalaAI) {
+      // KoalaAI moderation: Safe is green, anything else is red
+      if (topLabel === 'Safe' || topLabel === 'OK') {
+        predCell.className = 'pred-cell clickable moderation-safe';
+      } else if (topLabel && topLabel !== 'Unknown' && topLabel !== 'N/A' && topLabel !== '⋯') {
+        predCell.className = 'pred-cell clickable moderation-unsafe';
+      } else {
+        predCell.className = 'pred-cell clickable';
+      }
+    } else if (isToxicity) {
+      // Toxicity models (Toxic BERT, Jigsaw): Special logic
+      if (topLabel && topLabel !== 'Unknown' && topLabel !== 'N/A' && topLabel !== '⋯') {
+        const cleanLabel = topLabel.replace(/\+$/, '').toLowerCase();
+        const confidence = topScore;
+        // If "toxic" with confidence > 50%, show red
+        if (cleanLabel === 'toxic' && confidence > 0.5) {
+          predCell.className = 'pred-cell clickable toxicity-toxic';
+        }
+        // If "toxic" with confidence <= 50%, keep default (neutral)
+        else if (cleanLabel === 'toxic' && confidence <= 0.5) {
+          predCell.className = 'pred-cell clickable';
+        }
+        // Anything else (severe_toxic, obscene, threat, insult, etc.) is red
+        else if (cleanLabel !== 'toxic') {
+          predCell.className = 'pred-cell clickable toxicity-toxic';
+        } else {
+          predCell.className = 'pred-cell clickable';
+        }
+      } else {
+        predCell.className = 'pred-cell clickable';
+      }
+    } else if (isGoEmotions) {
+      // GoEmotions: Color by emotion valence
+      if (topLabel && topLabel !== 'Unknown' && topLabel !== 'N/A' && topLabel !== '⋯') {
+        // Remove the '+' indicator for multi-label before categorizing
+        const cleanLabel = topLabel.replace(/\+$/, '');
+        const valence = this.categorizeEmotion(cleanLabel);
+        if (valence === 'positive') {
+          predCell.className = 'pred-cell clickable emotion-positive';
+        } else if (valence === 'negative') {
+          predCell.className = 'pred-cell clickable emotion-negative';
+        } else if (valence === 'neutral') {
+          predCell.className = 'pred-cell clickable emotion-neutral';
+        } else {
+          predCell.className = 'pred-cell clickable';
+        }
+      } else {
+        predCell.className = 'pred-cell clickable';
+      }
+    } else {
+      predCell.className = 'pred-cell clickable';
+    }
 
     // Update confidence/strength cell
     confCell.setAttribute('data-raw-output', rawOutputJson);
@@ -1092,6 +1204,69 @@ export class IncrementalTableRenderer {
       .conf-value {
         font-family: monospace;
         color: #495057;
+      }
+
+      /* KoalaAI moderation colors */
+      .pred-cell.moderation-safe .pred-value {
+        color: #27ae60;
+        font-weight: 600;
+      }
+
+      .pred-cell.moderation-unsafe .pred-value {
+        color: #e74c3c;
+        font-weight: 600;
+      }
+
+      /* GoEmotions emotion colors */
+      .pred-cell.emotion-positive .pred-value {
+        color: #27ae60;
+        font-weight: 600;
+      }
+
+      .pred-cell.emotion-negative .pred-value {
+        color: #e74c3c;
+        font-weight: 600;
+      }
+
+      .pred-cell.emotion-neutral .pred-value {
+        color: #000000;
+      }
+
+      /* Toxicity model colors */
+      .pred-cell.toxicity-toxic .pred-value {
+        color: #e74c3c;
+        font-weight: 600;
+      }
+
+      /* Multi-label indicator styling */
+      .multi-label-indicator {
+        display: inline-block;
+        background: #ff6b35;
+        color: white;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 5px;
+        border-radius: 4px;
+        margin-left: 4px;
+        vertical-align: middle;
+        line-height: 1;
+        box-shadow: 0 1px 3px rgba(255, 107, 53, 0.3);
+      }
+
+      /* Helper text below table */
+      .table-helper-text {
+        font-size: 12px;
+        color: #6c757d;
+        padding: 8px 12px;
+        text-align: center;
+        background: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+        margin-top: -1px;
+      }
+
+      .table-helper-text .multi-label-indicator {
+        margin: 0 2px;
+        cursor: default;
       }
 
       .classification-modal-overlay {
