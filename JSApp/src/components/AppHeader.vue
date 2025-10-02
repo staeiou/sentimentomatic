@@ -2,7 +2,7 @@
   <header class="app-header">
     <div class="neon-sign">
       <h1 class="app-title">
-        <a href="http://sentimentomatic.stuartgeiger.com">
+        <a href="http://sentimentomatic.org">
           <span class="title-super">Stuart's Super Magic</span>
           <span class="title-main">SENTIMENT-O-MATIC</span>
         </a>
