@@ -45,7 +45,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { sampleDatasets } from '../data/sampleDatasets'
+import { sampleDatasets } from '../data/datasets'
 import { useAnalysisStore } from '../stores/analysisStore'
 
 const analysisStore = useAnalysisStore()
