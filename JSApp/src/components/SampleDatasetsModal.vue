@@ -23,7 +23,7 @@
               <span class="dataset-icon">{{ dataset.icon }}</span>
               <h3 class="dataset-name">{{ dataset.name }}</h3>
             </div>
-            <p class="dataset-description">{{ dataset.description }}</p>
+            <p class="dataset-description" v-html="dataset.description"></p>
             <div class="dataset-purpose">{{ dataset.purpose }}</div>
             <div class="dataset-actions">
               <button class="dataset-preview-btn" @click="previewDataset(dataset)">
