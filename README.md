@@ -2,45 +2,34 @@
 
 A comprehensive sentiment analysis platform with **two independent applications**: a legacy Python Flask server and a modern client-side web application. Choose the approach that best fits your needs!
 
-## 📱 Two Applications
+## Two Applications
 
-### 🆕 **JSApp** - Modern Client-Side Application (Recommended)
+### **JSApp** - Modern Client-Side Application (Recommended)
 ### Hosted at [https://sentimentomatic.org](https://sentimentomatic.org)
 **Local-first browser analysis using Transformers.js** 
 
-- **🔒 Privacy-First**: All processing happens in your browser - no data sent to servers
-- **🌐 Works Offline**: No internet required after initial model download
-- **🚀 Modern Stack**: Vue 3 + TypeScript + Vite
-- **🤖 Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity, and more
-- **📊 Rich Export**: CSV/JSON/Excel with multiclass analysis support
-- **⚡ Real-time**: Streaming analysis with live results
-- **🎨 Modern UI**: AG-Grid tables, responsive design
+- ** Privacy-First**: All processing happens in your browser - no data sent to servers
+- ** Works Offline**: No internet required after initial model download
+- ** Modern Stack**: Vue 3 + TypeScript + Vite
+- ** Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity, and more
+- ** Rich Export**: CSV/JSON/Excel with multiclass analysis support
+- ** Real-time**: Streaming analysis with live results
+- ** Modern UI**: AG-Grid tables, responsive design
 
-### 🔧 **FlaskApp** - Legacy Python Server (For Older Models)
+###  **FlaskApp** - Legacy Python Server (For Older Models)
 ### Hosted at [https://sentimentomatic.stuartgeiger.com](https://sentimentomatic.stuartgeiger.com)
 **Traditional server-based processing with Google Perspective API**
 
-- **🐍 Python/Flask**: Server-side processing
-- **🔍 Google Perspective**: Toxicity detection via API (requires key)
-- **📚 Classic Models**: VADER, TextBlob sentiment analysis
-- **🛡️ ReCaptcha**: Built-in spam protection
-- **📋 Simple Interface**: HTML forms with DataTables
-- **⚠️ Limitations**: 50 lines max, requires internet connection
+- ** Python/Flask**: Server-side processing
+- ** Google Perspective**: Toxicity detection via API (requires key)
+- ** Classic Models**: VADER, TextBlob sentiment analysis
+- ** ReCaptcha**: Built-in spam protection
+- ** Simple Interface**: HTML forms with DataTables
+- ** Limitations**: 50 lines max, requires internet connection
 
-## 🎯 Which Should I Use?
+##  Architecture
 
-| Use Case | Recommended App | Why |
-|----------|----------------|-----|
-| **Privacy-sensitive analysis** | JSApp | No data leaves your browser |
-| **Offline analysis** | JSApp | Works without internet |
-| **Modern transformer models** | JSApp | DistilBERT, RoBERTa, GoEmotions |
-| **Advanced export features** | JSApp | Multiclass analysis, multiple formats |
-| **Legacy Python integration** | FlaskApp | Existing Python workflows |
-| **Google Perspective API** | FlaskApp | Requires their toxicity API |
-
-## 🏗️ Architecture
-
-### 🆕 JSApp Architecture (Modern Client-Side)
+###  JSApp Architecture (Modern Client-Side)
 
 ```
 JSApp/
@@ -71,7 +60,7 @@ JSApp/
 - **Content Moderation**: Jigsaw Toxicity, various safety models
 - **Topic Classification**: News categorization, industry classification
 
-### 🔧 FlaskApp Architecture (Legacy Server-Side)
+###  FlaskApp Architecture (Legacy Server-Side)
 
 ```
 FlaskApp/
@@ -94,9 +83,9 @@ FlaskApp/
 - **Toxicity**: Google Perspective API (requires API key)
 - **Limitations**: 50 lines max, 125k characters, requires internet
 
-## 🛠️ Development Setup
+##  Development Setup
 
-### 🆕 JSApp Setup (Recommended)
+###  JSApp Setup (Recommended)
 
 **Prerequisites**: Node.js 20+, npm
 
@@ -119,7 +108,7 @@ npm run build
 npm run test:e2e
 ```
 
-### 🔧 FlaskApp Setup (Legacy)
+###  FlaskApp Setup (Legacy)
 
 **Prerequisites**: Python 3.7+, pip
 
@@ -143,7 +132,7 @@ python flaskapp.py
 
 **Note**: FlaskApp requires API keys for full functionality. Without them, only VADER and TextBlob analysis will work.
 
-## 🔧 Configuration (JSApp)
+##  Configuration (JSApp)
 
 ### Adding New Transformer Models
 
@@ -183,9 +172,9 @@ JSApp supports any ONNX model from HuggingFace. To add a new model:
 - `ModelName_Majority_Prediction` + `ModelName_Majority_Likelihood` (summary)
 - `ModelName_Class_[class1]`, `ModelName_Class_[class2]`, etc. (all classes)
 
-## 📦 Dependencies
+##  Dependencies
 
-### 🆕 JSApp Dependencies
+###  JSApp Dependencies
 
 **Core**:
 - **@xenova/transformers**: WebAssembly-based transformer models
@@ -199,7 +188,7 @@ JSApp supports any ONNX model from HuggingFace. To add a new model:
 - **Vite**: Fast build tool and dev server
 - **Playwright**: E2E testing framework
 
-### 🔧 FlaskApp Dependencies
+###  FlaskApp Dependencies
 
 **Core**:
 - **Flask**: Python web framework
@@ -212,9 +201,9 @@ JSApp supports any ONNX model from HuggingFace. To add a new model:
 - **DataTables**: Interactive HTML tables
 - **ReCaptcha**: Spam protection
 
-## 🚀 Deployment
+##  Deployment
 
-### 🆕 JSApp Deployment (Static)
+###  JSApp Deployment (Static)
 
 **GitHub Pages** (Automatic):
 ```bash
@@ -231,7 +220,7 @@ npm run build
 
 **Hosting Options**: GitHub Pages, Netlify, Vercel, AWS S3, any static file host
 
-### 🔧 FlaskApp Deployment (Server Required)
+###  FlaskApp Deployment (Server Required)
 
 **Development**:
 ```bash
@@ -243,24 +232,24 @@ python flaskapp.py
 
 **Requirements**: Python server environment, API key configuration
 
-## ⚡ Performance
+## Performance
 
-### 🆕 JSApp Performance
+###  JSApp Performance
 - **Initial Load**: ~515KB gzipped (JS) + ~40KB (CSS)
 - **Model Loading**: On-demand download (100MB-500MB per model)
 - **Caching**: IndexedDB persistence, models cached permanently
 - **Processing**: Real-time streaming analysis with progress updates
 - **Memory**: Efficient WebAssembly execution, model cleanup
 
-### 🔧 FlaskApp Performance
+###  FlaskApp Performance
 - **Server-side**: Processing limited by Python/Flask performance
 - **API Limits**: Google Perspective API rate limits apply
 - **Concurrent Users**: Limited by server resources
 - **Response Time**: Network latency + server processing time
 
-## 🧪 Testing
+##  Testing
 
-### 🆕 JSApp Testing
+###  JSApp Testing
 
 ```bash
 cd JSApp
@@ -277,13 +266,13 @@ npx playwright test --headed
 
 **Test Coverage**: Export functionality, model loading, analysis pipeline
 
-### 🔧 FlaskApp Testing
+###  FlaskApp Testing
 - **Manual testing**: Use web interface
 - **API testing**: Test with various text inputs and API configurations
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
-### 🆕 JSApp Issues
+###  JSApp Issues
 
 **Models not loading**:
 - Check browser console for network errors
@@ -300,7 +289,7 @@ npx playwright test --headed
 - Check browser download permissions
 - Try different export format (CSV/JSON/Excel)
 
-### 🔧 FlaskApp Issues
+###  FlaskApp Issues
 
 **API errors**:
 - Verify Google Perspective API key in `flaskapp.py`
@@ -312,7 +301,7 @@ npx playwright test --headed
 - Verify port 5002 is available
 - Test with smaller text inputs
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! Please focus on the **JSApp** for new features as it's the actively maintained codebase.
 
@@ -322,11 +311,11 @@ Contributions welcome! Please focus on the **JSApp** for new features as it's th
 4. Build successfully: `npm run build`
 5. Submit pull request
 
-## 📄 License
+##  License
 
 MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 ### JSApp (Modern)
 - **Transformers.js**: Xenova for WebAssembly ML
@@ -339,8 +328,6 @@ MIT License - see the LICENSE file for details.
 - **VADER Sentiment**: C.J. Hutto & Eric Gilbert
 - **Google Perspective API**: Jigsaw team
 - **TextBlob**: Steven Loria
-
-## 📚 References
 
 - 🆕 **JSApp**: [Transformers.js](https://huggingface.co/docs/transformers.js) | [Vue 3](https://vuejs.org) | [Vite](https://vitejs.dev)
 - 🔧 **FlaskApp**: [VADER](https://github.com/cjhutto/vaderSentiment) | [Perspective API](https://perspectiveapi.com) | [Flask](https://flask.palletsprojects.com)
