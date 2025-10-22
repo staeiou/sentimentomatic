@@ -6,26 +6,25 @@ A comprehensive sentiment analysis platform with **two independent applications*
 
 ### **JSApp** - Modern Client-Side Application (Recommended)
 ### Hosted at [https://sentimentomatic.org](https://sentimentomatic.org)
-**Local-first browser analysis using Transformers.js** 
+**Local-first / statically-hosted browser app using Transformers.js** 
 
-- ** Privacy-First**: All processing happens in your browser - no data sent to servers
-- ** Works Offline**: No internet required after initial model download
-- ** Modern Stack**: Vue 3 + TypeScript + Vite
-- ** Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity, and more
-- ** Rich Export**: CSV/JSON/Excel with multiclass analysis support
-- ** Real-time**: Streaming analysis with live results
-- ** Modern UI**: AG-Grid tables, responsive design
+- **Privacy-First**: All processing happens in your browser - no data sent to servers
+- **Works Offline**: No internet required after initial model download
+- **Modern Stack**: Vue 3 + TypeScript + Vite
+- **Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity, and more
+- **Rich Export**: CSV/JSON/Excel with multiclass analysis support
+- **Real-time**: Streaming analysis with live results
+- **Modern UI**: AG-Grid tables, responsive design
 
-###  **FlaskApp** - Legacy Python Server (For Older Models)
+###  **FlaskApp** - Legacy Python Server 
 ### Hosted at [https://sentimentomatic.stuartgeiger.com](https://sentimentomatic.stuartgeiger.com)
 **Traditional server-based processing with Google Perspective API**
 
-- ** Python/Flask**: Server-side processing
-- ** Google Perspective**: Toxicity detection via API (requires key)
-- ** Classic Models**: VADER, TextBlob sentiment analysis
-- ** ReCaptcha**: Built-in spam protection
-- ** Simple Interface**: HTML forms with DataTables
-- ** Limitations**: 50 lines max, requires internet connection
+- **Python/Flask**: Server-side processing
+- **Google Perspective**: Toxicity detection via API (requires key)
+- **Classic Models**: VADER, TextBlob sentiment analysis
+- **Simple Interface**: HTML forms with DataTables
+- **Limitations**: 50 lines max, requires python server (can't static host)
 
 ##  Architecture
 
