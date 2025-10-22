@@ -328,5 +328,5 @@ MIT License - see the LICENSE file for details.
 - **Google Perspective API**: Jigsaw team
 - **TextBlob**: Steven Loria
 
-- 🆕 **JSApp**: [Transformers.js](https://huggingface.co/docs/transformers.js) | [Vue 3](https://vuejs.org) | [Vite](https://vitejs.dev)
-- 🔧 **FlaskApp**: [VADER](https://github.com/cjhutto/vaderSentiment) | [Perspective API](https://perspectiveapi.com) | [Flask](https://flask.palletsprojects.com)
+- **JSApp**: [Transformers.js](https://huggingface.co/docs/transformers.js) | [Vue 3](https://vuejs.org) | [Vite](https://vitejs.dev)
+- **FlaskApp**: [VADER](https://github.com/cjhutto/vaderSentiment) | [Perspective API](https://perspectiveapi.com) | [Flask](https://flask.palletsprojects.com)
