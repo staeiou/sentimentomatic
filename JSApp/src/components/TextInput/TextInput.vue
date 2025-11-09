@@ -22,6 +22,7 @@ If you mix sad, happy, and neutral words, what happens? What if you have "This i
 Oh honey, bless your heart!
 😢😠😢
 Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.
+Not today, Satan!
 There are three kinds of lies: lies, damned lies, and statistics.
 Facebook says sorry for shutting down page of French town of Bitche
 u can def analyze slang w/ vader, its gr8! text analysis ftw!
