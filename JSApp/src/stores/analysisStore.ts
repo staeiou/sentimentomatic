@@ -153,7 +153,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     isAnalyzing.value = true
     progress.value = 0
-    progressStatus.value = 'Initializing...'
+    progressStatus.value = 'The curtain rises... (Initializing analysis)'
+
+    // 2.5 second theatrical delay before first model (to match slower curtain animation)
+    await new Promise(resolve => setTimeout(resolve, 2500))
 
     // Initialize timing
     overallStartTime.value = Date.now()
@@ -268,16 +271,16 @@ export const useAnalysisStore = defineStore('analysis', () => {
         localCompletedUnits++
         completedUnits.value++
         progress.value = (localCompletedUnits / totalUnits) * 100
-        progressStatus.value = `Ready ${analyzerName.toUpperCase()}...`
+        progressStatus.value = `${analyzerName.toUpperCase()} enters the stage (Loaded from cache)`
 
         // Unit 2: Model "loaded" (rule-based are instant)
         localCompletedUnits++
         completedUnits.value++
         progress.value = (localCompletedUnits / totalUnits) * 100
-        progressStatus.value = `Loaded ${analyzerName.toUpperCase()}...`
+        progressStatus.value = `${analyzerName.toUpperCase()} enters the stage (Loaded from cache)`
 
         // Unit 3: Process all lines
-        progressStatus.value = `Running ${analyzerName.toUpperCase()} on all lines...`
+        progressStatus.value = `NOW PERFORMING: ${analyzerName.toUpperCase()} (Processing ${lines.value.length} texts)`
 
         // Process this analyzer on ALL lines (fills column incrementally)
         for (let lineIndex = 0; lineIndex < lines.value.length; lineIndex++) {
@@ -344,21 +347,21 @@ export const useAnalysisStore = defineStore('analysis', () => {
           currentModelProcessedLines.value = 0
 
           // Unit 1: Download/Create worker
-          progressStatus.value = `🚀 Creating worker for ${modelInfo.displayName}...`
+          progressStatus.value = `${modelInfo.displayName} is arriving at the theater... (Creating web worker)`
           await multiModelAnalyzer.initializeWorker()
           localCompletedUnits++
           completedUnits.value++
           progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Unit 2: Load model
-          progressStatus.value = `📥 Loading ${modelInfo.displayName}...`
+          progressStatus.value = `${modelInfo.displayName} is getting into costume... (Downloading model)`
           await multiModelAnalyzer.initializeSingleModel(modelId)
           localCompletedUnits++
           completedUnits.value++
           progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Unit 3: Process all lines
-          progressStatus.value = `🔍 Running ${modelInfo.displayName} on all lines...`
+          progressStatus.value = `NOW PERFORMING: ${modelInfo.displayName} (Processing ${lines.value.length} texts)`
 
           for (let lineIndex = 0; lineIndex < lines.value.length; lineIndex++) {
             const text = lines.value[lineIndex]
@@ -443,7 +446,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
           progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Cleanup: TERMINATE WORKER to completely free ALL memory for this model
-          progressStatus.value = `💥 Terminating worker to free memory for ${modelInfo.displayName}...`
+          progressStatus.value = `Round of applause for ${modelInfo.displayName}! (Terminating worker to free memory)`
           await multiModelAnalyzer.terminateWorker()
           console.log(`✅ Worker terminated - ALL memory freed for ${modelInfo.displayName}`)
 
@@ -482,7 +485,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       isAnalyzing.value = false
       progress.value = 100
-      progressStatus.value = `Analysis complete - ${lines.value.length} lines processed`
+      progressStatus.value = `Final curtain! All performers have taken their bow. (Analysis complete - ${lines.value.length} lines processed)`
     }
   }
 

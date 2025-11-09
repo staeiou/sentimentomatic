@@ -33,15 +33,6 @@
   position: relative;
 }
 
-.instructions-card::before {
-  content: "🎯";
-  position: absolute;
-  top: -15px;
-  left: 30px;
-  font-size: 2rem;
-  background: white;
-  padding: 0 10px;
-}
 
 .instructions-card h2 {
   color: var(--color-primary);

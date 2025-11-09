@@ -1,31 +1,10 @@
 <template>
   <section id="results-section" class="results-section" aria-label="Analysis Results">
-    <div class="carnival-step step-3">STEP 3</div>
-
-    <div class="action-bar">
-      <div class="analyze-button-container">
-        <button type="button" id="analyze-btn" class="btn btn-primary" @click="$emit('analyze')" :disabled="isAnalyzing" aria-label="Start sentiment analysis" data-testid="main-analyze-button">
-          {{ isAnalyzing ? 'Analyzing...' : 'Analyze' }}
-        </button>
-
-        <!-- Inline progress bar - always visible -->
-        <div class="progress-bar-inline">
-          <div class="progress-fill" :style="{ width: analysisStore.progress + '%' }"></div>
-          <div class="progress-text">
-            <span v-if="!isAnalyzing">Ready to analyze</span>
-            <span v-else class="tqdm-progress">
-              {{ analysisStore.progressStatus }}
-              <span v-if="analysisStore.currentModelName" class="timing-info">
-                [{{ analysisStore.currentModelElapsed }}&lt;{{ analysisStore.currentModelRemaining }}]
-              </span>
-              <span class="timing-separator">|</span>
-              <span class="timing-overall">
-                All [{{ analysisStore.overallElapsed }}&lt;{{ analysisStore.overallRemaining }}]
-              </span>
-            </span>
-          </div>
-        </div>
-      </div>
+    <!-- Theater curtains -->
+    <div class="stage-container">
+      <div class="curtain curtain-left" :class="{ open: isAnalyzing || showResults }"></div>
+      <div class="curtain curtain-right" :class="{ open: isAnalyzing || showResults }"></div>
+      <div class="stage-valance"></div>
     </div>
 
     <div class="results-toolbar" v-if="showResults">
@@ -181,126 +160,12 @@ function exportJSON() {
   border: 4px solid var(--color-pink);
   border-radius: 20px;
   padding: var(--spacing-lg);
+  padding-top: 60px;
   margin-bottom: calc(var(--spacing-xl) + 5px);
+  min-height: 600px;
   box-shadow:
     5px 5px 0 var(--color-primary),
     5px 5px 20px rgba(0,0,0,0.1);
-}
-
-.action-bar {
-  position: relative;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-sm);
-  margin-bottom: var(--spacing-xl);
-}
-
-.analyze-button-container {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-left: 50px; /* Align with content like other sections */
-  flex: 1;
-}
-
-/* Special analyze button styling */
-:deep(#analyze-btn) {
-  padding: var(--spacing-md) var(--spacing-lg);
-  font-size: var(--font-size-lg);
-  letter-spacing: 2px;
-  background: var(--color-pink);
-  box-shadow:
-    0 4px 0 var(--color-danger-dark),
-    0 8px 15px rgba(255, 22, 84, 0.3);
-  font-weight: 900;
-  text-transform: uppercase;
-  border-radius: 30px;
-  position: relative;
-  animation: pulse 2s infinite;
-  margin-top: -5px;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-:deep(#analyze-btn:hover:not(:disabled)) {
-  letter-spacing: 3px;
-  transform: translateY(-2px);
-  box-shadow:
-    0 6px 0 var(--color-danger-dark),
-    0 12px 20px rgba(255, 22, 84, 0.4);
-}
-
-:deep(#analyze-btn:active:not(:disabled)) {
-  transform: translateY(2px);
-  box-shadow:
-    0 2px 0 var(--color-danger-dark),
-    0 4px 10px rgba(255, 22, 84, 0.3);
-}
-
-.progress-bar-inline {
-  position: relative;
-  flex: 1;
-  height: 57px;
-  background: #333;
-  border: 2px solid var(--color-border);
-  border-radius: 30px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.progress-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #4A148C, #6A1B9A, #8E24AA);
-  transition: width var(--transition-base);
-  border-radius: 30px;
-  box-shadow: 0 0 10px rgba(74, 20, 140, 0.5);
-}
-
-.progress-text {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  text-align: center;
-  font-size: var(--font-size-lg);
-  color: white;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.tqdm-progress {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.timing-info {
-  font-family: 'Courier New', monospace;
-  font-size: var(--font-size-md);
-  color: #00ff00;
-  font-weight: 600;
-}
-
-.timing-separator {
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 400;
-  margin: 0 4px;
-}
-
-.timing-overall {
-  font-family: 'Courier New', monospace;
-  font-size: var(--font-size-md);
-  color: #00d4ff;
-  font-weight: 600;
 }
 
 .results-header {
@@ -384,30 +249,155 @@ function exportJSON() {
   overflow: visible;
 }
 
+/* Theater Curtains */
+.stage-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 600px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.curtain {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    #8B0000 0%,
+    #A52A2A 20%,
+    #DC143C 40%,
+    #A52A2A 60%,
+    #8B0000 100%
+  );
+  transition: transform 3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.4);
+  z-index: 6;
+}
+
+.curtain::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 40px,
+      rgba(0, 0, 0, 0.1) 40px,
+      rgba(0, 0, 0, 0.1) 80px
+    );
+}
+
+.curtain::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 100%;
+  background: linear-gradient(90deg,
+    #DAA520 0%,
+    #FFD700 50%,
+    #DAA520 100%
+  );
+  box-shadow:
+    0 0 10px rgba(218, 165, 32, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.curtain-left {
+  left: 0;
+  transform: translateX(0);
+}
+
+.curtain-left::after {
+  right: 0;
+}
+
+.curtain-left.open {
+  transform: translateX(-100%);
+}
+
+.curtain-right {
+  right: 0;
+  transform: translateX(0);
+}
+
+.curtain-right::after {
+  left: 0;
+}
+
+.curtain-right.open {
+  transform: translateX(100%);
+}
+
+.stage-valance {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: linear-gradient(180deg,
+    #8B0000 0%,
+    #A52A2A 50%,
+    #8B0000 100%
+  );
+  border-bottom: 4px solid #DAA520;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 7;
+}
+
+.stage-valance::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #DAA520 0px,
+      #FFD700 20px,
+      #DAA520 40px,
+      transparent 40px,
+      transparent 50px
+    );
+}
+
+/* Adjust progress bar to look like stage footlights */
+.progress-bar-inline {
+  position: relative;
+  flex: 1;
+  height: 57px;
+  background: #333;
+  border: 2px solid var(--color-border);
+  border-radius: 30px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #4A148C, #6A1B9A, #8E24AA);
+  transition: width var(--transition-base);
+  border-radius: 30px;
+  box-shadow: 0 0 10px rgba(74, 20, 140, 0.5);
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
-  .action-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--spacing-sm);
-  }
-
-  .analyze-button-container {
-    margin-left: 20px;
-    margin-bottom: var(--spacing-md);
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--spacing-sm);
-  }
-
-  :deep(#analyze-btn) {
-    width: 100%;
-  }
-
-  .progress-bar-inline {
-    width: 100%;
-  }
-
   .results-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -421,6 +411,10 @@ function exportJSON() {
 
   .results-toolbar .btn {
     width: 100%;
+  }
+
+  .stage-valance {
+    height: 30px;
   }
 }
 </style>

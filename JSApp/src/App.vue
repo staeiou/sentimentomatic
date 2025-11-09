@@ -16,7 +16,9 @@
 
       <ControlsSection />
 
-      <ResultsSection @analyze="analyze" />
+      <ActionSection @analyze="analyze" />
+
+      <ResultsSection />
       <CacheClearSection />
     </main>
 
@@ -41,6 +43,7 @@ import InstructionsCard from './components/InstructionsCard.vue'
 import PrivacyBanner from './components/PrivacyBanner.vue'
 import InputSection from './components/InputSection.vue'
 import ControlsSection from './components/ControlsSection.vue'
+import ActionSection from './components/ActionSection.vue'
 import ResultsSection from './components/ResultsTable/ResultsSection.vue'
 import CacheClearSection from './components/CacheClearSection.vue'
 import AppFooter from './components/AppFooter.vue'

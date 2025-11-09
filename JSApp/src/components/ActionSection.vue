@@ -4,14 +4,14 @@
       <div class="carnival-step step-3">STEP 3</div>
       <div class="analyze-button-container">
         <button type="button" id="analyze-btn" class="btn btn-primary" @click="$emit('analyze')" :disabled="isAnalyzing">
-          {{ isAnalyzing ? 'Analyzing...' : 'Analyze' }}
+          {{ isAnalyzing ? 'Divining \n(Analyzing)...' : 'Divine \n(Analyze)' }}
         </button>
 
         <!-- Inline progress bar - always visible -->
         <div class="progress-bar-inline">
           <div class="progress-fill" :style="{ width: analysisStore.progress + '%' }"></div>
           <div class="progress-text">
-            <span v-if="!isAnalyzing">Ready to analyze</span>
+            <span v-if="!isAnalyzing">The stage awaits a new performance... (Click Divine / Analyze)</span>
             <span v-else class="tqdm-progress">
               {{ analysisStore.progressStatus }}
               <span v-if="analysisStore.currentModelName" class="timing-info">
@@ -77,7 +77,7 @@ const isAnalyzing = computed(() => analysisStore.isAnalyzing)
 
 /* Special analyze button styling */
 :deep(#analyze-btn) {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-lg);
   font-size: var(--font-size-lg);
   letter-spacing: 2px;
   background: var(--color-pink);
@@ -90,6 +90,7 @@ const isAnalyzing = computed(() => analysisStore.isAnalyzing)
   position: relative;
   animation: pulse 2s infinite;
   margin-top: -5px;
+  white-space: pre-line;
 }
 
 @keyframes pulse {
