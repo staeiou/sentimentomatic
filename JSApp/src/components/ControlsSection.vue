@@ -12,17 +12,23 @@
 
     <ModelSelector />
 
-    <div class="download-size-display" v-if="downloadInfo.totalModels > 0">
-      <div class="size-info">
-        <span class="size-label">{{ downloadInfo.allCached ? 'All Cached:' : 'Download Needed:' }}</span>
-        <span class="size-value" :class="{ cached: downloadInfo.allCached }">{{ formatSize(downloadInfo.downloadSize) }}</span>
-        <span class="model-counts" v-if="!downloadInfo.allCached">
-          ({{ downloadInfo.cachedCount }}/{{ downloadInfo.totalModels }} models cached)
-        </span>
-        <span class="model-counts" v-else>
-          ✅ No download needed
-        </span>
+    <div class="download-and-share-container" v-if="downloadInfo.totalModels > 0">
+      <div class="download-size-display">
+        <div class="size-info">
+          <span class="size-label">{{ downloadInfo.allCached ? 'All Cached:' : 'Download Needed:' }}</span>
+          <span class="size-value" :class="{ cached: downloadInfo.allCached }">{{ formatSize(downloadInfo.downloadSize) }}</span>
+          <span class="model-counts" v-if="!downloadInfo.allCached">
+            ({{ downloadInfo.cachedCount }}/{{ downloadInfo.totalModels }} models cached)
+          </span>
+          <span class="model-counts" v-else>
+            ✅ No download needed
+          </span>
+        </div>
       </div>
+      <ShareButton
+        buttonText="Share Texts via Link"
+        buttonClass="share-button-inline"
+      />
     </div>
   </section>
 </template>
@@ -31,6 +37,7 @@
 import { ref, watch } from 'vue'
 import { useModelStore } from '../stores/modelStore'
 import ModelSelector from './ModelSelector/ModelSelector.vue'
+import ShareButton from './ShareButton.vue'
 
 const modelStore = useModelStore()
 
@@ -109,8 +116,8 @@ function formatSize(bytes: number): string {
   color: var(--color-secondary);
   font-size: var(--font-size-2xl);
   font-family: "Impact", sans-serif;
-  font-weight: 400;
-  letter-spacing: 1px;
+  font-weight: lighter;
+  letter-spacing: 1.25px;
   margin: 0;
 }
 
@@ -150,12 +157,19 @@ function formatSize(bytes: number): string {
   }
 }
 
+.download-and-share-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-lg) 50px var(--spacing-sm) 50px;
+}
+
 .download-size-display {
+  flex: 1;
   background: var(--color-download-bg);
   border: 2px solid var(--color-download-border);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-sm) var(--spacing-md);
-  margin: var(--spacing-lg) 50px var(--spacing-sm) 50px;
   text-align: center;
 }
 
@@ -189,5 +203,32 @@ function formatSize(bytes: number): string {
   color: var(--color-download-text);
   font-size: var(--font-size-sm);
   opacity: 0.8;
+}
+
+:deep(.share-button-inline) {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+:deep(.share-button-inline:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 768px) {
+  .download-and-share-container {
+    flex-direction: column;
+    margin-left: 30px;
+    margin-right: var(--spacing-md);
+  }
+
+  :deep(.share-button-inline) {
+    width: 100%;
+  }
 }
 </style>

@@ -30,11 +30,12 @@
     <TemplateGeneratorModal ref="templateGeneratorRef" />
     <DownloadConfirmationModal ref="downloadConfirmationRef" />
     <SafariWarningModal ref="safariWarningRef" />
+    <ShareModal ref="shareModalRef" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, provide } from 'vue'
 import { useAnalysisStore } from './stores/analysisStore'
 import { useModelStore } from './stores/modelStore'
 // Components
@@ -52,6 +53,7 @@ import SampleDatasetsModal from './components/SampleDatasetsModal.vue'
 import TemplateGeneratorModal from './components/TemplateGeneratorModal.vue'
 import DownloadConfirmationModal from './components/DownloadConfirmationModal.vue'
 import SafariWarningModal from './components/SafariWarningModal.vue'
+import ShareModal from './components/ShareModal.vue'
 
 const analysisStore = useAnalysisStore()
 const modelStore = useModelStore()
@@ -63,6 +65,10 @@ const sampleDatasetsRef = ref<InstanceType<typeof SampleDatasetsModal>>()
 const templateGeneratorRef = ref<InstanceType<typeof TemplateGeneratorModal>>()
 const downloadConfirmationRef = ref<InstanceType<typeof DownloadConfirmationModal>>()
 const safariWarningRef = ref<InstanceType<typeof SafariWarningModal>>()
+const shareModalRef = ref<InstanceType<typeof ShareModal>>()
+
+// Provide share modal opener to all child components
+provide('openShareModal', () => shareModalRef.value?.open())
 
 // Analysis logic
 async function analyze() {
@@ -117,8 +123,8 @@ async function analyze() {
   }
 }
 
-// Check for Safari on mount
-onMounted(() => {
+// Check for Safari on mount and load shared URL
+onMounted(async () => {
   // Check if Safari and if warning hasn't been dismissed
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
   const warningDismissed = localStorage.getItem('sentimentomatic_safari_warning_dismissed') === 'true'
@@ -128,6 +134,38 @@ onMounted(() => {
     setTimeout(() => {
       safariWarningRef.value?.open()
     }, 500)
+  }
+
+  // NEW: Check for shared text in URL
+  const { loadFromUrl, cleanUrl } = await import('./utils/urlSharing')
+  const shared = await loadFromUrl()
+
+  if (shared) {
+    // Load text into editor
+    analysisStore.updateText(shared.text)
+
+    // Pre-select models if specified
+    if (shared.models && shared.models.length > 0) {
+      // Map model IDs to checkbox refs
+      for (const modelId of shared.models) {
+        if (modelId === 'vader') modelStore.useVader = true
+        else if (modelId === 'afinn') modelStore.useAfinn = true
+        else if (modelId === 'twitter-roberta') modelStore.useTwitterRoberta = true
+        else if (modelId === 'financial') modelStore.useFinancial = true
+        else if (modelId === 'distilbert') modelStore.useDistilbert = true
+        else if (modelId === 'multilingual-student') modelStore.useMultilingualStudent = true
+        else if (modelId === 'goemotions') modelStore.useGoEmotions = true
+        else if (modelId === 'koala-moderation') modelStore.useKoalaModeration = true
+        else if (modelId === 'iptc-news') modelStore.useIptcNews = true
+        else if (modelId === 'language-detection') modelStore.useLanguageDetection = true
+        else if (modelId === 'toxic-bert') modelStore.useToxicBert = true
+        else if (modelId === 'jigsaw-toxicity') modelStore.useJigsawToxicity = true
+        else if (modelId === 'industry-classification') modelStore.useIndustryClassification = true
+      }
+    }
+
+    // Clean URL (remove query params) for cleaner browser history
+    cleanUrl()
   }
 })
 </script>

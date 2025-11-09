@@ -3,6 +3,17 @@
    ============================================ */
 
 /* ===========================================
+   0. CUSTOM FONTS
+   =========================================== */
+@font-face {
+  font-family: 'Bungee';
+  src: url('/fonts/Bungee-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ===========================================
    1. CSS CUSTOM PROPERTIES (Design Tokens)
    =========================================== */
 :root {

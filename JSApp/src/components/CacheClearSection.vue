@@ -1,7 +1,14 @@
 <template>
-  <section class="cache-clear-section" aria-label="Cache Clear">
+  <section class="step-4-section" aria-label="Share and Cache Clear">
     <div class="carnival-step step-4">STEP 4</div>
     <div class="section-content">
+      <!-- Share Button -->
+      <ShareButton
+        buttonText="Generate a link to share your texts with others"
+        buttonClass="share-button-full"
+      />
+
+      <!-- Cache Clear Button -->
       <button type="button" class="cache-clear-button" @click="clearCache" :disabled="isClearing || isSafari">
         {{ buttonText }}
       </button>
@@ -12,8 +19,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useModelStore } from '../stores/modelStore'
+import ShareButton from './ShareButton.vue'
 
 const modelStore = useModelStore()
+
 const isClearing = ref(false)
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
 const buttonText = ref(isSafari ?
@@ -90,7 +99,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.cache-clear-section {
+.step-4-section {
   position: relative;
   background: white;
   border: 4px solid var(--color-mint);
@@ -118,6 +127,9 @@ onMounted(() => {
 .section-content {
   margin-left: 50px;
   margin-top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 .cache-clear-button {
@@ -159,9 +171,40 @@ onMounted(() => {
   background: var(--color-secondary);
 }
 
+/* Share Button Styling */
+:deep(.share-button-full) {
+  width: 100%;
+  height: 50px;
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow:
+    0 4px 0 #5a67d8,
+    0 8px 15px rgba(102, 126, 234, 0.3);
+  justify-content: center;
+}
+
+:deep(.share-button-full:hover) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 0 #5a67d8,
+    0 12px 20px rgba(102, 126, 234, 0.4);
+}
+
+:deep(.share-button-full .icon) {
+  font-size: 1.3rem;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
-  .cache-clear-section {
+  .step-4-section {
     margin: var(--spacing-lg) var(--spacing-md);
   }
 

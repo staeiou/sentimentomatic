@@ -81,8 +81,8 @@ defineExpose({
   font-size: var(--font-size-2xl);
   margin: 0;
   font-family: "Impact", sans-serif;
-  font-weight: 400;
-  letter-spacing: 1px;
+  font-weight: lighter;
+  letter-spacing: 1.25px;
 }
 
 .input-hint {
