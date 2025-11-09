@@ -67,11 +67,16 @@ const isAnalyzing = computed(() => analysisStore.isAnalyzing)
   margin-top: var(--spacing-sm);
 }
 
+.carnival-step.step-3 {
+  top: -47px;
+  left: -37px;
+}
+
 .analyze-button-container {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  margin-left: 50px; /* Align with content like other sections */
+  margin-left: 15px;
   flex: 1;
 }
 
