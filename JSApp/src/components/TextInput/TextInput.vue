@@ -19,6 +19,7 @@ If you are analyzing a text with newlines, you have to remove them, or else your
 Ugh, I hate hate HATE trying to write examples, it's not fun! I'm not happy!
 If you have more sad, negative, terrible, ugly, no good, very bad words in a sentence, sentiment models will output a more negative score.
 If you mix sad, happy, and neutral words, what happens? What if you have "This is awesome" and "This is awful" in the same input?
+Oh honey, bless your heart!
 😢😠😢
 Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.
 There are three kinds of lies: lies, damned lies, and statistics.
