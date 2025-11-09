@@ -2,7 +2,7 @@
   <section class="controls-section" aria-label="Analysis Controls">
     <div class="carnival-step step-2">STEP 2</div>
     <div class="controls-header">
-      <h3 class="section-title">🎭 Choose Your Trained Performers (Models)</h3>
+      <h3 class="section-title">🕺🤸‍♀️💃 Choose Your Trained Performers (Models)</h3>
       <div class="model-buttons">
         <button type="button" id="select-all-models-btn" class="btn btn-secondary btn-sm" @click="modelStore.selectAllModels()">Select All Models</button>
         <button type="button" id="clear-models-btn" class="btn btn-secondary btn-sm" @click="modelStore.clearAllModels()">Clear All Models</button>

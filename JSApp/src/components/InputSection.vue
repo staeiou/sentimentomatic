@@ -3,7 +3,7 @@
     <div class="carnival-step step-1">STEP 1</div>
     <div class="input-header">
       <div class="header-left">
-        <h3>🎰 Insert Texts Here</h3>
+        <h3>🎭 Insert Texts Here</h3>
         <span class="input-hint">1 line = 1 unit of text to analyze</span>
       </div>
       <div class="text-buttons">
