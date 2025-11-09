@@ -552,7 +552,7 @@ function getModelUrl(name: string): string | undefined {
     'IPTC News': 'https://huggingface.co/onnx-community/multilingual-IPTC-news-topic-classifier-ONNX',
     'Language Detection': 'https://huggingface.co/protectai/xlm-roberta-base-language-detection-onnx',
     'Toxic BERT': 'https://huggingface.co/Xenova/toxic-bert',
-    'Jigsaw Toxicity': 'https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx',
+    'Jigsaw Toxicity MiniLMv2': 'https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx',
     'Industry Classification': 'https://huggingface.co/sabatale/industry-classification-api-onnx'
   }
   return urls[name]

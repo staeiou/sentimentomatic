@@ -59,7 +59,7 @@
       </label>
       <label class="model-option">
         <input type="checkbox" id="use-jigsaw-toxicity" v-model="modelStore.useJigsawToxicity" checked>
-        <a href="https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx" target="_blank" rel="noopener">Jigsaw Toxicity</a>
+        <a href="https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx" target="_blank" rel="noopener">Jigsaw Toxicity MiniLMv2</a>
         <span class="model-size">22MB</span>
       </label>
       <label class="model-option">

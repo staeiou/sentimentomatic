@@ -5,7 +5,7 @@ import { pipeline } from '@huggingface/transformers';
 const MODELS_TO_TEST = [
   { name: "Language Detection", id: "protectai/xlm-roberta-base-language-detection-onnx", task: "text-classification" },
   { name: "Toxic BERT", id: "Xenova/toxic-bert", task: "text-classification" },
-  { name: "Jigsaw Toxicity", id: "minuva/MiniLMv2-toxic-jigsaw-onnx", task: "text-classification" },
+  { name: "Jigsaw Toxicity MiniLMv2", id: "minuva/MiniLMv2-toxic-jigsaw-onnx", task: "text-classification" },
   { name: "Industry Classification", id: "sabatale/industry-classification-api-onnx", task: "text-classification" }
 ];
 

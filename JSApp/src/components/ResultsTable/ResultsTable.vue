@@ -435,7 +435,7 @@ function getModelUrl(name: string): string | undefined {
     'IPTC News Topics': 'https://huggingface.co/onnx-community/multilingual-IPTC-news-topic-classifier-ONNX',
     'Language Detection': 'https://huggingface.co/protectai/xlm-roberta-base-language-detection-onnx',
     'Toxic BERT': 'https://huggingface.co/Xenova/toxic-bert',
-    'Jigsaw Toxicity': 'https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx',
+    'Jigsaw Toxicity MiniLMv2': 'https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx',
     'Industry Classification': 'https://huggingface.co/sabatale/industry-classification-api-onnx'
   }
   return urls[name]
@@ -805,7 +805,7 @@ function getColumnHeaders(column: Column) {
   min-width: 85px;
 }
 
-/* Jigsaw Toxicity - 100px for class, 85px for confidence */
+/* Jigsaw Toxicity MiniLMv2 - 100px for class, 85px for confidence */
 .pred-header[data-analyzer="jigsaw-toxicity"],
 .pred-cell[data-analyzer="jigsaw-toxicity"] {
   min-width: 100px;

@@ -197,7 +197,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     // Add ML models to columns (with proper type based on model)
     const CLASSIFICATION_MODELS = [
       'GoEmotions',
-      'Jigsaw Toxicity',
+      'Jigsaw Toxicity MiniLMv2',
       'KoalaAI Moderation',
       'IPTC News',
       'Language Detection',

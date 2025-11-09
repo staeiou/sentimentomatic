@@ -28,7 +28,7 @@ const MODELS = [
   { name: "IPTC News", id: "onnx-community/multilingual-IPTC-news-topic-classifier-ONNX", task: "text-classification", type: "classification" },
   { name: "Language Detection", id: "protectai/xlm-roberta-base-language-detection-onnx", task: "text-classification", type: "classification" },
   { name: "Toxic BERT", id: "Xenova/toxic-bert", task: "text-classification", type: "classification" },
-  { name: "Jigsaw Toxicity", id: "minuva/MiniLMv2-toxic-jigsaw-onnx", task: "text-classification", type: "classification" },
+  { name: "Jigsaw Toxicity MiniLMv2", id: "minuva/MiniLMv2-toxic-jigsaw-onnx", task: "text-classification", type: "classification" },
   { name: "Industry Classification", id: "sabatale/industry-classification-api-onnx", task: "text-classification", type: "classification" }
 ];
 

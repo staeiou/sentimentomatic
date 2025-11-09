@@ -57,7 +57,7 @@ export const useModelStore = defineStore('models', () => {
     { id: 'iptc-news', huggingFaceId: 'onnx-community/multilingual-IPTC-news-topic-classifier-ONNX', displayName: 'IPTC News', category: 'classification', type: 'neural' },
     { id: 'language-detection', huggingFaceId: 'protectai/xlm-roberta-base-language-detection-onnx', displayName: 'Language Detection', category: 'classification', type: 'neural' },
     { id: 'toxic-bert', huggingFaceId: 'Xenova/toxic-bert', displayName: 'Toxic BERT', category: 'classification', type: 'neural' },
-    { id: 'jigsaw-toxicity', huggingFaceId: 'minuva/MiniLMv2-toxic-jigsaw-onnx', displayName: 'Jigsaw Toxicity', category: 'classification', type: 'neural' },
+    { id: 'jigsaw-toxicity', huggingFaceId: 'minuva/MiniLMv2-toxic-jigsaw-onnx', displayName: 'Jigsaw Toxicity MiniLMv2', category: 'classification', type: 'neural' },
     { id: 'industry-classification', huggingFaceId: 'sabatale/industry-classification-api-onnx', displayName: 'Industry Classification', category: 'classification', type: 'neural' }
   ]
 

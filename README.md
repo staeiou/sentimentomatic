@@ -11,7 +11,7 @@ A comprehensive sentiment analysis platform with **two independent applications*
 - **Privacy-First**: All processing happens in your browser - no data sent to servers
 - **Works Offline**: No internet required after initial model download
 - **Modern Stack**: Vue 3 + TypeScript + Vite
-- **Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity, and more
+- **Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity MiniLMv2, and more
 - **Rich Export**: CSV/JSON/Excel with multiclass analysis support
 - **Real-time**: Streaming analysis with live results
 - **Modern UI**: AG-Grid tables, responsive design
@@ -56,7 +56,7 @@ JSApp/
 **JSApp Analysis Types**:
 - **Sentiment**: VADER, AFINN, DistilBERT, RoBERTa, Multilingual models
 - **Emotion Classification**: GoEmotions (28 emotions)
-- **Content Moderation**: Jigsaw Toxicity, various safety models
+- **Content Moderation**: Jigsaw Toxicity MiniLMv2, various safety models
 - **Topic Classification**: News categorization, industry classification
 
 ###  FlaskApp Architecture (Legacy Server-Side)

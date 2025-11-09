@@ -6,7 +6,7 @@ A privacy-first, client-side sentiment analysis application built with Vue 3 and
 
 - **🔒 Privacy-First**: All processing in-browser, no server communication
 - **🌐 Offline Capable**: Works without internet after model downloads
-- **🤖 Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity
+- **🤖 Advanced Models**: DistilBERT, RoBERTa, GoEmotions, Jigsaw Toxicity MiniLMv2
 - **📊 Rich Export**: CSV/JSON/Excel with multiclass analysis expansion
 - **⚡ Real-time**: Streaming analysis with live progress updates
 - **🎨 Modern UI**: AG-Grid tables, Vue 3 reactivity, responsive design
@@ -64,7 +64,7 @@ src/
 
 ### Classification Models
 - **GoEmotions**: 28 emotion categories (joy, anger, fear, etc.)
-- **Jigsaw Toxicity**: Content moderation and safety
+- **Jigsaw Toxicity MiniLMv2**: Content moderation and safety
 - **Financial DistilRoBERTa**: Financial text sentiment
 - **Industry Classification**: Business sector categorization
 

@@ -47,12 +47,12 @@ Tests the core export functionality of the application:
 3. **Multiclass Column Expansion**: Verifies that classification models export both:
    - `ModelName_Majority_Prediction` + `ModelName_Majority_Likelihood` (summary)
    - `ModelName_Class_[emotion1]`, `ModelName_Class_[emotion2]`, etc. (detailed breakdown)
-4. **Real Model Testing**: Tests with actual models (VADER, DistilBERT, GoEmotions, Jigsaw Toxicity)
+4. **Real Model Testing**: Tests with actual models (VADER, DistilBERT, GoEmotions, Jigsaw Toxicity MiniLMv2)
 5. **Proper Timing**: Waits for analysis completion before testing exports
 
 **Expected Output**:
 - Tests pass with real model analysis (takes ~45 seconds)
-- Console shows analysis progress: VADER → DistilBERT → GoEmotions → Jigsaw Toxicity
+- Console shows analysis progress: VADER → DistilBERT → GoEmotions → Jigsaw Toxicity MiniLMv2
 - Validates CSV structure with actual sentiment and classification results
 
 ### `types.ts`
