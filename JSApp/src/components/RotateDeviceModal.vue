@@ -12,7 +12,7 @@
         </div>
 
         <h3>Rotate for Best Experience</h3>
-        <p>This app is easier to use in landscape mode</p>
+        <p>This app is designed for desktop browsers, which are highly recommended. But on mobile, the app is less painful to use in landscape mode.</p>
 
         <button type="button" class="btn btn-primary got-it-btn" @click="close">
           Got it
