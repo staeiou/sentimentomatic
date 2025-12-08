@@ -31,6 +31,7 @@
     <DownloadConfirmationModal ref="downloadConfirmationRef" />
     <SafariWarningModal ref="safariWarningRef" />
     <ShareModal ref="shareModalRef" />
+    <RotateDeviceModal ref="rotateDeviceRef" />
   </div>
 </template>
 
@@ -54,6 +55,7 @@ import TemplateGeneratorModal from './components/TemplateGeneratorModal.vue'
 import DownloadConfirmationModal from './components/DownloadConfirmationModal.vue'
 import SafariWarningModal from './components/SafariWarningModal.vue'
 import ShareModal from './components/ShareModal.vue'
+import RotateDeviceModal from './components/RotateDeviceModal.vue'
 
 const analysisStore = useAnalysisStore()
 const modelStore = useModelStore()
@@ -66,6 +68,7 @@ const templateGeneratorRef = ref<InstanceType<typeof TemplateGeneratorModal>>()
 const downloadConfirmationRef = ref<InstanceType<typeof DownloadConfirmationModal>>()
 const safariWarningRef = ref<InstanceType<typeof SafariWarningModal>>()
 const shareModalRef = ref<InstanceType<typeof ShareModal>>()
+const rotateDeviceRef = ref<InstanceType<typeof RotateDeviceModal>>()
 
 // Provide share modal opener to all child components
 provide('openShareModal', () => shareModalRef.value?.open())
@@ -125,6 +128,19 @@ async function analyze() {
 
 // Check for Safari on mount and load shared URL
 onMounted(async () => {
+  // Check for mobile device in portrait mode - show rotation prompt
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || window.innerWidth < 768
+  const isPortrait = window.matchMedia("(orientation: portrait)").matches
+  const rotationDismissed = localStorage.getItem('sentimentomatic_rotation_dismissed') === 'true'
+
+  if (isMobile && isPortrait && !rotationDismissed) {
+    // Show rotation prompt immediately
+    setTimeout(() => {
+      rotateDeviceRef.value?.open()
+    }, 300)
+  }
+
   // Check if Safari and if warning hasn't been dismissed
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
   const warningDismissed = localStorage.getItem('sentimentomatic_safari_warning_dismissed') === 'true'

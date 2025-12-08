@@ -448,6 +448,53 @@ a:hover {
     top: -8px;
     left: -8px;
   }
+
+  /* Smaller scrollbars on mobile */
+  ::-webkit-scrollbar {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  ::-webkit-scrollbar-track {
+    border-radius: 6px !important;
+    border: 2px solid var(--color-mint) !important;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 6px !important;
+    border: 2px solid var(--color-bg-secondary) !important;
+    min-height: 30px !important;
+    min-width: 30px !important;
+  }
+
+  ::-webkit-scrollbar-button:start:decrement,
+  ::-webkit-scrollbar-button:end:increment {
+    height: 12px !important;
+    width: 12px !important;
+    border-radius: 3px !important;
+  }
+
+  ::-webkit-scrollbar-button:start:decrement:vertical {
+    background-size: 10px !important;
+  }
+
+  ::-webkit-scrollbar-button:end:increment:vertical {
+    background-size: 10px !important;
+  }
+
+  ::-webkit-scrollbar-button:start:decrement:horizontal {
+    background-size: 10px !important;
+  }
+
+  ::-webkit-scrollbar-button:end:increment:horizontal {
+    background-size: 10px !important;
+  }
+
+  /* Larger touch targets for buttons */
+  .btn {
+    min-height: 44px;
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
 }
 
 @media (max-width: 480px) {

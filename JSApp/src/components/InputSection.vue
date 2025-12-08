@@ -4,10 +4,10 @@
     <div class="input-header">
       <div class="header-left">
         <h3>🎭 Insert Texts Here</h3>
-        <span class="input-hint">1 line = 1 unit of text to analyze</span>
+        <span class="input-hint">1 line = 1 unit<span class="hide-narrow"> of text</span> to analyze</span>
       </div>
       <div class="text-buttons">
-        <button type="button" id="template-generator-btn" class="btn btn-secondary btn-sm" @click="$emit('showTemplateGenerator')">Make Mad Libs Template</button>
+        <button type="button" id="template-generator-btn" class="btn btn-secondary btn-sm" @click="$emit('showTemplateGenerator')">Mad Libs<span class="hide-narrow"> Template</span></button>
         <button type="button" id="sample-datasets-btn" class="btn btn-secondary btn-sm" @click="$emit('showSampleDatasets')">Sample Data</button>
         <button type="button" id="import-file-btn" class="btn btn-secondary btn-sm" @click="$emit('showFileImport')">Import File</button>
         <button type="button" id="clear-text-btn" class="btn btn-secondary btn-sm" @click="$emit('clearText')">Clear</button>
@@ -98,6 +98,13 @@ defineExpose({
 .text-buttons {
   display: flex;
   gap: var(--spacing-sm);
+}
+
+/* Hide text on narrower viewports */
+@media (max-width: 1024px) {
+  .hide-narrow {
+    display: none;
+  }
 }
 
 /* Mobile responsive */

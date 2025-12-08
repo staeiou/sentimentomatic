@@ -993,4 +993,30 @@ onBeforeUnmount(() => {
   transform: translateY(0);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
+
+/* Mobile responsive improvements */
+@media (max-width: 768px) {
+  :deep(.ag-theme-retrofuture) {
+    --ag-row-height: 45px !important;
+    --ag-header-height: 48px !important;
+    font-size: 13px !important;
+  }
+
+  /* Make text column narrower on mobile to fit more model columns */
+  :deep([col-id="text"]) {
+    max-width: 200px !important;
+  }
+
+  /* Larger touch targets for cells */
+  :deep(.ag-cell) {
+    padding: 8px 4px !important;
+  }
+
+  /* Modal full width on mobile */
+  .modal-dialog {
+    width: 95%;
+    max-width: 95%;
+    margin: var(--spacing-sm);
+  }
+}
 </style>
