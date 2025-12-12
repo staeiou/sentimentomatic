@@ -36,48 +36,30 @@ export class CacheManager {
       let totalSize = 0;
       const modelUrls = new Set<string>(); // Track unique models
 
-      // Safari optimization: Skip size calculation if too many files
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      const skipSizeCalc = isSafari && requests.length > 50;
-
-      if (skipSizeCalc) {
-        console.log('📊 Safari optimization: Estimating cache size instead of calculating');
-        // Just count models, estimate size
-        for (const request of requests) {
-          const url = request.url;
-          const modelMatch = url.match(/huggingface\.co\/([^\/]+\/[^\/]+)/);
-          if (modelMatch) {
-            modelUrls.add(modelMatch[1]);
-          }
-        }
-        // Estimate 150MB per model (rough average)
-        totalSize = modelUrls.size * 150 * 1024 * 1024;
-      } else {
-        // Full size calculation for non-Safari or small caches
-        for (const request of requests) {
-          try {
-            const response = await cache.match(request);
-            if (response) {
-              // Try to get size from Content-Length header
-              const contentLength = response.headers.get('content-length');
-              if (contentLength) {
-                totalSize += parseInt(contentLength);
-              } else if (!isSafari) {
-                // Only read blob on non-Safari browsers
-                const blob = await response.blob();
-                totalSize += blob.size;
-              }
-
-              // Extract model name from URL for counting unique models
-              const url = request.url;
-              const modelMatch = url.match(/huggingface\.co\/([^\/]+\/[^\/]+)/);
-              if (modelMatch) {
-                modelUrls.add(modelMatch[1]);
-              }
+      // Calculate size for all browsers
+      for (const request of requests) {
+        try {
+          const response = await cache.match(request);
+          if (response) {
+            // Try to get size from Content-Length header
+            const contentLength = response.headers.get('content-length');
+            if (contentLength) {
+              totalSize += parseInt(contentLength);
+            } else {
+              // Read blob size if Content-Length not available
+              const blob = await response.blob();
+              totalSize += blob.size;
             }
-          } catch (error) {
-            console.warn(`Failed to get size for ${request.url}:`, error);
+
+            // Extract model name from URL for counting unique models
+            const url = request.url;
+            const modelMatch = url.match(/huggingface\.co\/([^\/]+\/[^\/]+)/);
+            if (modelMatch) {
+              modelUrls.add(modelMatch[1]);
+            }
           }
+        } catch (error) {
+          console.warn(`Failed to get size for ${request.url}:`, error);
         }
       }
 
