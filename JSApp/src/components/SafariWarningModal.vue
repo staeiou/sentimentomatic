@@ -9,7 +9,7 @@
         <div class="modal-body">
           <div class="warning-message">
             <p><strong>Safari works with Sentiment-O-Matic, but is not recommended.</strong></p>
-            <p>This web app downloads small language models that run entirely in your web browser, but Safari has some limitations:
+            <p>This web app downloads small language models that run entirely in your web browser, but Safari has some limitations:</p>
 
             <ul class="issues-list">
               <li>⌛ Model analysis is much slower (2-10x faster on Firefox/Chrome) </li>
