@@ -8,7 +8,8 @@
 
         <div class="modal-body">
           <div class="warning-message">
-            <p><strong>Safari works with Sentiment-O-Matic, but has known performance issues:</strong></p>
+            <p><strong>Safari works with Sentiment-O-Matic, but is not recommended.</strong></p>
+            <p>This web app downloads small language models that run entirely in your web browser, but Safari has some limitations:
 
             <ul class="issues-list">
               <li>⌛ Model analysis is much slower (2-10x faster on Firefox/Chrome) </li>
@@ -23,7 +24,7 @@
             </div>
 
             <p class="browser-recommendation">
-              <strong>For the best experience, use <a href="https://www.mozilla.org/firefox/" target="_blank">Firefox</a> or <a href="https://www.google.com/chrome/" target="_blank">Chrome</a></strong>
+              <strong>For the best experience, use <a href="https://www.mozilla.org/firefox/" target="_blank">Firefox</a>, <a href="https://www.google.com/chrome/" target="_blank">Chrome</a>, or a Firefox/Chrome-based browser like <a href="https://brave.com/download/">Brave</a> or <a href="https://www.opera.com/download">Opera</a>.</strong>
             </p>
 
             <p class="continue-message">
