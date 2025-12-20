@@ -2,7 +2,8 @@
   <section class="controls-section" aria-label="Analysis Controls">
     <div class="carnival-step step-2">STEP 2</div>
     <div class="controls-header">
-      <h3 class="section-title">🕺🤸‍♀️💃 Choose Your Trained Performers (Models)</h3>
+      <h3 v-if="themeStore.performanceMode" class="section-title">🕺🤸‍♀️💃 Choose Your Trained Performers (Models)</h3>
+      <h3 v-else class="section-title">🤖 Choose Your Trained Models</h3>
       <div class="model-buttons">
         <button type="button" id="select-all-models-btn" class="btn btn-secondary btn-sm" @click="modelStore.selectAllModels()">Select All Models</button>
         <button type="button" id="clear-models-btn" class="btn btn-secondary btn-sm" @click="modelStore.clearAllModels()">Clear All Models</button>
@@ -18,10 +19,10 @@
           <span class="size-label">{{ downloadInfo.allCached ? 'All Cached:' : 'Download Needed:' }}</span>
           <span class="size-value" :class="{ cached: downloadInfo.allCached }">{{ formatSize(downloadInfo.downloadSize) }}</span>
           <span class="model-counts" v-if="!downloadInfo.allCached">
-            ({{ downloadInfo.cachedCount }}/{{ downloadInfo.totalModels }} models cached)
+            ({{ downloadInfo.cachedCount }}/{{ downloadInfo.totalModels }} models cached, click 'Analyze' to download)
           </span>
           <span class="model-counts" v-else>
-            ✅ No download needed
+            ✅ No download needed, click 'Analyze' to start
           </span>
         </div>
       </div>
@@ -36,10 +37,12 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useModelStore } from '../stores/modelStore'
+import { useThemeStore } from '../stores/themeStore'
 import ModelSelector from './ModelSelector/ModelSelector.vue'
 import ShareButton from './ShareButton.vue'
 
 const modelStore = useModelStore()
+const themeStore = useThemeStore()
 
 // Reactive state for download info
 const downloadInfo = ref({

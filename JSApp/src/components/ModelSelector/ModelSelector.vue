@@ -1,7 +1,7 @@
 <template>
   <div class="models-grid">
     <fieldset class="model-group">
-      <legend>Sentiment Models</legend>
+      <legend>Single Scale Sentiment Models (positive ↔ negative)</legend>
       <div class="model-subgroup">
         <div class="subgroup-header-row">
           <h4 class="subgroup-header">Rule-Based Models</h4>
@@ -47,7 +47,7 @@
     </fieldset>
 
     <fieldset class="model-group">
-      <legend>Classification</legend>
+      <legend>Multi-Classification Neural Network Models</legend>
       <div class="classification-header-row">
         <span class="classification-label">Model</span>
         <span class="size-header">Size</span>

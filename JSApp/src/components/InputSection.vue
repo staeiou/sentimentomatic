@@ -3,13 +3,14 @@
     <div class="carnival-step step-1">STEP 1</div>
     <div class="input-header">
       <div class="header-left">
-        <h3>🎭 Insert Texts Here</h3>
+        <h3 v-if="themeStore.performanceMode">📜 Set the Scene (Enter Text to Analyze)</h3>
+        <h3 v-else>📝 Enter Text to Analyze</h3>
         <span class="input-hint">1 line = 1 unit<span class="hide-narrow"> of text</span> to analyze</span>
       </div>
       <div class="text-buttons">
-        <button type="button" id="template-generator-btn" class="btn btn-secondary btn-sm" @click="$emit('showTemplateGenerator')">Mad Libs<span class="hide-narrow"> Template</span></button>
-        <button type="button" id="sample-datasets-btn" class="btn btn-secondary btn-sm" @click="$emit('showSampleDatasets')">Sample Data</button>
         <button type="button" id="import-file-btn" class="btn btn-secondary btn-sm" @click="$emit('showFileImport')">Import File</button>
+        <button type="button" id="sample-datasets-btn" class="btn btn-secondary btn-sm" @click="$emit('showSampleDatasets')">Sample Data</button>
+        <button type="button" id="template-generator-btn" class="btn btn-secondary btn-sm" @click="$emit('showTemplateGenerator')">Make a Mad Libs</button>
         <button type="button" id="clear-text-btn" class="btn btn-secondary btn-sm" @click="$emit('clearText')">Clear</button>
       </div>
     </div>
@@ -19,7 +20,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useThemeStore } from '../stores/themeStore'
 import TextInput from './TextInput/TextInput.vue'
+
+const themeStore = useThemeStore()
 
 // Component ref
 const textInputRef = ref<InstanceType<typeof TextInput>>()

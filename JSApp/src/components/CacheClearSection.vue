@@ -102,18 +102,18 @@ onMounted(() => {
 .step-4-section {
   position: relative;
   background: white;
-  border: 4px solid var(--color-mint);
+  border: 4px solid var(--color-accent);
   border-radius: 20px;
   padding: 10px;
   margin: 0 auto var(--spacing-xl) auto;
   max-width: var(--max-width-content);
   box-shadow:
-    5px 5px 0 var(--color-secondary-light),
+    5px 5px 0 var(--color-gold-dark),
     5px 5px 20px rgba(0,0,0,0.1);
 }
 
 .carnival-step.step-4 {
-  background: linear-gradient(135deg, var(--color-mint), var(--color-secondary-light));
+  background: linear-gradient(135deg, var(--color-accent), var(--color-gold-dark));
   transform: rotate(12deg);
   top: -32px;
   left: -12px;
@@ -176,7 +176,7 @@ onMounted(() => {
   width: 100%;
   height: 50px;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-secondary-light) 0%, var(--color-secondary) 100%);
   color: white;
   border: none;
   border-radius: 30px;
@@ -186,16 +186,16 @@ onMounted(() => {
   cursor: pointer;
   transition: all var(--transition-base);
   box-shadow:
-    0 4px 0 #5a67d8,
-    0 8px 15px rgba(102, 126, 234, 0.3);
+    0 4px 0 var(--color-secondary),
+    0 8px 15px rgba(29, 53, 87, 0.3);
   justify-content: center;
 }
 
 :deep(.share-button-full:hover) {
   transform: translateY(-2px);
   box-shadow:
-    0 6px 0 #5a67d8,
-    0 12px 20px rgba(102, 126, 234, 0.4);
+    0 6px 0 var(--color-secondary),
+    0 12px 20px rgba(29, 53, 87, 0.4);
 }
 
 :deep(.share-button-full .icon) {

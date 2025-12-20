@@ -1,90 +1,85 @@
 <template>
-  <header class="app-header">
-    <div class="neon-sign">
-      <h1 class="app-title">
-        <a href="http://sentimentomatic.org">
-          <span class="title-super">Stuart's Super Magic</span>
-          <span class="title-main">SENTIMENT-O-MATIC</span>
-        </a>
-      </h1>
-      <div class="app-tagline">
-        ⚡ Step Right Up! Test Your Text's True Feelings! ⚡
-      </div>
+  <header class="app-header" :class="{ 'performance-mode': themeStore.performanceMode }">
+    <!-- Performance Mode Card -->
+    <PerformanceModeCard />
+
+    <!-- Header Image (Default Mode) -->
+    <div v-show="!themeStore.performanceMode" class="header-image-container">
+      <a href="http://sentimentomatic.org">
+        <img src="/header.png" alt="Stuart's Super Magic Sentiment-O-Matic" class="header-image" />
+      </a>
+    </div>
+
+    <!-- Header Image (Performance Mode) -->
+    <div v-show="themeStore.performanceMode" class="header-image-container performance-header">
+      <a href="http://sentimentomatic.org">
+        <img src="/header-performance.png" alt="Stuart's Super Magic Sentiment-O-Matic" class="header-image-performance" />
+      </a>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-// Pure presentational component - no logic needed
+import { useThemeStore } from '../stores/themeStore'
+import PerformanceModeCard from './PerformanceModeCard.vue'
+
+const themeStore = useThemeStore()
 </script>
 
 <style scoped>
+/* ============================================
+   DEFAULT MODE - Simple Container for Header Image
+   ============================================ */
 .app-header {
-  background: var(--color-secondary);
-  background-image:
-    repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.1) 10px, rgba(0,0,0,.1) 20px),
-    radial-gradient(circle at 20% 80%, var(--color-mint) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, var(--color-accent) 0%, transparent 50%);
-  padding: var(--spacing-2xl) var(--spacing-xl);
-  border-bottom: 8px solid var(--color-primary);
+  padding: var(--spacing-sm) var(--spacing-xl);
   text-align: center;
   position: relative;
-  overflow: hidden;
+  background: #000000;
 }
 
-.neon-sign {
-  background: var(--color-bg-primary);
-  display: inline-block;
-  padding: var(--spacing-xl) var(--spacing-2xl);
-  border-radius: 20px;
-  border: 4px solid var(--color-primary);
-  box-shadow:
-    0 0 20px rgba(255, 107, 53, 0.5),
-    inset 0 0 20px rgba(255, 107, 53, 0.1);
-  transform: perspective(300px) rotateX(5deg);
+/* Remove decorative elements for both modes */
+.app-header::before,
+.app-header::after {
+  content: none;
 }
 
-.app-title {
-  margin: 0;
-}
-
-.app-title a {
-  color: inherit;
-  text-decoration: none;
+/* Header Image (Default Mode) */
+.header-image-container {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: var(--spacing-xs);
+  width: 100%;
 }
 
-.title-super {
-  font-family: "Courier New", monospace;
-  font-size: var(--font-size-lg);
-  color: var(--color-secondary);
-  letter-spacing: 2px;
-  text-transform: uppercase;
+/* Add padding ONLY to default mode to match performance mode header height */
+/* Default: 1443x566 (ratio 2.549), Performance: 1428x649 (ratio 2.200) */
+/* At 960px width: default=376px, performance=436px, diff=60px */
+.header-image-container:not(.performance-header) {
+  padding: 30px 0;
 }
 
-.title-main {
-  font-family: "Arial Black", "Impact", sans-serif;
-  font-size: 2.5rem;
-  color: var(--color-primary);
-  text-shadow:
-    2px 2px 0 var(--color-accent),
-    4px 4px 8px rgba(0,0,0,0.2);
-  letter-spacing: 0.5px;
-  word-spacing: 0.2em;
+.header-image-container a {
+  display: block;
+  max-width: 100%;
 }
 
-.app-tagline {
-  font-size: var(--font-size-lg);
-  color: var(--color-secondary);
-  font-weight: 600;
-  margin-top: var(--spacing-md);
-  letter-spacing: 1px;
+.header-image {
+  width: 100%;
+  max-width: 960px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }
 
-/* Mobile responsive */
+/* Performance Mode Header Image */
+.header-image-performance {
+  width: 100%;
+  max-width: 960px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 @media (max-width: 480px) {
   .app-header {
     padding: var(--spacing-md);

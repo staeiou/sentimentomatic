@@ -4,7 +4,7 @@
     <div class="instructions-steps">
       <div class="step">
         <span class="step-badge">1</span>
-        <span>Enter your text below</span>
+        <span>Enter your text below (or import file)</span>
       </div>
       <div class="step">
         <span class="step-badge">2</span>

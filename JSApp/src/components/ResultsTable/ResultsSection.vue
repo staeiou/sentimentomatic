@@ -1,7 +1,7 @@
 <template>
-  <section id="results-section" class="results-section" aria-label="Analysis Results">
-    <!-- Theater curtains -->
-    <div class="stage-container">
+  <section id="results-section" class="results-section" :class="{ 'regular-mode': !themeStore.performanceMode }" aria-label="Analysis Results">
+    <!-- Theater curtains (Performance Mode only) -->
+    <div v-if="themeStore.performanceMode" class="stage-container">
       <div class="curtain curtain-left" :class="{ open: isAnalyzing || showResults }"></div>
       <div class="curtain curtain-right" :class="{ open: isAnalyzing || showResults }"></div>
       <div class="stage-valance"></div>
@@ -51,11 +51,13 @@
 import { ref, computed } from 'vue'
 import { useAnalysisStore } from '../../stores/analysisStore'
 import { useModelStore } from '../../stores/modelStore'
+import { useThemeStore } from '../../stores/themeStore'
 import { exportToCSV, exportToJSON, exportToExcel } from '../../utils/exportUtils'
 import ResultsTable from './AGGridResultsTable.vue'
 
 const analysisStore = useAnalysisStore()
 const modelStore = useModelStore()
+const themeStore = useThemeStore()
 const exportMulticlass = ref(false)
 
 // Auto-scroll state (enabled by default if >50 lines)
@@ -166,6 +168,21 @@ function exportJSON() {
   box-shadow:
     5px 5px 0 var(--color-primary),
     5px 5px 20px rgba(0,0,0,0.1);
+}
+
+/* Regular Mode - Clean retro computer panel aesthetic */
+.results-section.regular-mode {
+  padding-top: var(--spacing-lg);
+  border: 4px solid var(--color-secondary);
+  background:
+    linear-gradient(0deg, rgba(0,78,100,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,78,100,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  background-size: 20px 20px, 20px 20px, 100% 100%;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.05),
+    4px 4px 0 var(--color-secondary-light),
+    4px 4px 20px rgba(0,0,0,0.1);
 }
 
 .results-header {

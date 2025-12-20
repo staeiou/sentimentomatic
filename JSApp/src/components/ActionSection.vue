@@ -4,14 +4,26 @@
       <div class="carnival-step step-3">STEP 3</div>
       <div class="analyze-button-container">
         <button type="button" id="analyze-btn" class="btn btn-primary" @click="$emit('analyze')" :disabled="isAnalyzing">
-          {{ isAnalyzing ? 'Divining \n(Analyzing)...' : 'Divine \n(Analyze)' }}
+          <template v-if="themeStore.performanceMode">
+            {{ isAnalyzing ? 'Performing \n(Analyzing)...' : 'Perform \n(Analyze)' }}
+          </template>
+          <template v-else>
+            {{ isAnalyzing ? 'Analyzing...' : 'Analyze' }}
+          </template>
         </button>
 
         <!-- Inline progress bar - always visible -->
         <div class="progress-bar-inline">
           <div class="progress-fill" :style="{ width: analysisStore.progress + '%' }"></div>
           <div class="progress-text">
-            <span v-if="!isAnalyzing">The stage awaits a new performance... (Click Divine / Analyze)</span>
+            <span v-if="!isAnalyzing">
+              <template v-if="themeStore.performanceMode">
+                Click Perform to start the show (Analyze sentiment of texts)
+              </template>
+              <template v-else>
+                Click Analyze to run sentiment analysis
+              </template>
+            </span>
             <span v-else class="tqdm-progress">
               {{ analysisStore.progressStatus }}
               <span v-if="analysisStore.currentModelName" class="timing-info">
@@ -32,8 +44,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAnalysisStore } from '../stores/analysisStore'
+import { useThemeStore } from '../stores/themeStore'
 
 const analysisStore = useAnalysisStore()
+const themeStore = useThemeStore()
 
 // Events
 defineEmits<{
@@ -136,10 +150,10 @@ const isAnalyzing = computed(() => analysisStore.isAnalyzing)
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #4A148C, #6A1B9A, #8E24AA);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark), var(--color-primary-darker));
   transition: width var(--transition-base);
   border-radius: 30px;
-  box-shadow: 0 0 10px rgba(74, 20, 140, 0.5);
+  box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
 }
 
 .progress-text {

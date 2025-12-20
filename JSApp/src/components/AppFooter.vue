@@ -30,7 +30,7 @@
 .app-footer {
   margin-top: 0;
   padding: var(--spacing-sm) var(--spacing-xl);
-  background: #4A148C;
+  background: var(--color-secondary);
   color: white;
   font-size: var(--font-size-sm);
 }

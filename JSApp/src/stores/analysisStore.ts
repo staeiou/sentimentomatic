@@ -3,8 +3,10 @@ import { ref, computed, onUnmounted } from 'vue'
 import type { MultiModalAnalysisResult } from '../core/analysis/AnalysisStrategy'
 import { AnalyzerRegistry } from '../core/analyzers'
 import { MultiModelAnalyzer } from '../core/analyzers/MultiModelAnalyzer'
+import { useThemeStore } from './themeStore'
 
 export const useAnalysisStore = defineStore('analysis', () => {
+  const themeStore = useThemeStore()
   // State
   const text = ref('')
   const lines = computed(() => text.value.split('\n').filter(line => line.trim()))
@@ -153,7 +155,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     isAnalyzing.value = true
     progress.value = 0
-    progressStatus.value = 'The curtain rises... (Initializing analysis)'
+    progressStatus.value = themeStore.performanceMode
+      ? 'The curtain rises... (Initializing analysis)'
+      : 'Initializing analysis pipeline...'
 
     // 2.5 second theatrical delay before first model (to match slower curtain animation)
     await new Promise(resolve => setTimeout(resolve, 2500))
@@ -271,16 +275,22 @@ export const useAnalysisStore = defineStore('analysis', () => {
         localCompletedUnits++
         completedUnits.value++
         progress.value = (localCompletedUnits / totalUnits) * 100
-        progressStatus.value = `${analyzerName.toUpperCase()} enters the stage (Loaded from cache)`
+        progressStatus.value = themeStore.performanceMode
+          ? `${analyzerName.toUpperCase()} enters the stage (Loaded from cache)`
+          : `${analyzerName.toUpperCase()} loaded from cache`
 
         // Unit 2: Model "loaded" (rule-based are instant)
         localCompletedUnits++
         completedUnits.value++
         progress.value = (localCompletedUnits / totalUnits) * 100
-        progressStatus.value = `${analyzerName.toUpperCase()} enters the stage (Loaded from cache)`
+        progressStatus.value = themeStore.performanceMode
+          ? `${analyzerName.toUpperCase()} enters the stage (Loaded from cache)`
+          : `${analyzerName.toUpperCase()} loaded from cache`
 
         // Unit 3: Process all lines
-        progressStatus.value = `NOW PERFORMING: ${analyzerName.toUpperCase()} (Processing ${lines.value.length} texts)`
+        progressStatus.value = themeStore.performanceMode
+          ? `NOW PERFORMING: ${analyzerName.toUpperCase()} (Processing ${lines.value.length} texts)`
+          : `Running ${analyzerName.toUpperCase()} on ${lines.value.length} texts...`
 
         // Process this analyzer on ALL lines (fills column incrementally)
         for (let lineIndex = 0; lineIndex < lines.value.length; lineIndex++) {
@@ -347,21 +357,27 @@ export const useAnalysisStore = defineStore('analysis', () => {
           currentModelProcessedLines.value = 0
 
           // Unit 1: Download/Create worker
-          progressStatus.value = `${modelInfo.displayName} is arriving at the theater... (Creating web worker)`
+          progressStatus.value = themeStore.performanceMode
+            ? `${modelInfo.displayName} is arriving at the theater... (Creating web worker)`
+            : `Initializing ${modelInfo.displayName} worker...`
           await multiModelAnalyzer.initializeWorker()
           localCompletedUnits++
           completedUnits.value++
           progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Unit 2: Load model
-          progressStatus.value = `${modelInfo.displayName} is getting into costume... (Downloading model)`
+          progressStatus.value = themeStore.performanceMode
+            ? `${modelInfo.displayName} is getting into costume... (Downloading model)`
+            : `Loading ${modelInfo.displayName} model...`
           await multiModelAnalyzer.initializeSingleModel(modelId)
           localCompletedUnits++
           completedUnits.value++
           progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Unit 3: Process all lines
-          progressStatus.value = `NOW PERFORMING: ${modelInfo.displayName} (Processing ${lines.value.length} texts)`
+          progressStatus.value = themeStore.performanceMode
+            ? `NOW PERFORMING: ${modelInfo.displayName} (Processing ${lines.value.length} texts)`
+            : `Running ${modelInfo.displayName} inference on ${lines.value.length} texts...`
 
           for (let lineIndex = 0; lineIndex < lines.value.length; lineIndex++) {
             const text = lines.value[lineIndex]
@@ -446,7 +462,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
           progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Cleanup: TERMINATE WORKER to completely free ALL memory for this model
-          progressStatus.value = `Round of applause for ${modelInfo.displayName}! (Terminating worker to free memory)`
+          progressStatus.value = themeStore.performanceMode
+            ? `Round of applause for ${modelInfo.displayName}! (Terminating worker to free memory)`
+            : `Cleaning up ${modelInfo.displayName} worker...`
           await multiModelAnalyzer.terminateWorker()
           console.log(`✅ Worker terminated - ALL memory freed for ${modelInfo.displayName}`)
 
@@ -485,7 +503,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       isAnalyzing.value = false
       progress.value = 100
-      progressStatus.value = `Final curtain! All performers have taken their bow. (Analysis complete - ${lines.value.length} lines processed)`
+      progressStatus.value = themeStore.performanceMode
+        ? `Final curtain! All performers have taken their bow. (Analysis complete - ${lines.value.length} lines processed)`
+        : `Analysis complete - ${lines.value.length} lines processed by ${totalModels.value} models`
     }
   }
 
