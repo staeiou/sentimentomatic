@@ -6,8 +6,13 @@
         <button class="modal-close" @click="close">×</button>
       </div>
       <div class="modal-body">
+        <div class="explanation-section">
+          <p>The template generator creates multiple variations of text by combining different values.
+             Write a template with placeholders in &#123;&#123;double braces&#125;&#125;, then provide multiple values for each placeholder.
+             All possible combinations will be generated automatically.</p>
+        </div>
         <div class="template-section">
-          <label for="template-input">Template (use &#123;&#123;variable&#125;&#125; for placeholders):</label>
+          <label for="template-input">Template (use &#123;&#123;placeholder&#125;&#125; for placeholders):</label>
           <textarea id="template-input" v-model="template" class="template-input"
                     placeholder="Example: I {{feeling}} {{thing}}" rows="3"></textarea>
           <button class="btn btn-secondary btn-sm" @click="detectVariables">Detect Variables</button>
@@ -22,11 +27,11 @@
         </div>
 
         <div v-if="preview.length > 0" class="preview-section">
-          <label>Preview (first 5 combinations):</label>
+          <label>Preview (first 50 combinations):</label>
           <div class="preview-output">
             <div v-for="(line, index) in preview" :key="index" class="preview-line">{{ line }}</div>
-            <div v-if="totalCombinations > 5" class="preview-more">
-              ...and {{ totalCombinations - 5 }} more
+            <div v-if="totalCombinations > 50" class="preview-more">
+              ...and {{ totalCombinations - 50 }} more
             </div>
           </div>
         </div>
@@ -69,8 +74,8 @@ const preview = computed(() => {
     variableValues.value[v]?.split('\n').filter(val => val.trim()) || []
   )
 
-  // Generate first 5 combinations
-  const maxPreview = Math.min(5, totalCombinations.value)
+  // Generate first 50 combinations
+  const maxPreview = Math.min(50, totalCombinations.value)
 
   for (let i = 0; i < maxPreview; i++) {
     let text = template.value
@@ -217,6 +222,21 @@ defineExpose({ open })
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.explanation-section {
+  margin-bottom: 15px;
+  padding: 12px;
+  background: #e7f3ff;
+  border-left: 4px solid #007bff;
+  border-radius: 4px;
+}
+
+.explanation-section p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
 }
 
 .template-section,
