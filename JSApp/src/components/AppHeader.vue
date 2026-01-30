@@ -6,14 +6,14 @@
     <!-- Header Image (Default Mode) -->
     <div v-show="!themeStore.performanceMode" class="header-image-container">
       <a href="http://sentimentomatic.org">
-        <img src="/header.png" alt="Stuart's Super Magic Sentiment-O-Matic" class="header-image" />
+        <img src="/header.png" alt="Stuart's Super Magic Sentiment-O-Matic Sentimentomatic" class="header-image" />
       </a>
     </div>
 
     <!-- Header Image (Performance Mode) -->
     <div v-show="themeStore.performanceMode" class="header-image-container performance-header">
       <a href="http://sentimentomatic.org">
-        <img src="/header-performance.png" alt="Stuart's Super Magic Sentiment-O-Matic" class="header-image-performance" />
+        <img src="/header-performance.png" alt="Stuart's Super Magic Sentiment-O-Matic Sentimentomatic" class="header-image-performance" />
       </a>
     </div>
   </header>
