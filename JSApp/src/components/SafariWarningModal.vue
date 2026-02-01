@@ -8,13 +8,13 @@
 
         <div class="modal-body">
           <div class="warning-message">
-            <p><strong>Safari works with Sentiment-O-Matic, but is not recommended.</strong></p>
-            <p>This web app downloads small language models that run entirely in your web browser, but Safari has some limitations:</p>
+            <p><strong>Safari / WebKit detected — neural models will be slower but should work.</strong></p>
+            <p>This app downloads small language models that run entirely in your browser. Safari and all browsers on iPadOS use Apple's WebKit engine, which has some limitations for this kind of workload:</p>
 
             <ul class="issues-list">
-              <li>⌛ Model analysis is much slower (2-10x faster on Firefox/Chrome) </li>
-              <li>🐌 Model loading is much slower (20-30 seconds vs 2-3 seconds)</li>
-              <li>💾 Models often need to be re-downloaded each session</li>
+              <li>⌛ Neural model analysis is slower than on desktop Chrome or Firefox</li>
+              <li>🐌 Model loading takes longer (especially the first time)</li>
+              <li>💾 Models may need to be re-downloaded between sessions</li>
               <li>📦 Cache storage is limited and unreliable</li>
               <li>🗑️ <strong>Downloaded models (up to 1.7GB) cannot be deleted from within the app</strong></li>
             </ul>
@@ -24,11 +24,12 @@
             </div>
 
             <p class="browser-recommendation">
-              <strong>For the best experience, use <a href="https://www.mozilla.org/firefox/" target="_blank">Firefox</a>, <a href="https://www.google.com/chrome/" target="_blank">Chrome</a>, or a Firefox/Chrome-based browser like <a href="https://brave.com/download/">Brave</a> or <a href="https://www.opera.com/download">Opera</a>.</strong>
+              <strong>On a desktop Mac, Windows, or Linux, use <a href="https://www.mozilla.org/firefox/" target="_blank">Firefox</a> or <a href="https://www.google.com/chrome/" target="_blank">Chrome</a> for the best experience.</strong>
+              On iPadOS, all browsers share the same WebKit engine — switching browsers won't help, but the app should still work.
             </p>
 
             <p class="continue-message">
-              You can continue using Safari, but expect longer loading times.
+              Rule-based analyzers (VADER, AFINN) run instantly. Neural models will load and run, just more slowly.
             </p>
           </div>
 

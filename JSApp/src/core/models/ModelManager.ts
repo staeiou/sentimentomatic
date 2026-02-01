@@ -146,10 +146,19 @@ export class ModelManager {
     // Setup browser environment once
     this.setupBrowserEnvironment();
 
-    // Load and cache transformers.js module (only once for performance)
+    // Load and cache transformers.js module (only once for performance).
+    // v3.7.3 bundles ORT 1.22.0-dev which crashes on WebKit due to a JSEP/WASM
+    // JIT bug (onnxruntime #26827) and OOM on iPadOS 17 (#22086).  The ORT
+    // breakage starts at 1.21 — v3.1.1 bundles ORT 1.20.1, the last pre-1.21
+    // release and the last confirmed working on WebKit 26.  ORT 1.20.1 also
+    // supports opset 19 so all models load.  numThreads=1 is critical per
+    // transformers.js #1242 ("JSC not doing well with multi-threaded WASM").
     if (!this.transformersModule) {
-      console.log(`🔧 Loading Transformers.js for the first time...`);
-      const transformersUrl = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3/dist/transformers.min.js';
+      const onWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Edg|OPR|Chromium/.test(navigator.userAgent);
+      const transformersUrl = onWebKit
+        ? 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.1/dist/transformers.min.js'
+        : 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3/dist/transformers.min.js';
+      console.log(`🔧 Loading Transformers.js (${onWebKit ? 'v3.1.1 ORT-1.20.1 WebKit-safe' : 'v3.7.3'})...`);
       this.transformersModule = await import(/* @vite-ignore */ transformersUrl);
     }
     
@@ -166,9 +175,9 @@ export class ModelManager {
     env.useBrowserCache = true;
     env.backends.onnx.wasm.numThreads = 1;
     env.backends.onnx.wasm.simd = false;
+    env.useQuantized = true;
     env.backends.onnx.webgl = false;
     env.backends.onnx.webgpu = false;
-    env.useQuantized = true;
     
     // Debug the actual CDN URL being used
     console.log(`🔧 Environment remoteHost: ${env.remoteHost}`);

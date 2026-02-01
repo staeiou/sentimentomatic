@@ -4,7 +4,19 @@
 // Terminating this worker completely frees all memory
 
 let transformersModule: any = null;
+let onWebKit = false;
 const loadedPipelines = new Map<string, any>();
+
+// Detect WebKit Safari (macOS, iPadOS, iOS).
+// iPadOS 13+ mimics a Mac UA, so we can't distinguish it from macOS Safari —
+// but that's fine: v3.7.3 crashes on macOS Safari too (transformers.js #1242).
+// Chrome/Firefox/Edge on iPadOS report CriOS/FxiOS/EdgiOS (not Chrome/Edg),
+// so they are NOT excluded by the desktop-browser filter and correctly use
+// the WebKit-safe path.
+function isWebKitSafari(): boolean {
+  const ua = self.navigator.userAgent;
+  return /AppleWebKit/.test(ua) && !/Chrome|Edg|OPR|Chromium/.test(ua);
+}
 
 // Message handler
 self.addEventListener('message', async (event) => {
@@ -51,8 +63,24 @@ async function handleLoadModel(payload: {
 
   // Load transformers.js if not already loaded
   if (!transformersModule) {
-    console.log('[Worker] Loading transformers.js module...');
-    const transformersUrl = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3/dist/transformers.min.js';
+    // v3.7.3 bundles onnxruntime-web 1.22.0-dev which triggers an infinite loop
+    // in WebKit's WASM JIT on iPadOS 26 (onnxruntime #26827) and OOM on iPadOS 17
+    // (onnxruntime #22086).  The breakage starts at ORT 1.21 — confirmed by
+    // mapping every @huggingface/transformers release to its bundled ORT version.
+    //
+    // v3.1.1 bundles onnxruntime-web 1.20.1: the last release before 1.21, and
+    // the last one confirmed working on WebKit 26 per onnxruntime #26827.
+    // ORT 1.20.1 also supports opset 19 (added in 1.17), so all models work.
+    // It's still v3 so subfolder/dtype pipeline options work natively.
+    //
+    // numThreads=1 is critical: transformers.js #1242 identified "JSC not doing
+    // well with multi-threaded WASM" as the root cause of iOS crashes.
+    onWebKit = isWebKitSafari();
+    const transformersUrl = onWebKit
+      ? 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.1/dist/transformers.min.js'
+      : 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3/dist/transformers.min.js';
+
+    console.log(`[Worker] Loading transformers.js (${onWebKit ? 'v3.1.1 ORT-1.20.1 WebKit-safe' : 'v3.7.3'})...`);
     transformersModule = await import(/* @vite-ignore */ transformersUrl);
 
     const { env } = transformersModule;
@@ -67,7 +95,7 @@ async function handleLoadModel(payload: {
     env.backends.onnx.webgpu = false;
     env.useQuantized = true;
 
-    console.log('[Worker] Transformers.js loaded and configured');
+    console.log(`[Worker] Transformers.js loaded and configured (ORT ${onWebKit ? '1.20.1' : '1.22.0-dev'})`);
   }
 
   // Check if already loaded
@@ -120,7 +148,40 @@ async function handleLoadModel(payload: {
     console.log(`[Worker] Overriding subfolder and filename for ${huggingFaceId}`);
   }
 
-  const pipelineInstance = await pipeline(task, modelPath, options);
+  // Safety-net fetch redirects for non-standard ONNX file layouts on WebKit.
+  // v3.1.1 should handle subfolder/dtype natively; these are a no-op if it does.
+  const needsFetchRedirect = onWebKit && (
+    huggingFaceId === 'minuva/MiniLMv2-toxic-jigsaw-onnx' ||
+    huggingFaceId === 'protectai/xlm-roberta-base-language-detection-onnx'
+  );
+  const origFetch = needsFetchRedirect ? self.fetch : null;
+  if (origFetch) {
+    (self as any).fetch = (input: any, init?: any) => {
+      const url = typeof input === 'string' ? input : '';
+
+      // Jigsaw: actual file is model_optimized_quantized.onnx at root level
+      if (url.includes('minuva/MiniLMv2-toxic-jigsaw-onnx') && url.includes('.onnx')) {
+        console.log('[Worker] Redirecting Jigsaw ONNX → model_optimized_quantized.onnx');
+        return origFetch('https://huggingface.co/minuva/MiniLMv2-toxic-jigsaw-onnx/resolve/main/model_optimized_quantized.onnx', init);
+      }
+
+      // protectai: ONNX files are at root, not in /onnx/ subdirectory
+      if (url.includes('protectai/xlm-roberta-base-language-detection-onnx') && url.includes('/onnx/')) {
+        const newUrl = url.replace('/onnx/', '/');
+        console.log(`[Worker] Redirecting protectai ONNX: /onnx/ → root`);
+        return origFetch(newUrl, init);
+      }
+
+      return origFetch(input, init);
+    };
+  }
+
+  let pipelineInstance: any;
+  try {
+    pipelineInstance = await pipeline(task, modelPath, options);
+  } finally {
+    if (origFetch) (self as any).fetch = origFetch;
+  }
 
   loadedPipelines.set(modelId, pipelineInstance);
 
