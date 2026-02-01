@@ -4,6 +4,7 @@ import type { MultiModalAnalysisResult } from '../core/analysis/AnalysisStrategy
 import { AnalyzerRegistry } from '../core/analyzers'
 import { MultiModelAnalyzer } from '../core/analyzers/MultiModelAnalyzer'
 import { useThemeStore } from './themeStore'
+import { isIPadOS } from '../utils/platform'
 
 export const useAnalysisStore = defineStore('analysis', () => {
   const themeStore = useThemeStore()
@@ -346,6 +347,15 @@ export const useAnalysisStore = defineStore('analysis', () => {
       }
 
       // Process ML models - ONE MODEL AT A TIME FOR ALL LINES
+      const resetWorkerPerLine = isIPadOS()
+      const resetWorkerAfterLine = async () => {
+        if (!resetWorkerPerLine) return
+        try {
+          await multiModelAnalyzer.terminateWorker()
+        } catch (error) {
+          console.warn('⚠️ Failed to terminate worker after line (iPadOS stability mode):', error)
+        }
+      }
       for (const modelId of selectedHuggingFaceModels) {
         const modelInfo = multiModelAnalyzer.getEnabledModels().get(modelId)
         if (!modelInfo) continue
@@ -429,10 +439,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
                 // Trigger reactivity for incremental update (cell appears immediately)
                 currentResult.value = { ...currentResult.value }
-
-                // Small delay for visual effect of results streaming in
-                await new Promise(resolve => setTimeout(resolve, 15))
               }
+
+              // Small delay for visual effect of results streaming in
+              await resetWorkerAfterLine()
+              await new Promise(resolve => setTimeout(resolve, 15))
             } catch (error) {
               console.warn(`Model ${modelInfo.displayName} failed on line ${lineIndex + 1}:`, error)
               const errorResult = {
@@ -448,6 +459,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
               unifiedResults[lineIndex].results.push(errorResult)
               currentResult.value = { ...currentResult.value }
+              await resetWorkerAfterLine()
             }
 
             // Update line counter for timing
@@ -462,11 +474,13 @@ export const useAnalysisStore = defineStore('analysis', () => {
           progress.value = (localCompletedUnits / totalUnits) * 100
 
           // Cleanup: TERMINATE WORKER to completely free ALL memory for this model
-          progressStatus.value = themeStore.performanceMode
-            ? `Round of applause for ${modelInfo.displayName}! (Terminating worker to free memory)`
-            : `Cleaning up ${modelInfo.displayName} worker...`
-          await multiModelAnalyzer.terminateWorker()
-          console.log(`✅ Worker terminated - ALL memory freed for ${modelInfo.displayName}`)
+          if (!resetWorkerPerLine) {
+            progressStatus.value = themeStore.performanceMode
+              ? `Round of applause for ${modelInfo.displayName}! (Terminating worker to free memory)`
+              : `Cleaning up ${modelInfo.displayName} worker...`
+            await multiModelAnalyzer.terminateWorker()
+            console.log(`✅ Worker terminated - ALL memory freed for ${modelInfo.displayName}`)
+          }
 
           // Clear browser cache if not keeping cached (optional)
           if (!keepModelsCached) {
