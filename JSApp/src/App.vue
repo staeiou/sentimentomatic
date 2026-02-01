@@ -141,11 +141,12 @@ onMounted(async () => {
     }, 300)
   }
 
-  // Check if Safari and if warning hasn't been dismissed
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  // Check if iPhone/iPad (iOS/iPadOS) and if warning hasn't been dismissed
+  const ua = navigator.userAgent
+  const isIOSDevice = /iPhone|iPad|iPod/i.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1)
   const warningDismissed = localStorage.getItem('sentimentomatic_safari_warning_dismissed') === 'true'
 
-  if (isSafari && !warningDismissed) {
+  if (isIOSDevice && !warningDismissed) {
     // Delay slightly to ensure everything is rendered
     setTimeout(() => {
       safariWarningRef.value?.open()

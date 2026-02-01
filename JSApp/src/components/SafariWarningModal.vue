@@ -2,34 +2,34 @@
   <div v-if="isOpen" class="modal-overlay" style="display: flex !important;" @click.self="close">
     <div class="modal-dialog safari-warning-modal">
       <div class="modal-header">
-        <h3>⚠️ Safari Browser Detected</h3>
+        <h3>⚠️ iPhone/iPad (iOS/iPadOS) Detected</h3>
         <button class="modal-close" @click="close">×</button>
       </div>
 
         <div class="modal-body">
           <div class="warning-message">
-            <p><strong>Safari / WebKit detected — neural models will be slower but should work.</strong></p>
-            <p>This app downloads small language models that run entirely in your browser. Safari and all browsers on iPadOS use Apple's WebKit engine, which has some limitations for this kind of workload:</p>
+            <p><strong>iPhone/iPad uses WebKit for all browsers — neural models are not guaranteed to be stable.</strong></p>
+            <p>This app runs models entirely in your browser. On iOS/iPadOS, WebKit memory limits are much tighter, so neural models can crash or stall, especially larger ones.</p>
 
             <ul class="issues-list">
-              <li>⌛ Neural model analysis is slower than on desktop Chrome or Firefox</li>
-              <li>🐌 Model loading takes longer (especially the first time)</li>
-              <li>💾 Models may need to be re-downloaded between sessions</li>
-              <li>📦 Cache storage is limited and unreliable</li>
-              <li>🗑️ <strong>Downloaded models (up to 1.7GB) cannot be deleted from within the app</strong></li>
+              <li>✅ <strong>VADER and AFINN (rule-based) are 100% supported</strong></li>
+              <li>⚠️ Neural models may work, but stability depends on RAM and model size</li>
+              <li>📉 Larger models are more likely to crash or lock up the device</li>
+              <li>🔢 For best stability on iPhone/iPad, select only one model at a time</li>
+              <li>💻 <strong>Desktop/laptop is strongly recommended</strong> for multi-model runs</li>
             </ul>
 
             <div class="safari-storage-warning">
-              <strong>⚠️ To delete downloaded models:</strong> Safari → Settings → Privacy → Manage Website Data → Remove
+              <strong>⚠️ To delete downloaded models:</strong> Settings → Safari → Advanced → Website Data → Remove
             </div>
 
             <p class="browser-recommendation">
-              <strong>On a desktop Mac, Windows, or Linux, use <a href="https://www.mozilla.org/firefox/" target="_blank">Firefox</a> or <a href="https://www.google.com/chrome/" target="_blank">Chrome</a> for the best experience.</strong>
-              On iPadOS, all browsers share the same WebKit engine — switching browsers won't help, but the app should still work.
+              <strong>These limits are not enforced by the app.</strong>
+              If you can, use a desktop or laptop for best stability and performance.
             </p>
 
             <p class="continue-message">
-              Rule-based analyzers (VADER, AFINN) run instantly. Neural models will load and run, just more slowly.
+              Rule-based analyzers run instantly; neural models may be unstable on iPhone/iPad.
             </p>
           </div>
 
@@ -39,7 +39,7 @@
               Don't show this warning again
             </label>
             <button type="button" class="btn btn-primary" @click="close">
-              Continue with Safari
+              Continue on iPhone/iPad
             </button>
           </div>
         </div>
