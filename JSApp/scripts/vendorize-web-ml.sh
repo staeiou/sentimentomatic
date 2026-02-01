@@ -33,4 +33,12 @@ echo "📦 Vendorizing onnxruntime-web..."
 extract_pkg "onnxruntime-web" "1.20.1" "dist" "${VENDOR_DIR}/onnxruntime-web/1.20.1/dist"
 extract_pkg "onnxruntime-web" "1.22.0-dev.20250409-89f8206ba4" "dist" "${VENDOR_DIR}/onnxruntime-web/1.22.0-dev.20250409-89f8206ba4/dist"
 
+for ver in "1.20.1" "1.22.0-dev.20250409-89f8206ba4"; do
+  mjs="${VENDOR_DIR}/onnxruntime-web/${ver}/dist/ort-wasm-simd-threaded.jsep.mjs"
+  js="${VENDOR_DIR}/onnxruntime-web/${ver}/dist/ort-wasm-simd-threaded.jsep.js"
+  if [ -f "${mjs}" ]; then
+    cp "${mjs}" "${js}"
+  fi
+done
+
 echo "✅ Vendor assets installed in ${VENDOR_DIR}"
