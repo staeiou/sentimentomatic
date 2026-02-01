@@ -155,11 +155,32 @@ export class ModelManager {
     // transformers.js #1242 ("JSC not doing well with multi-threaded WASM").
     if (!this.transformersModule) {
       const onWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Edg|OPR|Chromium/.test(navigator.userAgent);
-      const transformersUrl = onWebKit
+      const vendorBase = new URL('../vendor/', import.meta.url).href;
+      const vendorTransformersUrl = onWebKit
+        ? `${vendorBase}transformers/3.1.1/transformers.min.js`
+        : `${vendorBase}transformers/3.7.3/transformers.min.js`;
+      const cdnTransformersUrl = onWebKit
         ? 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.1/dist/transformers.min.js'
         : 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3/dist/transformers.min.js';
-      console.log(`🔧 Loading Transformers.js (${onWebKit ? 'v3.1.1 ORT-1.20.1 WebKit-safe' : 'v3.7.3'})...`);
-      this.transformersModule = await import(/* @vite-ignore */ transformersUrl);
+      const vendorOrtBase = onWebKit
+        ? `${vendorBase}onnxruntime-web/1.20.1/dist/`
+        : `${vendorBase}onnxruntime-web/1.22.0-dev.20250409-89f8206ba4/dist/`;
+      const cdnOrtBase = onWebKit
+        ? 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/'
+        : 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0-dev.20250409-89f8206ba4/dist/';
+
+      let transformersUrl = vendorTransformersUrl;
+      let ortBase = vendorOrtBase;
+      try {
+        console.log(`🔧 Loading Transformers.js from vendor (${onWebKit ? 'v3.1.1 ORT-1.20.1 WebKit-safe' : 'v3.7.3'})...`);
+        this.transformersModule = await import(/* @vite-ignore */ transformersUrl);
+      } catch (error) {
+        transformersUrl = cdnTransformersUrl;
+        ortBase = cdnOrtBase;
+        console.warn('⚠️ Vendor transformers.js not found, falling back to CDN:', error);
+        this.transformersModule = await import(/* @vite-ignore */ transformersUrl);
+      }
+      (this.transformersModule as any).__ortBase = ortBase;
     }
     
     const { pipeline, env } = this.transformersModule;
@@ -178,6 +199,9 @@ export class ModelManager {
     env.useQuantized = true;
     env.backends.onnx.webgl = false;
     env.backends.onnx.webgpu = false;
+    if ((this.transformersModule as any).__ortBase) {
+      env.backends.onnx.wasm.wasmPaths = (this.transformersModule as any).__ortBase;
+    }
     
     // Debug the actual CDN URL being used
     console.log(`🔧 Environment remoteHost: ${env.remoteHost}`);

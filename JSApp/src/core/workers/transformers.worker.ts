@@ -76,12 +76,31 @@ async function handleLoadModel(payload: {
     // numThreads=1 is critical: transformers.js #1242 identified "JSC not doing
     // well with multi-threaded WASM" as the root cause of iOS crashes.
     onWebKit = isWebKitSafari();
-    const transformersUrl = onWebKit
+    const vendorBase = new URL('../vendor/', import.meta.url).href;
+    const vendorTransformersUrl = onWebKit
+      ? `${vendorBase}transformers/3.1.1/transformers.min.js`
+      : `${vendorBase}transformers/3.7.3/transformers.min.js`;
+    const cdnTransformersUrl = onWebKit
       ? 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.1/dist/transformers.min.js'
       : 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3/dist/transformers.min.js';
+    const vendorOrtBase = onWebKit
+      ? `${vendorBase}onnxruntime-web/1.20.1/dist/`
+      : `${vendorBase}onnxruntime-web/1.22.0-dev.20250409-89f8206ba4/dist/`;
+    const cdnOrtBase = onWebKit
+      ? 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/'
+      : 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0-dev.20250409-89f8206ba4/dist/';
 
-    console.log(`[Worker] Loading transformers.js (${onWebKit ? 'v3.1.1 ORT-1.20.1 WebKit-safe' : 'v3.7.3'})...`);
-    transformersModule = await import(/* @vite-ignore */ transformersUrl);
+    let transformersUrl = vendorTransformersUrl;
+    let ortBase = vendorOrtBase;
+    try {
+      console.log(`[Worker] Loading transformers.js from vendor (${onWebKit ? 'v3.1.1 ORT-1.20.1 WebKit-safe' : 'v3.7.3'})...`);
+      transformersModule = await import(/* @vite-ignore */ transformersUrl);
+    } catch (error) {
+      transformersUrl = cdnTransformersUrl;
+      ortBase = cdnOrtBase;
+      console.warn('[Worker] Vendor transformers.js not found, falling back to CDN:', error);
+      transformersModule = await import(/* @vite-ignore */ transformersUrl);
+    }
 
     const { env } = transformersModule;
 
@@ -93,6 +112,7 @@ async function handleLoadModel(payload: {
     env.backends.onnx.wasm.simd = false;
     env.backends.onnx.webgl = false;
     env.backends.onnx.webgpu = false;
+    env.backends.onnx.wasm.wasmPaths = ortBase;
     env.useQuantized = true;
 
     console.log(`[Worker] Transformers.js loaded and configured (ORT ${onWebKit ? '1.20.1' : '1.22.0-dev'})`);
