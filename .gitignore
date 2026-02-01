@@ -8,6 +8,10 @@ dist/
 build/
 */build/
 
+# Allow vendored ONNX Runtime Web dist assets (needed for GH Pages)
+!JSApp/public/vendor/onnxruntime-web/**/dist/
+!JSApp/public/vendor/onnxruntime-web/**/dist/**
+
 # Environment files
 .env
 .env.local

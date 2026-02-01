@@ -84,23 +84,17 @@ async function handleLoadModel(payload: {
       ? 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.1/dist/transformers.min.js'
       : 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3/dist/transformers.min.js';
     const ortVersion = onWebKit ? '1.20.1' : '1.22.0-dev.20250409-89f8206ba4';
-    const vendorOrtPaths = {
-      mjs: `${vendorBase}onnxruntime-web/${ortVersion}/dist/ort-wasm-simd-threaded.jsep.js`,
-      wasm: `${vendorBase}onnxruntime-web/${ortVersion}/dist/ort-wasm-simd-threaded.jsep.wasm`
-    };
-    const cdnOrtPaths = {
-      mjs: `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort-wasm-simd-threaded.jsep.mjs`,
-      wasm: `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort-wasm-simd-threaded.jsep.wasm`
-    };
+    const vendorOrtBase = `${vendorBase}onnxruntime-web/${ortVersion}/dist/`;
+    const cdnOrtBase = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/`;
 
     let transformersUrl = vendorTransformersUrl;
-    let ortPaths = vendorOrtPaths;
+    let ortBase = vendorOrtBase;
     try {
       console.log(`[Worker] Loading transformers.js from vendor (${onWebKit ? 'v3.1.1 ORT-1.20.1 WebKit-safe' : 'v3.7.3'})...`);
       transformersModule = await import(/* @vite-ignore */ transformersUrl);
     } catch (error) {
       transformersUrl = cdnTransformersUrl;
-      ortPaths = cdnOrtPaths;
+      ortBase = cdnOrtBase;
       console.warn('[Worker] Vendor transformers.js not found, falling back to CDN:', error);
       transformersModule = await import(/* @vite-ignore */ transformersUrl);
     }
@@ -115,7 +109,7 @@ async function handleLoadModel(payload: {
     env.backends.onnx.wasm.simd = false;
     env.backends.onnx.webgl = false;
     env.backends.onnx.webgpu = false;
-    env.backends.onnx.wasm.wasmPaths = ortPaths;
+    env.backends.onnx.wasm.wasmPaths = ortBase;
     env.useQuantized = true;
 
     console.log(`[Worker] Transformers.js loaded and configured (ORT ${onWebKit ? '1.20.1' : '1.22.0-dev'})`);

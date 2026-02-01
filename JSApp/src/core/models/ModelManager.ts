@@ -163,27 +163,21 @@ export class ModelManager {
         ? 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.1/dist/transformers.min.js'
         : 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3/dist/transformers.min.js';
       const ortVersion = onWebKit ? '1.20.1' : '1.22.0-dev.20250409-89f8206ba4';
-      const vendorOrtPaths = {
-        mjs: `${vendorBase}onnxruntime-web/${ortVersion}/dist/ort-wasm-simd-threaded.jsep.js`,
-        wasm: `${vendorBase}onnxruntime-web/${ortVersion}/dist/ort-wasm-simd-threaded.jsep.wasm`
-      };
-      const cdnOrtPaths = {
-        mjs: `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort-wasm-simd-threaded.jsep.mjs`,
-        wasm: `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort-wasm-simd-threaded.jsep.wasm`
-      };
+      const vendorOrtBase = `${vendorBase}onnxruntime-web/${ortVersion}/dist/`;
+      const cdnOrtBase = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/`;
 
       let transformersUrl = vendorTransformersUrl;
-      let ortPaths = vendorOrtPaths;
+      let ortBase = vendorOrtBase;
       try {
         console.log(`🔧 Loading Transformers.js from vendor (${onWebKit ? 'v3.1.1 ORT-1.20.1 WebKit-safe' : 'v3.7.3'})...`);
         this.transformersModule = await import(/* @vite-ignore */ transformersUrl);
       } catch (error) {
         transformersUrl = cdnTransformersUrl;
-        ortPaths = cdnOrtPaths;
+        ortBase = cdnOrtBase;
         console.warn('⚠️ Vendor transformers.js not found, falling back to CDN:', error);
         this.transformersModule = await import(/* @vite-ignore */ transformersUrl);
       }
-      (this.transformersModule as any).__ortPaths = ortPaths;
+      (this.transformersModule as any).__ortBase = ortBase;
     }
     
     const { pipeline, env } = this.transformersModule;
@@ -202,8 +196,8 @@ export class ModelManager {
     env.useQuantized = true;
     env.backends.onnx.webgl = false;
     env.backends.onnx.webgpu = false;
-    if ((this.transformersModule as any).__ortPaths) {
-      env.backends.onnx.wasm.wasmPaths = (this.transformersModule as any).__ortPaths;
+    if ((this.transformersModule as any).__ortBase) {
+      env.backends.onnx.wasm.wasmPaths = (this.transformersModule as any).__ortBase;
     }
     
     // Debug the actual CDN URL being used
